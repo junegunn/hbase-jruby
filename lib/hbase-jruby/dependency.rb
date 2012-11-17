@@ -8,7 +8,7 @@ class HBase
     # @param [String] dist Distribution version or path to pom.xml file
     # @param [true, false] verbose Verbose output
     # @return [Array<String>] Loaded JAR files
-    def resolve_dependency! dist = 'cdh4.1.2', verbose = false
+    def resolve_dependency! dist, verbose = false
       silencer = verbose ? '' : '> /dev/null'
       jars =
         if dist == :hbase

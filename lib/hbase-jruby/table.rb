@@ -24,7 +24,6 @@ class Table
   # Checks if the table is enabled
   # @return [true, false] Whether table is enabled
   def enabled?
-    raise RuntimeError, 'Table already exists' if exists?
     @admin.isTableEnabled(@name)
   end
 
@@ -278,31 +277,31 @@ class Table
   # @see HBase::Scoped#range
   # @return [HBase::Scoped]
   def range *key_range
-    scan.range *key_range
+    each.range *key_range
   end
 
   # @see HBase::Scoped#project
   # @return [HBase::Scoped]
   def project *columns
-    scan.project *columns
+    each.project *columns
   end
 
   # @see HBase::Scoped#filter
   # @return [HBase::Scoped]
   def filter *filters
-    scan.filter *filters
+    each.filter *filters
   end
 
   # @see HBase::Scoped#limit
   # @return [HBase::Scoped]
   def limit rows
-    scan.limit rows
+    each.limit rows
   end
 
   # @see HBase::Scoped#versions
   # @return [HBase::Scoped]
   def versions vs
-    scan.versions vs
+    each.versions vs
   end
 
   # Returns the underlying org.apache.hadoop.hbase.client.HTable object

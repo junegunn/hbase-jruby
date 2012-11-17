@@ -7,6 +7,28 @@ but doing so requires a lot of keystrokes even for the most basic operations and
 leads to verbose code that will be frowned upon by any sane Rubyist.
 Anyhow, JRuby is Ruby, not Java, right?
 
+## A quick example
+
+```ruby
+require 'hbase-jruby'
+
+hbase = HBase.new
+table = hbase.table(:test_table)
+
+# PUT
+table.put :rowkey1 => { 'cf1:a' => 100, 'cf2:b' => "Hello" }
+
+# GET
+row = table.get(:rowkey1)
+number = row.integer('cf1:a')
+string = row.string('cf1:b')
+
+# SCAN
+table.range('rowkey1'..'rowkey9').filter('cf1:a' => 100..200).each do |row|
+  puts row.integer('cf1:a')
+end
+```
+
 ## Installation
 
 Add this line to your application's Gemfile:
@@ -39,8 +61,9 @@ which resolves Hadoop/HBase dependency.
 A natural way to resolve class dependencies in JVM environment is to use Maven.
 Current version of hbase-jruby is shipped with Maven dependency specifications
 for the following Hadoop/HBase distributions.
-- cdh4.1.2
-- cdh3u5 (NOT TESTED :p)
+
+* cdh4.1.2
+* cdh3u5 (NOT TESTED :p)
 
 ```ruby
 require 'hbase-jruby'
@@ -54,7 +77,7 @@ If you use another version of HBase and Hadoop,
 you can use your own Maven pom.xml file with its customized Hadoop/HBase dependency
 
 ```ruby
-HBase.resolve_dependency! '/project/hbase/pom.xml'
+HBase.resolve_dependency! '/project/my-hbase/pom.xml'
 ```
 
 #### Using `hbase classpath` command
@@ -213,16 +236,19 @@ end
 table.first.to_hash schema
 ```
 
-However, scan operation is actually implemented in enumerable HBase::Scoped class,
-whose instance is implicitly used/returned by HBase::Table#each call.
+Scan operation is actually implemented in enumerable `HBase::Scoped` class,
+whose instance is implicitly used/returned by `HBase::Table#each` call.
 
 ```ruby
 scoped = table.each
 ```
 
-An HBase::Scoped object responds to a various scan related methods,
-such as range, filter, project, versions, caching, et cetera.
-However, it doesn't respond to get, set, delete, increment, and methods for table administration.
+An `HBase::Scoped` object responds to a various scan related methods,
+such as `range`, `filter`, `project`, `versions`, `caching`, et cetera.
+However, it doesn't respond to non-scan methods like `put`, `get`, `delete` and `increment`,
+and methods for table administration.
+`HBase::Table` object also responds to scan related methods described above,
+which is simply forwarded to a new `HBase::Scoped` object implicitly created.
 
 ### Range scan on rowkeys
 
