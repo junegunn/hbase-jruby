@@ -9,7 +9,7 @@ class TestHBaseJruby < Test::Unit::TestCase
   ZK    = ENV['HBASE_JRUBY_TEST_ZK'] || '127.0.0.1'
 
   def setup
-    HBase.resolve_dependency! :cdh4
+    HBase.resolve_dependency! 'cdh4.1.2'
     @hbase = HBase.new 'hbase.zookeeper.quorum' => ZK
     @table = @hbase.table(TABLE)
 
@@ -173,7 +173,6 @@ class TestHBaseJruby < Test::Unit::TestCase
 
     assert_equal 50, @table.count
     assert_equal 50, @table.each.count
-    assert_equal 50, @table.scan.count
 
     # Start key
     assert_equal 40,  @table.range(111).count
@@ -211,7 +210,6 @@ class TestHBaseJruby < Test::Unit::TestCase
     insert.call
 
     assert_instance_of HBase::Scoped, @table.each
-    assert_instance_of HBase::Scoped, @table.scan
 
     # Test both for HBase::Table and HBase::Scoped
     [@table, @table.each].each do |table|
