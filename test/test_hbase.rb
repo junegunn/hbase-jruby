@@ -157,12 +157,24 @@ class TestHBaseJruby < Test::Unit::TestCase
     assert_equal 2, @table.get('row3').integer('cf1:b')
   end
 
+  # TODO: column family / qualifier as array
   def test_table_non_string_rowkey
     @hbase.table(TABLE, :string_rowkey => false) do |table|
       rk = 'row1'.to_java_bytes
       table.put(rk, 'cf1:a' => 1)
       assert_equal Bytes.to_string(rk), Bytes.to_string(table.get(rk).rowkey)
       assert_equal 1,  table.get(rk).integer('cf1:a')
+
+    end
+
+    {true => 18, false => 9}.each do |string_rowkey, cnt|
+      @hbase.table(TABLE, :string_rowkey => string_rowkey) do |table|
+        table.truncate!
+        (1..20).each do |rk|
+          table.put(Util.to_bytes(rk), 'cf1:a' => rk)
+        end
+        assert_equal cnt, table.range(1..9).count
+      end
     end
   end
   
