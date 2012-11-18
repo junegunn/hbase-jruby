@@ -45,12 +45,8 @@ class Result
   # @param [String, org.apache.hadoop.hbase.KeyValue] col
   # @return [byte[]] Byte array representation
   def bytes col
-    if col.is_a?(KeyValue)
-      @result.getValue col.getFamily, col.getQualifier
-    else
-      cf, cq = KeyValue.parseColumn(col.to_s.to_java_bytes)
-      @result.getValue cf, cq
-    end
+    cf, cq = Util.parse_column_name(col)
+    @result.getValue cf, cq
   end
 
   # Returns the column value as a String

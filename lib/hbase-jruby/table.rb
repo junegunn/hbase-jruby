@@ -210,7 +210,7 @@ class Table
 
     htable.delete specs.map { |spec|
       rowkey, cfcq, *ts = spec
-      cf, cq = KeyValue.parseColumn(cfcq.to_s.to_java_bytes) if cfcq
+      cf, cq = Util.parse_column_name(cfcq) if cfcq
 
       Delete.new(encode_rowkey rowkey).tap { |del| 
         if !ts.empty?
@@ -246,13 +246,13 @@ class Table
       cols = args.first
       htable.increment Increment.new(encode_rowkey rowkey).tap { |inc|
         cols.each do |col, by|
-          cf, cq = KeyValue.parseColumn(col.to_s.to_java_bytes)
+          cf, cq = Util.parse_column_name(col)
           inc.addColumn cf, cq, by
         end
       }
     else
       col, by = args
-      cf, cq = KeyValue.parseColumn(col.to_s.to_java_bytes)
+      cf, cq = Util.parse_column_name(col)
       htable.incrementColumnValue encode_rowkey(rowkey), cf, cq, by || 1
     end
   end
@@ -361,7 +361,7 @@ private
   def putify rowkey, props
     Put.new(encode_rowkey rowkey).tap { |put|
       props.each do |col, val|
-        cf, cq = KeyValue.parseColumn(col.to_s.to_java_bytes)
+        cf, cq = Util.parse_column_name(col)
         put.add cf, cq, Util.to_bytes(val)
       end
     }

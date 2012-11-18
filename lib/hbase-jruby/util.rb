@@ -26,6 +26,18 @@ module Util
       baos.write 0
       baos.toByteArray
     end
+
+    def parse_column_name col
+      case col
+      when KeyValue
+        return col.getFamily, col.getQualifier
+      when Array
+        return col[0], col[1]
+      else
+        cf, cq = KeyValue.parseColumn(col.to_s.to_java_bytes)
+        return cf, cq
+      end
+    end
   end
 end#Util
 end#HBase
