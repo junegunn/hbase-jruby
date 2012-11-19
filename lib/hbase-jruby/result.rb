@@ -1,12 +1,12 @@
-require 'json'
-
 # Represents a row returned by HBase
 class HBase
 # @author Junegunn Choi <junegunn.c@gmail.com>
 class Result
+  # Returns the rowkey of the row
+  # @param [Symbol] type The data type of the rowkey
   # @return [String, byte[]]
-  def rowkey
-    @table.decode_rowkey @result.getRow
+  def rowkey type = :string
+    Util.from_bytes type, @result.getRow
   end
 
   # Returns Hash representation of the row.
@@ -17,7 +17,7 @@ class Result
       @result.getNoVersionMap.each do |cf, cqmap|
         cqmap.each do |cq, val|
           col = cfcq cf, cq
-          ret[col] = schema[col] ? decode(schema[col], val) : val
+          ret[col] = schema[col] ? Util.from_bytes(schema[col], val) : val
         end
       end
     end
@@ -34,7 +34,7 @@ class Result
           col = cfcq cf, cq
           ret[col] = Hash[
             tsmap.map { |ts, val|
-              [ts, schema[col] ? decode(schema[col], val) : val]
+              [ts, schema[col] ? Util.from_bytes(schema[col], val) : val]
             }]
         end
       end
@@ -53,7 +53,7 @@ class Result
   # @param [String, org.apache.hadoop.hbase.KeyValue] col
   # @return [String]
   def string col
-    decode :string, bytes(col)
+    Util.from_bytes :string, bytes(col)
   end
   alias str string
 
@@ -61,7 +61,7 @@ class Result
   # @param [String, org.apache.hadoop.hbase.KeyValue] col
   # @return [Fixnum]
   def fixnum col
-    decode :fixnum, bytes(col)
+    Util.from_bytes :fixnum, bytes(col)
   end
   alias integer fixnum
   alias int     fixnum
@@ -70,7 +70,7 @@ class Result
   # @param [String, org.apache.hadoop.hbase.KeyValue] col
   # @return [Bignum]
   def bignum col
-    decode :bignum, bytes(col)
+    Util.from_bytes :bignum, bytes(col)
   end
   alias biginteger bignum
   alias bigint     bignum
@@ -79,7 +79,7 @@ class Result
   # @param [String, org.apache.hadoop.hbase.KeyValue] col
   # @return [Float]
   def float col
-    decode :float, bytes(col)
+    Util.from_bytes :float, bytes(col)
   end
   alias double float
 
@@ -87,22 +87,13 @@ class Result
   # @param [String, org.apache.hadoop.hbase.KeyValue] col
   # @return [true, false]
   def boolean col
-    decode :boolean, bytes(col)
+    Util.from_bytes :boolean, bytes(col)
   end
   alias bool boolean
 
-  # Returns the column value as a Ruby Object
-  # @param [String, org.apache.hadoop.hbase.KeyValue] col
-  # @return [Object]
-  def json col
-    decode :json, bytes(col)
-  end
-
 private
-  # @param [HBase::Table] table
   # @param [org.apache.hadoop.hbase.client.Result] java_result
-  def initialize table, java_result
-    @table  = table
+  def initialize java_result
     @result = java_result
   end
 
@@ -112,25 +103,6 @@ private
     cq = String.from_java_bytes cq
     cq = nil if cq.empty?
     [cf, cq].compact.join(':')
-  end
-
-  def decode type, val
-    case type
-    when :string, :str
-      Bytes.to_string val
-    when :fixnum, :int, :integer
-      Bytes.to_long val
-    when :bignum, :bigint, :biginteger
-      BigDecimal.new(Bytes.to_big_decimal(val).to_s).to_i
-    when :float, :double
-      Bytes.to_double val
-    when :boolean, :bool
-      Bytes.to_boolean val
-    when :json
-      JSON.parse Bytes.to_string(val)
-    else
-      raise Exception, "Invalid type: #{type}"
-    end
   end
 end#Result
 end#HBase 

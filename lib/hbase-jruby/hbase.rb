@@ -9,33 +9,12 @@ class HBase
   attr_reader :admin
   attr_reader :config
 
+  include Util
+
   # Connects to HBase
   # @param [Hash] config A key-value pairs to build HBaseConfiguration from
   def initialize config = {}
-    @@imported ||= begin
-      import org.apache.hadoop.hbase.HBaseConfiguration
-      import org.apache.hadoop.hbase.HColumnDescriptor
-      import org.apache.hadoop.hbase.HTableDescriptor
-      import org.apache.hadoop.hbase.KeyValue
-      import org.apache.hadoop.hbase.client.Delete
-      import org.apache.hadoop.hbase.client.Get
-      import org.apache.hadoop.hbase.client.HBaseAdmin
-      import org.apache.hadoop.hbase.client.HConnectionManager
-      import org.apache.hadoop.hbase.client.HTablePool
-      import org.apache.hadoop.hbase.client.Increment
-      import org.apache.hadoop.hbase.client.Put
-      import org.apache.hadoop.hbase.client.Scan
-      import org.apache.hadoop.hbase.filter.BinaryComparator
-      import org.apache.hadoop.hbase.filter.CompareFilter
-      import org.apache.hadoop.hbase.filter.FilterBase
-      import org.apache.hadoop.hbase.filter.FilterList
-      import org.apache.hadoop.hbase.filter.FirstKeyOnlyFilter
-      import org.apache.hadoop.hbase.filter.KeyOnlyFilter
-      import org.apache.hadoop.hbase.filter.SingleColumnValueFilter
-      import org.apache.hadoop.hbase.io.hfile.Compression::Algorithm
-      import org.apache.hadoop.hbase.regionserver.StoreFile::BloomType
-      import org.apache.hadoop.hbase.util.Bytes
-    end
+    Util.import_java_classes!
 
     @config =
       case config
@@ -73,12 +52,9 @@ class HBase
 
   # Creates HBase::Table instance for the specified name
   # @param [String, Symbol] table_name
-  # @param [Hash] opts
-  # @option opts [true, false] :string_rowkey (true) Stringify rowkey
   # @return [HBase::Table]
-  def table table_name, opts = {}
-    opts = { :string_rowkey => true }.merge opts
-    ht = HBase::Table.send :new, @admin, @htable_pool, table_name, opts[:string_rowkey]
+  def table table_name
+    ht = HBase::Table.send :new, @admin, @htable_pool, table_name
 
     if block_given?
       begin
