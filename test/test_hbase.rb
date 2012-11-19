@@ -43,6 +43,24 @@ class TestHBaseJruby < Test::Unit::TestCase
     end
   end
 
+  def test_create_table_invalid_input
+    @table.drop!
+    assert_raise(ArgumentError) do
+      @table.create! 3.14
+    end
+  end
+
+  def test_enabled_disabled
+    assert @table.enabled?
+    assert !@table.disabled?
+    @table.disable!
+    assert !@table.enabled?
+    assert @table.disabled?
+    @table.enable!
+    assert @table.enabled?
+    assert !@table.disabled?
+  end
+
   def test_tables
     assert @hbase.table_names.include?(TABLE)
     assert @hbase.tables.map(&:name).include?(TABLE)
@@ -165,6 +183,7 @@ class TestHBaseJruby < Test::Unit::TestCase
     end
 
     assert_equal 50, @table.count
+    assert_instance_of HBase::Scoped, @table.each
     assert_equal 50, @table.each.count
 
     # Start key
@@ -223,6 +242,9 @@ class TestHBaseJruby < Test::Unit::TestCase
       # project: additive
       assert_equal project_cols + ['cf3:d'], table.project(*project_cols).project('cf3:d').first.to_hash.keys
 
+      # project: family
+      assert_equal %w[cf1:a cf3:c cf3:d cf3:e], table.project('cf1:a', 'cf3').first.to_hash.keys
+
       # filter: Hash
       #   to_a.length instead of count :)
       assert_equal 1, table.filter('cf1:a' => 50).to_a.length
@@ -248,6 +270,11 @@ class TestHBaseJruby < Test::Unit::TestCase
              ColumnRangeFilter.new('a'.to_java_bytes, true, 'd'.to_java_bytes, true),
              ColumnPaginationFilter.new(2, 1),
           ]).first.to_hash.keys
+
+      # filter: invalid filter type
+      assert_raise(ArgumentError) {
+        table.filter(3.14)
+      }
 
       # limit with filter
       begin
@@ -304,10 +331,14 @@ class TestHBaseJruby < Test::Unit::TestCase
     assert @table.project(['cf1', 10], ['cf1', 20]).map { |r|
       [r.integer(['cf1', 10]), r.integer(['cf1', 20])]
     }.all? { |e| e == [10, 20] }
+
+    # TODO schema
   end
 
   def test_inspect
     @table.drop!
+    assert "{NAME => '#{TABLE}'}", @table.inspect # FIXME
+
     @table.create! :cf => {
       :blockcache          => true,
       :blocksize           => 128 * 1024,
@@ -380,6 +411,9 @@ class TestHBaseJruby < Test::Unit::TestCase
     assert_raise(ArgumentError) {
       @table.alter_family! :cf4, :hello => 'world'
     }
+    assert_raise(ArgumentError) {
+      @table.alter_family! :cf4, :bloomfilter => :xxx
+    }
   end
 
   def test_table_descriptor
@@ -389,6 +423,14 @@ class TestHBaseJruby < Test::Unit::TestCase
     assert_raise {
       @table.descriptor.setMaxFileSize 100 * 1024 ** 2
     }
+  end
+
+  def test_null_value
+    10.times do |i|
+      @table.put i, 'cf1:nil' => i % 2 == 0 ? nil : true
+    end
+    assert_equal 10, @table.count
+    assert_equal 5, @table.filter('cf1:nil' => nil).count
   end
 end
 

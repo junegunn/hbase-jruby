@@ -169,11 +169,7 @@ private
       scan.caching = @caching if @caching
 
       # Filters
-      if @filters.length == 1
-        scan.setFilter @filters.first
-      elsif @filters.length > 1
-        scan.setFilter FilterList.new(@filters)
-      end
+      scan.setFilter FilterList.new(@filters)
 
       @project.each do |col|
         cf, cq = Util.parse_column_name col
