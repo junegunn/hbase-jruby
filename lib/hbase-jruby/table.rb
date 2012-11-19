@@ -8,6 +8,12 @@ class Table
 
   include Enumerable
 
+  # Returns a read-only org.apache.hadoop.hbase.HTableDescriptor object
+  # @return [org.apache.hadoop.hbase.client.UnmodifyableHTableDescriptor]
+  def descriptor
+    htable.get_table_descriptor
+  end
+
   # Closes the table and returns HTable object back to the HTablePool.
   # @return [nil]
   def close
@@ -41,6 +47,24 @@ class Table
   #   Create the table with the specified column families
   #   @param [Hash] Column family properties
   #   @return [nil]
+  #   @example
+  #     table.create!(
+  #       # Column family with default options
+  #       :cf1 => {},
+  #       # Another column family with custom properties
+  #       :cf2 => {
+  #         :blockcache         => true,
+  #         :blocksize          => 128 * 1024,
+  #         :bloomfilter        => :row,
+  #         :compression        => :snappy,
+  #         :in_memory          => true,
+  #         :keep_deleted_cells => true,
+  #         :min_versions       => 2,
+  #         :replication_scope  => 0,
+  #         :ttl                => 100,
+  #         :versions           => 5
+  #       }
+  #     )
   # @overload create!(table_descriptor)
   #   Create the table with the given HTableDescriptor
   #   @param [org.apache.hadoop.hbase.HTableDescriptor] Table descriptor
@@ -55,48 +79,84 @@ class Table
       create!(desc => {})
     when Hash
       htd = HTableDescriptor.new(@name.to_java_bytes)
-      method_map = {
-        :BLOCKCACHE          => :setBlockCacheEnabled,
-        :BLOCKSIZE           => :setBlocksize,
-        :BLOOMFILTER         => :setBloomFilterType,
-        :COMPRESSION         => :setCompressionType,
-        :DATA_BLOCK_ENCODING => :setDataBlockEncoding,
-        :ENCODE_ON_DISK      => :setEncodeOnDisk,
-        :IN_MEMORY           => :setInMemory,
-        :KEEP_DELETED_CELLS  => :setKeepDeletedCells,
-        :MIN_VERSIONS        => :setMinVersions,
-        :REPLICATION_SCOPE   => :setScope,
-        :TTL                 => :setTimeToLive,
-        :VERSIONS            => :setMaxVersions,
-      }
-      desc.each do |fam, opts|
-        hcd = HColumnDescriptor.new(fam.to_s)
-
-        opts.each do |key, val|
-          k = key.to_s.upcase.to_sym
-          if method_map[k]
-            v =
-              ({
-                :BLOOMFILTER => proc { |v|
-                  const_shortcut BloomType, v, "Invalid bloom filter type"
-                },
-                :COMPRESSION => proc { |v|
-                  const_shortcut Algorithm, v, "Invalid compression algorithm"
-                }
-              }[k] || proc { |a| a }).call(val)
-
-            hcd.send method_map[k], v
-          else
-            raise ArgumentError, "Invalid option: #{key}"
-          end
-        end#opts
-
-        htd.addFamily hcd
+      desc.each do |name, opts|
+        htd.addFamily hcd(name, opts)
       end
 
       @admin.createTable htd
     else
       raise ArgumentError, 'Invalid table description'
+    end
+  end
+
+# # Renames the table (FIXME DOESN'T WORK)
+# # @param [#to_s] New name
+# # @return [String] New name
+# def rename! new_name
+#   new_name = new_name.to_s
+#   htd = @admin.get_table_descriptor(@name.to_java_bytes)
+#   htd.setName new_name.to_java_bytes
+
+#   while_disabled do
+#     @admin.modifyTable @name.to_java_bytes, htd
+#     @name = new_name
+#   end
+# end
+
+  # Alters the table
+  # @param [Hash] Table parameters
+  # @return [nil]
+  # @example
+  #   table.alter!(
+  #     :max_filesize       => 512 * 1024 ** 2,
+  #     :memstore_flushsize =>  64 * 1024 ** 2,
+  #     :readonly           => false,
+  #     :deferred_log_flush => true
+  #   )
+  def alter! table_attrs
+    htd = @admin.get_table_descriptor(@name.to_java_bytes)
+    table_attrs.each do |key, value|
+      method = {
+        :max_filesize       => :setMaxFileSize,
+        :readonly           => :setReadOnly,
+        :memstore_flushsize => :setMemStoreFlushSize,
+        :deferred_log_flush => :setDeferredLogFlush
+      }[key]
+      raise ArgumentError, "Invalid option: #{key}" unless method
+
+      htd.send method, value
+    end
+    while_disabled do
+      @admin.modifyTable @name.to_java_bytes, htd
+    end
+  end
+
+  # Adds the column family
+  # @param [#to_s] name The name of the column family
+  # @param [Hash] opts Column family properties
+  # @return [nil]
+  def add_family! name, opts
+    while_disabled do
+      @admin.addColumn @name, hcd(name.to_s, opts)
+    end
+  end
+
+  # Alters the column family
+  # @param [#to_s] name The name of the column family
+  # @param [Hash] opts Column family properties
+  # @return [nil]
+  def alter_family! name, opts
+    while_disabled do
+      @admin.modifyColumn @name, hcd(name.to_s, opts)
+    end
+  end
+
+  # Removes the column family
+  # @param [#to_s] name The name of the column family
+  # @return [nil]
+  def delete_family! name
+    while_disabled do
+      @admin.deleteColumn @name, name.to_s
     end
   end
 
@@ -112,10 +172,12 @@ class Table
     @admin.disableTable @name if enabled?
   end
 
-  # Truncates the table
+  # Truncates the table by dropping it and recreating it.
   # @return [nil]
   def truncate!
-    @admin.truncate @name
+    htd = htable.get_table_descriptor
+    drop!
+    create! htd
   end
 
   # Drops the table
@@ -145,7 +207,7 @@ class Table
       rowkeys = rowkeys[0...-1]
     end
     ret = htable.get(rowkeys.map { |rk| getify rk, opts }).map { |result|
-      result.isEmpty ? nil : Result.new(self, result)
+      result.isEmpty ? nil : Result.new(result)
     }
     ret.length == 1 ? ret.first : ret
   end
@@ -212,7 +274,7 @@ class Table
       rowkey, cfcq, *ts = spec
       cf, cq = Util.parse_column_name(cfcq) if cfcq
 
-      Delete.new(encode_rowkey rowkey).tap { |del| 
+      Delete.new(Util.to_bytes rowkey).tap { |del| 
         if !ts.empty?
           ts.each do |t|
             del.deleteColumn cf, cq, t
@@ -244,7 +306,7 @@ class Table
   def increment rowkey, *args
     if args.first.is_a?(Hash)
       cols = args.first
-      htable.increment Increment.new(encode_rowkey rowkey).tap { |inc|
+      htable.increment Increment.new(Util.to_bytes rowkey).tap { |inc|
         cols.each do |col, by|
           cf, cq = Util.parse_column_name(col)
           inc.addColumn cf, cq, by
@@ -253,7 +315,7 @@ class Table
     else
       col, by = args
       cf, cq = Util.parse_column_name(col)
-      htable.incrementColumnValue encode_rowkey(rowkey), cf, cq, by || 1
+      htable.incrementColumnValue Util.to_bytes(rowkey), cf, cq, by || 1
     end
   end
 
@@ -310,46 +372,35 @@ class Table
     @htable ||= @pool.get_table(@name)
   end
 
-  # Encodes rowkey
-  # @param [Object] rowkey
-  # @return [byte[]] Byte array representation of the rowkey
-  def encode_rowkey rowkey
-    if @stringify_rowkey
-      rowkey.to_s.to_java_bytes
-    else
-      # It's up to you
-      rowkey
-    end
-  end
-
-  # Decodes rowkey
-  # @param [byte[]] rowkey Byte array representation of the rowkey
-  # @return [String, byte[]]
-  def decode_rowkey rowkey
-    if @stringify_rowkey
-      Bytes.to_string rowkey
-    else
-      # It's up to you
-      rowkey
-    end
-  end
-
   # Returns table description
   # @return [String] Table description
   def inspect
-    htable.get_table_descriptor.to_s
+    if exists?
+      htable.get_table_descriptor.to_s
+    else
+      # FIXME
+      "{NAME => '#{@name}'}"
+    end
   end
 
 private
-  def initialize admin, htable_pool, name, stringify_rowkey
+  def initialize admin, htable_pool, name
     @admin   = admin
     @pool    = htable_pool
     @name    = name.to_s
-    @stringify_rowkey = stringify_rowkey
+  end
+
+  def while_disabled
+    begin
+      disable!
+      yield
+    ensure
+      enable!
+    end
   end
 
   def getify rowkey, opts = {}
-    Get.new(encode_rowkey rowkey).tap { |get|
+    Get.new(Util.to_bytes rowkey).tap { |get|
       if opts && opts[:versions]
         get.setMaxVersions opts[:versions]
       else
@@ -359,12 +410,48 @@ private
   end
 
   def putify rowkey, props
-    Put.new(encode_rowkey rowkey).tap { |put|
+    Put.new(Util.to_bytes rowkey).tap { |put|
       props.each do |col, val|
         cf, cq = Util.parse_column_name(col)
         put.add cf, cq, Util.to_bytes(val)
       end
     }
+  end
+
+  def hcd name, opts
+    method_map = {
+      :blockcache          => :setBlockCacheEnabled,
+      :blocksize           => :setBlocksize,
+      :bloomfilter         => :setBloomFilterType,
+      :compression         => :setCompressionType,
+      :data_block_encoding => :setDataBlockEncoding,
+      :encode_on_disk      => :setEncodeOnDisk,
+      :in_memory           => :setInMemory,
+      :keep_deleted_cells  => :setKeepDeletedCells,
+      :min_versions        => :setMinVersions,
+      :replication_scope   => :setScope,
+      :ttl                 => :setTimeToLive,
+      :versions            => :setMaxVersions,
+    }
+    HColumnDescriptor.new(name.to_s).tap do |hcd|
+      opts.each do |key, val|
+        if method_map[key]
+          v =
+            ({
+              :bloomfilter => proc { |v|
+                const_shortcut BloomType, v, "Invalid bloom filter type"
+              },
+              :compression => proc { |v|
+                const_shortcut Algorithm, v, "Invalid compression algorithm"
+              }
+            }[key] || proc { |a| a }).call(val)
+
+          hcd.send method_map[key], v
+        else
+          raise ArgumentError, "Invalid option: #{key}"
+        end
+      end#opts
+    end
   end
 
   def const_shortcut base, v, message

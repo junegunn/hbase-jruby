@@ -6,7 +6,7 @@ require "hbase-jruby"
 
 class TestHBaseJruby < Test::Unit::TestCase
   TABLE = 'test_hbase_jruby'
-  ZK    = ENV['HBASE_JRUBY_TEST_ZK'] || '127.0.0.1'
+  ZK    = ENV.fetch 'HBASE_JRUBY_TEST_ZK'
 
   def setup
     HBase.resolve_dependency! 'cdh4.1.2'
@@ -73,7 +73,7 @@ class TestHBaseJruby < Test::Unit::TestCase
       'cf1:a' => 'Hello',
       'cf1:b' => 200,
       'cf1:c' => 3.14,
-      'cf2:d' => { 'a' => 'b' }.to_json,
+      'cf2:d' => :world,
       'cf2:e' => false,
       'cf3:f' => 1234567890123456789012345678901234567890,
       'cf3'   => true
@@ -82,20 +82,19 @@ class TestHBaseJruby < Test::Unit::TestCase
       'cf1:a' => :string,
       'cf1:b' => :integer,
       'cf1:c' => :float,
-      'cf2:d' => :json,
+      'cf2:d' => :symbol,
       'cf2:e' => :boolean,
       'cf3:f' => :biginteger,
       'cf3'   => :boolean
     }
-    ret = data.dup.tap { |d| d['cf2:d'] = { 'a' => 'b' } }
-
     @table.put('row1', data)
-    assert_equal ret, @table.get('row1').to_hash(schema)
-    assert_equal 1,   @table.get('row1').to_hash_with_versions(schema)['cf1:a'].length
+
+    assert_equal data, @table.get('row1').to_hash(schema)
+    assert_equal 1,    @table.get('row1').to_hash_with_versions(schema)['cf1:a'].length
 
     # TODO Better testing for versioned values
     @table.put('row1', data)
-    assert_equal ret, @table.get('row1').to_hash(schema)
+    assert_equal data, @table.get('row1').to_hash(schema)
 
     assert_equal 2, @table.get('row1').to_hash_with_versions(schema)['cf1:a'].length
     assert_equal 1, @table.get('row1').to_hash_with_versions(schema)['cf3:f'].length
@@ -157,27 +156,6 @@ class TestHBaseJruby < Test::Unit::TestCase
     assert_equal 2, @table.get('row3').integer('cf1:b')
   end
 
-  # TODO: column family / qualifier as array
-  def test_table_non_string_rowkey
-    @hbase.table(TABLE, :string_rowkey => false) do |table|
-      rk = 'row1'.to_java_bytes
-      table.put(rk, 'cf1:a' => 1)
-      assert_equal Bytes.to_string(rk), Bytes.to_string(table.get(rk).rowkey)
-      assert_equal 1,  table.get(rk).integer('cf1:a')
-
-    end
-
-    {true => 18, false => 9}.each do |string_rowkey, cnt|
-      @hbase.table(TABLE, :string_rowkey => string_rowkey) do |table|
-        table.truncate!
-        (1..20).each do |rk|
-          table.put(Util.to_bytes(rk), 'cf1:a' => rk)
-        end
-        assert_equal cnt, table.range(1..9).count
-      end
-    end
-  end
-  
   def test_count
     (101..150).each do |i|
       @table.put(i, 'cf1:a' => i, 'cf2:b' => i, 'cf3:c' => i * 3)
@@ -211,6 +189,14 @@ class TestHBaseJruby < Test::Unit::TestCase
     assert_equal 10,  @table.range(111..150).filter('cf1:a' => 131..140).count
     assert_equal 9,   @table.range(111..150).filter('cf1:a' => 131...140).count
     assert_equal 2,   @table.range(111..150).filter('cf1:a' => 131...140, 'cf2:b' => 132..133).count
+
+    # Unscope
+    assert_equal 50, @table.range(111..150).filter('cf1:a' => 131...140, 'cf2:b' => 132..133).unscope.count
+  end
+
+  def test_invalid_range
+    assert_raise(ArgumentError) { @table.range }
+    assert_raise(ArgumentError) { @table.range(1, 2, 3) }
   end
 
   def test_scan
@@ -278,7 +264,128 @@ class TestHBaseJruby < Test::Unit::TestCase
     end
   end
 
+  def test_scan_on_non_string_rowkey
+    (1..20).each do |rk|
+      @table.put rk, 'cf1:a' => rk
+    end
+    assert_equal 9, @table.range(1..9).count
+    assert_equal [1, 2, 3, 4, 5, 6, 7, 8, 9], @table.range(1..9).map { |row| row.rowkey :integer }
+    assert_equal 8, @table.range(1...9).count
+
+    @table.truncate!
+
+    (1..20).each do |rk|
+      @table.put rk.to_s, 'cf1:a' => rk
+    end
+    assert_equal 20, @table.range('1'..'9').count
+    assert_equal %w[1 10 11 12 13 14 15 16 17 18 19 2 20 3 4 5 6 7 8 9], @table.range('1'..'9').map(&:rowkey)
+
+    assert_equal 19, @table.range('1'...'9').count
+
+    @table.truncate!
+    data = { 'cf1:1' => 1 } # doesn't matter
+    (1..15).each do |i|
+      @table.put i, data
+      @table.put i.to_s, data
+    end
+
+    assert_equal [1, 2, 3], @table.range(1..3).map { |r| r.rowkey :integer }
+    assert_equal %w[1 10 11 12 13 14 15 2 3], @table.range('1'..'3').map { |r| r.rowkey :string }
+  end
+
+  def test_non_string_column_name
+    @table.put 'rowkey', Hash[ (1..20).map { |cq| [['cf1', cq], cq] } ]
+
+    assert (1..20).all? { |cq| @table.get('rowkey').integer(['cf1', cq]) == cq }
+
+    assert @table.project(['cf1', 10], ['cf1', 20]).map { |r|
+      [r.integer(['cf1', 10]), r.integer(['cf1', 20])]
+    }.all? { |e| e == [10, 20] }
+  end
+
   def test_inspect
-    assert @table.inspect =~ /NAME => '#{TABLE}'/
+    @table.drop!
+    @table.create! :cf => {
+      :blockcache          => true,
+      :blocksize           => 128 * 1024,
+      :bloomfilter         => :row,
+      :compression         => :snappy,
+    # :data_block_encoding => org.apache.hadoop.hbase.io.encoding.DataBlockEncoding::DIFF,
+    # :encode_on_disk      => true,
+    # :keep_deleted_cells  => true,
+      :in_memory           => true,
+      :min_versions        => 5,
+      :replication_scope   => 0,
+      :ttl                 => 100,
+      :versions            => 10,
+    }
+    props = eval @table.inspect.gsub(/([A-Z_]+) =>/) { ":#{$1.downcase} =>" }
+    assert_equal TABLE, props[:name]
+    cf = props[:families].first
+    assert_equal 'cf', cf[:name]
+    assert_equal 'ROW', cf[:bloomfilter]
+    assert_equal '0', cf[:replication_scope]
+    assert_equal '10', cf[:versions]
+    assert_equal 'SNAPPY', cf[:compression]
+    assert_equal '5', cf[:min_versions]
+    assert_equal '100', cf[:ttl]
+    assert_equal '131072', cf[:blocksize]
+    assert_equal 'true', cf[:in_memory]
+    assert_equal 'true', cf[:blockcache]
+  end
+
+# def test_rename!
+#   new_name = TABLE + '_new'
+#   @table.rename! new_name
+#   assert_equal new_name, @table.name
+#   assert_equal new_name, @table.descriptor.get_name_as_string
+#   @table.drop!
+# end
+
+  def test_alter!
+    assert_raise(ArgumentError) do
+      @table.alter! :hello => :world
+    end
+
+    max_fs = 512 * 1024 ** 2
+    mem_fs =  64 * 1024 ** 2
+    
+    @table.alter!(
+      :max_filesize       => max_fs,
+      :memstore_flushsize => mem_fs,
+      :readonly           => false,
+      :deferred_log_flush => true
+    )
+    
+    assert_equal max_fs, @table.descriptor.get_max_file_size
+    assert_equal mem_fs, @table.descriptor.get_mem_store_flush_size
+    assert_equal false,  @table.descriptor.is_read_only
+    assert_equal true,   @table.descriptor.is_deferred_log_flush
+  end
+
+  def test_column_family_alteration!
+    assert @table.descriptor.getFamilies.map(&:getNameAsString).include?('cf2')
+    @table.delete_family! :cf2
+    assert !@table.descriptor.getFamilies.map(&:getNameAsString).include?('cf2')
+    @table.add_family! :cf4, {}
+    assert @table.descriptor.getFamilies.map(&:getNameAsString).include?('cf4')
+
+    # TODO: test more props
+    @table.alter_family! :cf4, :versions => 10
+    assert_equal 10, @table.descriptor.getFamilies.select { |cf| cf.getNameAsString == 'cf4' }.first.getMaxVersions
+
+    assert_raise(ArgumentError) {
+      @table.alter_family! :cf4, :hello => 'world'
+    }
+  end
+
+  def test_table_descriptor
+    assert_instance_of org.apache.hadoop.hbase.client.UnmodifyableHTableDescriptor, @table.descriptor
+
+    # Should be read-only
+    assert_raise {
+      @table.descriptor.setMaxFileSize 100 * 1024 ** 2
+    }
   end
 end
+

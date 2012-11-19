@@ -1,6 +1,6 @@
 # hbase-jruby
 
-hbase-jruby provides Ruby-esque interface for accessing HBase from JRuby.
+*hbase-jruby* provides Ruby-esque interface for accessing HBase from JRuby.
 
 Of course JRuby allows you to directly call native Java APIs of HBase,
 but doing so requires a lot of keystrokes even for the most basic operations and
@@ -53,17 +53,17 @@ or by `require`ing relevant JAR files after launch.
 However, downloading all the JAR files and manually putting them in CLASSPATH is a PITA,
 especially when HBase is not installed on local system.
 
-hbase-jruby includes `HBase.resolve_dependency!` helper method,
+*hbase-jruby* includes `HBase.resolve_dependency!` helper method,
 which resolves Hadoop/HBase dependency.
 
 #### Preconfigured dependencies
 
-A natural way to resolve class dependencies in JVM environment is to use Maven.
-Current version of hbase-jruby is shipped with Maven dependency specifications
+Apache Maven is the de facto standard dependency management mechanism for Java projects.
+Current version of *hbase-jruby* is shipped with Maven dependency specifications
 for the following Hadoop/HBase distributions.
 
 * cdh4.1.2
-* cdh3u5 (NOT TESTED :p)
+* cdh3u5 (NOT TESTED, yet)
 
 ```ruby
 require 'hbase-jruby'
@@ -174,7 +174,7 @@ col2 = row.fixnum  'cf1:col2'
 col3 = row.bignum  'cf1:col3'
 col4 = row.float   'cf1:col4'
 col5 = row.boolean 'cf1:col5'
-col6 = row.json    'cf1:col6'
+col6 = row.symbol  'cf1:col6'
 
 # Returns the Hash representation of the record with the specified schema
 schema = {
@@ -183,7 +183,7 @@ schema = {
   'cf1:col3' => :bignum,
   'cf1:col4' => :float,
   'cf1:col5' => :boolean,
-  'cf1:col6' => :json }
+  'cf1:col6' => :symbol }
 table.get('rowkey1').to_hash(schema)
 
 # Returns all versions for each column indexed by their timestamps
@@ -303,13 +303,70 @@ table.range('A'..'C').count
 table.range('A'..'C').filter('cf1:a' => 100..200).count
 ```
 
-## Advanced uses
+## Advanced topics
 
-### Using non-string rowkeys
+### Lexicographic scan order
+
+HBase stores rows in the lexicographic order of the rowkeys in their byte array representations.
+Thus the type of rowkey affects the scan order.
 
 ```ruby
-table = hbase.table TABLE_NAME, string_rowkey: false
-table.put my_byte_array, 'cf1:hello' => 'world'
+(1..15).times do |i|
+  table.put i, data
+  table.put i.to_s, data
+end
+
+table.range(1..3).map { |r| r.rowkey :integer }
+  # [1, 2, 3]
+table.range('1'..'3').map { |r| r.rowkey :string }
+  # %w[1 10 11 12 13 14 15 2 3]
+```
+
+### Non-string column qualifier
+
+If a column qualifier is not a String,
+an Array of column family and qualifier instead of conventional `FAMILY:QUALIFIER` String can be used.
+
+```ruby
+table.put 'rowkey',
+  'cf1:col1' => 'Hello world',
+  ['cf1', 1] => 100,
+  ['cf1', 2] => 200,
+  ['cf1', java_byte_array] => 300
+
+table.get('rowkey').string('cf1:col1')
+table.get('rowkey').string(['cf1', 1])
+# ...
+```
+
+### Table administration
+
+```ruby
+# Alter table properties
+table.alter!(
+  :max_filesize       => 512 * 1024 ** 2,
+  :memstore_flushsize =>  64 * 1024 ** 2,
+  :readonly           => false,
+  :deferred_log_flush => true
+)
+
+# Add column family
+table.add_family! :cf3, :compression => :snappy,
+                         :bloomfilter => :row
+
+# Alter column family
+table.alter_family! :cf2, :bloomfilter => :rowcol
+
+# Remove column family
+table.delete_family! :cf1
+
+```
+
+## Test
+
+```
+export HBASE_JRUBY_TEST_ZK='your-hbaase.domain.net'
+rake test
 ```
 
 ## Contributing

@@ -27,7 +27,7 @@ class Scoped
       begin
         scanner = htable.getScanner(filtered_scan)
         scanner.each do |result|
-          yield Result.send(:new, @table, result)
+          yield Result.send(:new, result)
         end
       ensure
         scanner.close if scanner
@@ -56,6 +56,7 @@ class Scoped
   #   @param [Range] start_stop_range Rowkey scan range
   #   @return [HBase::Scoped] HBase::Scoped object with the range
   def range *key_range
+    raise ArgumentError, "Invalid range" unless [1, 2].include?(key_range.length)
     spawn :@range, key_range.length == 1 ? key_range[0] : key_range
   end
 
@@ -67,7 +68,7 @@ class Scoped
       case f
       when Hash
         f.map { |col, val|
-          cf, cq = KeyValue.parseColumn(col.to_s.to_java_bytes)
+          cf, cq = Util.parse_column_name col
 
           case val
           when nil
@@ -151,18 +152,18 @@ private
     Scan.new.tap { |scan|
       case @range
       when Range
-        scan.setStartRow @table.encode_rowkey @range.begin
+        scan.setStartRow Util.to_bytes @range.begin
 
         if @range.exclude_end?
-          scan.setStopRow @table.encode_rowkey @range.end
+          scan.setStopRow Util.to_bytes @range.end
         else
-          scan.setStopRow Util.append_0(@table.encode_rowkey @range.end)
+          scan.setStopRow Util.append_0(Util.to_bytes @range.end)
         end
       when Array
-        scan.setStartRow @table.encode_rowkey @range[0] if @range[0]
-        scan.setStopRow  @table.encode_rowkey @range[1] if @range[1]
+        scan.setStartRow Util.to_bytes @range[0] if @range[0]
+        scan.setStopRow  Util.to_bytes @range[1] if @range[1]
       else
-        scan.setStartRow @table.encode_rowkey @range
+        scan.setStartRow Util.to_bytes @range
       end
 
       scan.caching = @caching if @caching
@@ -175,7 +176,7 @@ private
       end
 
       @project.each do |col|
-        cf, cq = KeyValue.parseColumn(col.to_s.to_java_bytes)
+        cf, cq = Util.parse_column_name col
         if cq
           scan.addColumn cf, cq
         else
