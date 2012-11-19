@@ -24,6 +24,8 @@ module Util
         Bytes.java_send :toBytes, [java.math.BigDecimal], v.to_java
       when true, false, java.math.BigDecimal, ByteBuffer
         Bytes.to_bytes v
+      when nil
+        ''.to_java_bytes
       else
         if v.respond_to?(:java_class) && v.java_class.simple_name == JAVA_BYTE_ARRAY
           v

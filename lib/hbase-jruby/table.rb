@@ -202,7 +202,6 @@ class Table
   #   @return [Array<HBase::Result>]
   def get *rowkeys
     if rowkeys.last.is_a?(Hash)
-      # TODO options?
       opts    = rowkeys.last
       rowkeys = rowkeys[0...-1]
     end
