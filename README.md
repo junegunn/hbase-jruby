@@ -196,7 +196,8 @@ row.string 'cf1:str1', 'cf1:str2'
 #### Batch GET
 
 ```ruby
-rows = table.get('rowkey1', 'rowkey2', 'rowkey3')
+# Pass an array of row keys as the parameter
+rows = table.get(['rowkey1', 'rowkey2', 'rowkey3'])
 ```
 
 #### Decode all versions with plural-form (-s) methods
