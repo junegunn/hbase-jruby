@@ -121,35 +121,11 @@ class Scoped
           cf, cq = Util.parse_column_name col
 
           case val
-          when nil
-            SingleColumnValueFilter.new(
-              cf, cq,
-              CompareFilter::CompareOp::EQUAL,
-              BinaryComparator.new(nil))
-          when Range
-            min, max = [val.begin, val.end].map { |k| Util.to_bytes k }
-            [
-              SingleColumnValueFilter.new(
-                cf, cq,
-                CompareFilter::CompareOp::GREATER_OR_EQUAL, min),
-              SingleColumnValueFilter.new(
-                cf, cq,
-                (val.exclude_end? ? CompareFilter::CompareOp::LESS :
-                                    CompareFilter::CompareOp::LESS_OR_EQUAL), max)
-            ]
           when Array
             FilterList.new(FilterList::Operator::MUST_PASS_ONE,
-              val.map { |v|
-                SingleColumnValueFilter.new(
-                  cf, cq,
-                  CompareFilter::CompareOp::EQUAL,
-                  Util.to_bytes(v))
-              })
+              val.map { |v| filter_for cf, cq, v })
           else
-            SingleColumnValueFilter.new(
-              cf, cq,
-              CompareFilter::CompareOp::EQUAL,
-              Util.to_bytes(val))
+            filter_for cf, cq, val
           end
         }.flatten
       when FilterBase, FilterList
@@ -254,6 +230,32 @@ private
 
       get.setFilter FilterList.new(filters) unless filters.empty?
     }
+  end
+
+  def filter_for cf, cq, val
+    case val
+    when Range
+      min, max = [val.begin, val.end].map { |k| Util.to_bytes k }
+      FilterList.new(FilterList::Operator::MUST_PASS_ALL, [
+        SingleColumnValueFilter.new(
+          cf, cq,
+          CompareFilter::CompareOp::GREATER_OR_EQUAL, min),
+        SingleColumnValueFilter.new(
+          cf, cq,
+          (val.exclude_end? ? CompareFilter::CompareOp::LESS :
+                              CompareFilter::CompareOp::LESS_OR_EQUAL), max)
+      ])
+    when nil
+      SingleColumnValueFilter.new(
+        cf, cq,
+        CompareFilter::CompareOp::EQUAL,
+        BinaryComparator.new(nil))
+    else
+      SingleColumnValueFilter.new(
+        cf, cq,
+        CompareFilter::CompareOp::EQUAL,
+        Util.to_bytes(val))
+    end
   end
 
   def filtered_scan
