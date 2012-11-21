@@ -25,8 +25,9 @@ string = row.string('cf1:b')
 
 # SCAN
 table.range('rowkey1'..'rowkey9').
-      filter('cf1:a' => 100..200,
-             'cf2:b' => 'Hello').
+      filter('cf1:a' => 100..200,             # cf1:a between 100 and 200
+             'cf2:b' => 'Hello',              # cf1:b = 'Hello'
+             'cf2:c' => ['foo', 'bar']).      # cf2:c in ('foo', 'bar')
       project('cf1:a', 'cf2').each do |row|
   puts row.integer('cf1:a')
 end
@@ -343,6 +344,7 @@ table.range('A'..'Z').                          # Row key range,
       project('cf2').                           # Select cf2 family as well
       filter('cf1:a' => 'Hello').               # Filter by cf1:a value
       filter('cf2:d' => 100..200).              # Range filter on cf2:d
+      filter('cf2:e' => [10, 20, 30]).          # Set-inclusion condition on cf2:e
       filter(ColumnPaginationFilter.new(3, 1)). # Any HBase filter
       limit(10).                                # Limits the size of the result set
       versions(2).                              # Only fetches 2 versions for each value
@@ -402,9 +404,9 @@ Multiple calls have additive effects.
 table.range(nil, 1000).
       filter('cf1:a' => 'Hello',
              'cf1:b' => 100...200).
-      filter('cf1:c' => 'Alice'..'Bob').  # Multiple calls have additive effects
+      filter('cf1:c' => ['Alice', 'Bob']).  # Multiple calls have additive effects
       filter(org.apache.hadoop.hbase.filter.ColumnPaginationFilter.new(3, 1)).
-                                          # Java filters can be used
+                                            # Java filters can be used
       each do |record|
   # ...
 end
