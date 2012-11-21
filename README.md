@@ -189,7 +189,7 @@ col5 = row.boolean 'cf1:col5'
 col6 = row.symbol  'cf1:col6'
 
 # Decode multiple columns at once
-row.string 'cf1:str1', 'cf1:str2'
+row.string ['cf1:str1', 'cf1:str2']
   # [ "Hello", "World" ]
 ```
 
@@ -208,7 +208,7 @@ row.strings 'cf1:str'
   # {1353143856665=>"Hello", 1353143856662=>"Goodbye"}
 
 # Decode all versions of multiple columns
-row.strings 'cf1:str1', 'cf1:str2'
+row.strings ['cf1:str1', 'cf1:str2']
   # [
   #   {1353143856665=>"Hello", 1353143856662=>"Goodbye"},
   #   {1353143856665=>"World", 1353143856662=>"Cruel world"}
