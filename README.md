@@ -319,7 +319,7 @@ whose instance is implicitly used/returned by `HBase::Table#each` call.
 scoped = table.each
 ```
 
-An `HBase::Scoped` object provides a various methods for controlling data retrieval
+An `HBase::Scoped` object provides a set of methods for controlling data retrieval
 such as `range`, `filter`, `project`, `versions`, `caching`, et cetera.
 However, it doesn't respond to data manipulation methods (`put`, `delete` and `increment`),
 and methods for table administration.
