@@ -137,6 +137,14 @@ class Scoped
                 (val.exclude_end? ? CompareFilter::CompareOp::LESS :
                                     CompareFilter::CompareOp::LESS_OR_EQUAL), max)
             ]
+          when Array
+            FilterList.new(FilterList::Operator::MUST_PASS_ONE,
+              val.map { |v|
+                SingleColumnValueFilter.new(
+                  cf, cq,
+                  CompareFilter::CompareOp::EQUAL,
+                  Util.to_bytes(v))
+              })
           else
             SingleColumnValueFilter.new(
               cf, cq,
@@ -144,10 +152,8 @@ class Scoped
               Util.to_bytes(val))
           end
         }.flatten
-      when FilterBase
+      when FilterBase, FilterList
         f
-      when FilterList
-        f.getFilters.to_a
       else
         raise ArgumentError, "Unknown filter type"
       end

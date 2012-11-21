@@ -271,8 +271,9 @@ class TestTable < TestHBaseJRubyBase
       # filter: Hash
       #   to_a.length instead of count :)
       assert_equal 1, table.filter('cf1:a' => 50).to_a.length
+      assert_equal 3, table.filter('cf1:a' => [50, 60, 70]).to_a.length
+      assert_equal 2, table.filter('cf1:a' => [50, 60, 70], 'cf2:b' => [100, 140]).to_a.length
       assert_equal 0, table.filter('cf1:a' => 50, 'cf2:b' => 60).to_a.length
-      assert_equal 1, table.filter('cf1:a' => 50, 'cf2:b' => 100).to_a.length
       assert_equal 1, table.filter('cf1:a' => 50, 'cf2:b' => 90..100).to_a.length
       assert_equal 0, table.filter('cf1:a' => 50, 'cf2:b' => 90...100).to_a.length
       assert_equal 6, table.filter('cf1:a' => 50..60, 'cf2:b' => 100..110).to_a.length
