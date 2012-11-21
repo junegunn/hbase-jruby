@@ -11,7 +11,7 @@ class HBase
     # @return [Array<String>] Loaded JAR files
     def resolve_dependency! dist, verbose = false
       silencer = verbose ? '' : '> /dev/null'
-      tfs = []
+      tempfiles = []
       jars =
         if dist == :hbase
           # Check for hbase executable
@@ -33,7 +33,7 @@ class HBase
           unless path
             begin
               xml = open("https://raw.github.com/junegunn/hbase-jruby/master/lib/hbase-jruby/pom/#{distname}.xml").read
-              tfs << tf = Tempfile.new("#{distname}.xml")
+              tempfiles << tf = Tempfile.new("#{distname}.xml")
               tf.close(false)
               path = tf.path
               File.open(path, 'w') do |f|
@@ -47,7 +47,7 @@ class HBase
           raise ArgumentError, "Invalid distribution: #{dist}" unless path
 
           # Download dependent JAR files and build classpath string
-          tfs << tf = Tempfile.new('hbase-jruby-classpath')
+          tempfiles << tf = Tempfile.new('hbase-jruby-classpath')
           tf.close(false)
           system "mvn org.apache.maven.plugins:maven-dependency-plugin:2.5.1:resolve org.apache.maven.plugins:maven-dependency-plugin:2.5.1:build-classpath -Dsilent=true -Dmdep.outputFile=#{tf.path} -f #{path} #{silencer}"
 
@@ -61,7 +61,8 @@ class HBase
         require jar
       end
     ensure
-      tfs.each { |tf| tf.unlink rescue nil }
+      Util.import_java_classes!
+      tempfiles.each { |tempfile| tempfile.unlink rescue nil }
     end
   end
 end
