@@ -2,7 +2,8 @@ require 'bigdecimal'
 
 class HBase
 module Util
-  JAVA_BYTE_ARRAY = 'byte[]'
+  JAVA_BYTE_ARRAY_EMPTY = [].to_java(Java::byte) 
+  JAVA_BYTE_ARRAY_CLASS = JAVA_BYTE_ARRAY_EMPTY.java_class
 
   class << self
     # Returns byte array representation of the Ruby object
@@ -18,16 +19,18 @@ module Util
         v.to_s.to_java_bytes
       when Float
         Bytes.java_send :toBytes, [Java::double], v
+      when true, false, ByteBuffer
+        Bytes.to_bytes v
+      when nil
+        ''.to_java_bytes
       when Bignum
         Bytes.java_send :toBytes, [java.math.BigDecimal], java.math.BigDecimal.new(v.to_s)
       when BigDecimal
         Bytes.java_send :toBytes, [java.math.BigDecimal], v.to_java
-      when true, false, java.math.BigDecimal, ByteBuffer
-        Bytes.to_bytes v
-      when nil
-        ''.to_java_bytes
+      when java.math.BigDecimal
+        Bytes.java_send :toBytes, [java.math.BigDecimal], v
       else
-        if v.respond_to?(:java_class) && v.java_class.simple_name == JAVA_BYTE_ARRAY
+        if v.respond_to?(:java_class) && v.java_class == JAVA_BYTE_ARRAY_CLASS
           v
         else
           raise ArgumentError.new("Don't know how to convert #{v.class} into Java bytes")
@@ -40,6 +43,8 @@ module Util
     # @param [byte[]] val Java byte array
     # @return [Object]
     def from_bytes type, val
+      return nil if val.nil?
+
       case type
       when :string, :str
         Bytes.to_string val
@@ -55,6 +60,8 @@ module Util
         Bytes.to_double val
       when :boolean, :bool
         Bytes.to_boolean val
+      when :raw
+        val
       else
         raise ArgumentError, "Invalid type: #{type}"
       end
@@ -74,12 +81,17 @@ module Util
     # @param [Object, Array, KeyValue] col
     def parse_column_name col
       case col
+      when ColumnKey
+        return col.cf.to_java_bytes, col.cq(:raw)
       when KeyValue
         return col.getFamily, col.getQualifier
       when Array
         return to_bytes(col[0]), to_bytes(col[1])
+      when '', nil
+        raise ArgumentError, "Column family not specified"
       else
         cf, cq = KeyValue.parseColumn(col.to_s.to_java_bytes)
+        cq = JAVA_BYTE_ARRAY_EMPTY if cq.nil? && col.to_s[-1] == ':'
         return cf, cq
       end
     end
@@ -99,12 +111,20 @@ module Util
             import org.apache.hadoop.hbase.KeyValue
           end
 
+          Cell.class_eval do
+            import org.apache.hadoop.hbase.KeyValue
+          end
+
+          ColumnKey.class_eval do
+            import java.util.Arrays
+            import org.apache.hadoop.hbase.util.Bytes
+          end
+
           Table.class_eval do
             import org.apache.hadoop.hbase.HTableDescriptor
             import org.apache.hadoop.hbase.HColumnDescriptor
 
             import org.apache.hadoop.hbase.client.Put
-            import org.apache.hadoop.hbase.client.Get
             import org.apache.hadoop.hbase.client.Delete
             import org.apache.hadoop.hbase.client.Increment
 
@@ -113,6 +133,7 @@ module Util
           end
 
           Scoped.class_eval do
+            import org.apache.hadoop.hbase.client.Get
             import org.apache.hadoop.hbase.client.Scan
             import org.apache.hadoop.hbase.filter.BinaryComparator
             import org.apache.hadoop.hbase.filter.CompareFilter
@@ -120,13 +141,14 @@ module Util
             import org.apache.hadoop.hbase.filter.FilterList
             import org.apache.hadoop.hbase.filter.FirstKeyOnlyFilter
             import org.apache.hadoop.hbase.filter.KeyOnlyFilter
+            import org.apache.hadoop.hbase.filter.RowFilter
+            import org.apache.hadoop.hbase.filter.PrefixFilter
             import org.apache.hadoop.hbase.filter.SingleColumnValueFilter
           end
         end
       end
     end
   end
-
 end#Util
 end#HBase
 

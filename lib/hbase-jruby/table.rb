@@ -7,6 +7,7 @@ class Table
   attr_reader :name
 
   include Enumerable
+  include Admin
 
   # Returns a read-only org.apache.hadoop.hbase.HTableDescriptor object
   # @return [org.apache.hadoop.hbase.client.UnmodifyableHTableDescriptor]
@@ -17,20 +18,22 @@ class Table
   # Closes the table and returns HTable object back to the HTablePool.
   # @return [nil]
   def close
-    @htable.close if @htable
-    @htable = nil
+    if @htable
+      @htable.close 
+      @htable = nil
+    end
   end
 
   # Checks if the table of the name exists
   # @return [true, false] Whether table exists
   def exists?
-    @admin.tableExists @name
+    with_admin { |admin| admin.tableExists @name }
   end
 
   # Checks if the table is enabled
   # @return [true, false] Whether table is enabled
   def enabled?
-    @admin.isTableEnabled(@name)
+    with_admin { |admin| admin.isTableEnabled(@name) }
   end
 
   # Checks if the table is disabled
@@ -39,13 +42,15 @@ class Table
     !enabled?
   end
 
-  # @overload create!(column_family_name)
+  # @overload create!(column_family_name, props = {})
   #   Create the table with one column family of the given name
-  #   @param [String, Symbol] The name of the column family
+  #   @param [#to_s] The name of the column family
+  #   @param [Hash] props Table properties
   #   @return [nil]
-  # @overload create!(column_family_hash)
+  # @overload create!(column_family_hash, props = {})
   #   Create the table with the specified column families
   #   @param [Hash] Column family properties
+  #   @param [Hash] props Table properties
   #   @return [nil]
   #   @example
   #     table.create!(
@@ -69,23 +74,27 @@ class Table
   #   Create the table with the given HTableDescriptor
   #   @param [org.apache.hadoop.hbase.HTableDescriptor] Table descriptor
   #   @return [nil]
-  def create! desc
-    raise RuntimeError, 'Table already exists' if exists?
+  def create! desc, props = {}
+    with_admin do |admin|
+      raise RuntimeError, 'Table already exists' if admin.tableExists(@name)
 
-    case desc
-    when HTableDescriptor
-      @admin.createTable desc
-    when Symbol, String
-      create!(desc => {})
-    when Hash
-      htd = HTableDescriptor.new(@name.to_java_bytes)
-      desc.each do |name, opts|
-        htd.addFamily hcd(name, opts)
+      case desc
+      when HTableDescriptor
+        patch_table_descriptor! desc, props
+        admin.createTable desc
+      when Symbol, String
+        create!({desc => {}}, props)
+      when Hash
+        htd = HTableDescriptor.new(@name.to_java_bytes)
+        patch_table_descriptor! htd, props
+        desc.each do |name, opts|
+          htd.addFamily hcd(name, opts)
+        end
+
+        admin.createTable htd
+      else
+        raise ArgumentError, 'Invalid table description'
       end
-
-      @admin.createTable htd
-    else
-      raise ArgumentError, 'Invalid table description'
     end
   end
 
@@ -93,18 +102,20 @@ class Table
 # # @param [#to_s] New name
 # # @return [String] New name
 # def rename! new_name
-#   new_name = new_name.to_s
-#   htd = @admin.get_table_descriptor(@name.to_java_bytes)
-#   htd.setName new_name.to_java_bytes
+#   with_admin do |admin|
+#     new_name = new_name.to_s
+#     htd = admin.get_table_descriptor(@name.to_java_bytes)
+#     htd.setName new_name.to_java_bytes
 
-#   while_disabled do
-#     @admin.modifyTable @name.to_java_bytes, htd
-#     @name = new_name
+#     while_disabled(admin) do
+#       admin.modifyTable @name.to_java_bytes, htd
+#       @name = new_name
+#     end
 #   end
 # end
 
   # Alters the table
-  # @param [Hash] Table parameters
+  # @param [Hash] props Table properties
   # @return [nil]
   # @example
   #   table.alter!(
@@ -113,21 +124,13 @@ class Table
   #     :readonly           => false,
   #     :deferred_log_flush => true
   #   )
-  def alter! table_attrs
-    htd = @admin.get_table_descriptor(@name.to_java_bytes)
-    table_attrs.each do |key, value|
-      method = {
-        :max_filesize       => :setMaxFileSize,
-        :readonly           => :setReadOnly,
-        :memstore_flushsize => :setMemStoreFlushSize,
-        :deferred_log_flush => :setDeferredLogFlush
-      }[key]
-      raise ArgumentError, "Invalid option: #{key}" unless method
-
-      htd.send method, value
-    end
-    while_disabled do
-      @admin.modifyTable @name.to_java_bytes, htd
+  def alter! props
+    with_admin do |admin|
+      htd = admin.get_table_descriptor(@name.to_java_bytes)
+      patch_table_descriptor! htd, props
+      while_disabled(admin) do
+        admin.modifyTable @name.to_java_bytes, htd
+      end
     end
   end
 
@@ -136,8 +139,10 @@ class Table
   # @param [Hash] opts Column family properties
   # @return [nil]
   def add_family! name, opts
-    while_disabled do
-      @admin.addColumn @name, hcd(name.to_s, opts)
+    with_admin do |admin|
+      while_disabled(admin) do
+        admin.addColumn @name, hcd(name.to_s, opts)
+      end
     end
   end
 
@@ -146,8 +151,10 @@ class Table
   # @param [Hash] opts Column family properties
   # @return [nil]
   def alter_family! name, opts
-    while_disabled do
-      @admin.modifyColumn @name, hcd(name.to_s, opts)
+    with_admin do |admin|
+      while_disabled(admin) do
+        admin.modifyColumn @name, hcd(name.to_s, opts)
+      end
     end
   end
 
@@ -155,21 +162,27 @@ class Table
   # @param [#to_s] name The name of the column family
   # @return [nil]
   def delete_family! name
-    while_disabled do
-      @admin.deleteColumn @name, name.to_s
+    with_admin do |admin|
+      while_disabled(admin) do
+        admin.deleteColumn @name, name.to_s
+      end
     end
   end
 
   # Enables the table
   # @return [nil]
   def enable!
-    @admin.enableTable @name unless enabled?
+    with_admin do |admin|
+      admin.enableTable @name unless admin.isTableEnabled(@name) 
+    end
   end
 
   # Disables the table
   # @return [nil]
   def disable!
-    @admin.disableTable @name if enabled?
+    with_admin do |admin|
+      admin.disableTable @name if admin.isTableEnabled(@name) 
+    end
   end
 
   # Truncates the table by dropping it and recreating it.
@@ -183,32 +196,27 @@ class Table
   # Drops the table
   # @return [nil]
   def drop!
-    raise RuntimeError, 'Table does not exist' unless exists?
+    with_admin do |admin|
+      raise RuntimeError, 'Table does not exist' unless admin.tableExists @name
 
-    disable!
-    @admin.deleteTable @name
+      admin.disableTable @name if admin.isTableEnabled(@name) 
+      admin.deleteTable  @name
+      close
+    end
   end
 
-  # @overload get(rowkey, opts = {})
+  # @overload get(rowkey)
+  #   Single GET.
   #   Gets a record with the given rowkey. If the record is not found, nil is returned.
   #   @param [Object] rowkey Rowkey
-  #   @param [Hash] opts
-  #   @option opts [Fixnum] :versions Number of versions to fetch
   #   @return [HBase::Result, nil]
-  # @overload get(*rowkeys, opts = {})
-  #   Gets an array of records with the given rowkeys. Nonexistent records will be returned as nils.
-  #   @param [Hash] opts
-  #   @option opts [Fixnum] :versions Number of versions to fetch
+  # @overload get(rowkeys)
+  #   Batch GET. Gets an array of records with the given rowkeys.
+  #   Nonexistent records will be returned as nils.
+  #   @param [Array<Object>] rowkeys Rowkeys
   #   @return [Array<HBase::Result>]
-  def get *rowkeys
-    if rowkeys.last.is_a?(Hash)
-      opts    = rowkeys.last
-      rowkeys = rowkeys[0...-1]
-    end
-    ret = htable.get(rowkeys.map { |rk| getify rk, opts }).map { |result|
-      result.isEmpty ? nil : Result.new(result)
-    }
-    ret.length == 1 ? ret.first : ret
+  def get rowkeys
+    each.get rowkeys
   end
 
   # @overload put(rowkey, data)
@@ -244,14 +252,14 @@ class Table
   # @overload delete(rowkey, column)
   #   Deletes a column
   #   @param [Object] rowkey
-  #   @param [String] column Column expression: "FAMILY:QUALIFIER"
+  #   @param [String, Array] column Column expression in String "FAMILY:QUALIFIER", or in Array [FAMILY, QUALIFIER]
   #   @return [nil]
   #   @example
   #     table.delete('a000', 'cf1:col1')
   # @overload delete(rowkey, column, timestamp)
   #   Deletes a version of a column
   #   @param [Object] rowkey
-  #   @param [String] column Column expression: "FAMILY:QUALIFIER"
+  #   @param [String, Array] column Column expression in String "FAMILY:QUALIFIER", or in Array [FAMILY, QUALIFIER]
   #   @param [Fixnum] timestamp Timestamp.
   #   @return [nil]
   #   @example
@@ -291,7 +299,7 @@ class Table
   # @overload increment(rowkey, column, by)
   #   Atomically increase column value by the specified amount
   #   @param [Object] rowkey Rowkey
-  #   @param [String] column Column expression: "FAMILY:QUALIFIER"
+  #   @param [String, Array] column Column expression in String "FAMILY:QUALIFIER", or in Array [FAMILY, QUALIFIER]
   #   @param [Fixnum] by Increment amount
   #   @return [Fixnum] Column value after increment
   #   @example
@@ -338,19 +346,19 @@ class Table
   # @see HBase::Scoped#range
   # @return [HBase::Scoped]
   def range *key_range
-    each.range *key_range
+    each.range(*key_range)
   end
 
   # @see HBase::Scoped#project
   # @return [HBase::Scoped]
   def project *columns
-    each.project *columns
+    each.project(*columns)
   end
 
   # @see HBase::Scoped#filter
   # @return [HBase::Scoped]
   def filter *filters
-    each.filter *filters
+    each.filter(*filters)
   end
 
   # @see HBase::Scoped#limit
@@ -383,29 +391,20 @@ class Table
   end
 
 private
-  def initialize admin, htable_pool, name
-    @admin   = admin
+  def initialize config, htable_pool, name
+    @config  = config
     @pool    = htable_pool
     @name    = name.to_s
+    @htable  = nil
   end
 
-  def while_disabled
+  def while_disabled admin
     begin
-      disable!
+      admin.disableTable @name if admin.isTableEnabled(@name) 
       yield
     ensure
-      enable!
+      admin.enableTable @name
     end
-  end
-
-  def getify rowkey, opts = {}
-    Get.new(Util.to_bytes rowkey).tap { |get|
-      if opts && opts[:versions]
-        get.setMaxVersions opts[:versions]
-      else
-        get.setMaxVersions
-      end
-    }
   end
 
   def putify rowkey, props
@@ -435,7 +434,7 @@ private
     HColumnDescriptor.new(name.to_s).tap do |hcd|
       opts.each do |key, val|
         if method_map[key]
-          v =
+          hcd.send method_map[key],
             ({
               :bloomfilter => proc { |v|
                 const_shortcut BloomType, v, "Invalid bloom filter type"
@@ -444,8 +443,6 @@ private
                 const_shortcut Algorithm, v, "Invalid compression algorithm"
               }
             }[key] || proc { |a| a }).call(val)
-
-          hcd.send method_map[key], v
         else
           raise ArgumentError, "Invalid option: #{key}"
         end
@@ -463,6 +460,21 @@ private
     else
       raise ArgumentError, [message, v.to_s].join(': ')
     end
+  end
+
+  def patch_table_descriptor! htd, props
+    props.each do |key, value|
+      method = {
+        :max_filesize       => :setMaxFileSize,
+        :readonly           => :setReadOnly,
+        :memstore_flushsize => :setMemStoreFlushSize,
+        :deferred_log_flush => :setDeferredLogFlush
+      }[key]
+      raise ArgumentError, "Invalid table property: #{key}" unless method
+
+      htd.send method, value
+    end
+    htd
   end
 end#Table
 end#HBase

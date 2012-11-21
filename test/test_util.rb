@@ -1,20 +1,11 @@
 #!/usr/bin/env ruby
 
-require "test-unit"
-require 'simplecov'
-SimpleCov.start
-
-$LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
-require "hbase-jruby"
+$LOAD_PATH.unshift File.expand_path('..', __FILE__)
+require 'helper'
 require 'bigdecimal'
-require 'json'
-
-# Required
-HBase.resolve_dependency! 'cdh4.1.2'
 
 class TestUtil < Test::Unit::TestCase
   Util = HBase::Util
-  include Util
 
   def test_bytea_conversion
     Util.import_java_classes!
@@ -32,27 +23,50 @@ class TestUtil < Test::Unit::TestCase
       assert_equal "Hello", Util.from_bytes( type, Util.to_bytes("Hello") )
     end
     [:bool, :boolean].each do |type|
-      assert_equal true, Util.from_bytes( type, Util.to_bytes(true) )
+      assert_equal true,  Util.from_bytes( type, Util.to_bytes(true) )
       assert_equal false, Util.from_bytes( type, Util.to_bytes(false) )
     end
     [:symbol, :sym].each do |type|
       assert_equal :hello, Util.from_bytes( type, Util.to_bytes(:hello) )
     end
-    bd = BigDecimal.new("123456789.123456789")
+
+    bd  = BigDecimal.new("123456789.123456789")
+    jbd = java.math.BigDecimal.new("9876543210.987654321")
     [:bigdecimal].each do |type|
-      assert_equal bd, Util.from_bytes( type, Util.to_bytes(bd) )
+      assert_equal bd,  Util.from_bytes( type, Util.to_bytes(bd) )
+      assert_equal jbd, Util.from_bytes( type, Util.to_bytes(jbd) )
     end
+
+    assert_equal String.from_java_bytes("asdf".to_java_bytes),
+                 String.from_java_bytes( Util.from_bytes( :raw, "asdf".to_java_bytes ) )
+
+    assert_equal 0, Util.to_bytes(nil).length
+
+    assert_raise(ArgumentError) { Util.from_bytes(:xxx, [].to_java(Java::byte)) }
+    assert_raise(ArgumentError) { Util.to_bytes({}) }
   end
 
   def test_parse_column_name
     assert_equal ['abc', 'def'],  parse_to_str('abc:def') 
     assert_equal ['abc', 'def:'], parse_to_str('abc:def:') 
-    assert_equal ['abc', nil],    parse_to_str('abc:')
+    assert_equal ['abc', ''],     parse_to_str('abc:')
     assert_equal ['abc', nil],    parse_to_str('abc')
     assert_equal ['abc', ':::'],  parse_to_str('abc::::')
 
-    assert_equal [:abc, :def], parse_to_str([:abc, :def], :symbol)
-    assert_equal [123, 456],   parse_to_str([123, 456], :fixnum)
+    assert_equal [:abc, :def],   parse_to_str([:abc, :def], :symbol)
+    assert_equal [123, 456],     parse_to_str([123, 456], :fixnum)
+    assert_equal ['abc', 'def'], parse_to_str(
+                                   org.apache.hadoop.hbase.KeyValue.new(
+                                     'rowkey'.to_java_bytes,
+                                     'abc'.to_java_bytes,
+                                     'def'.to_java_bytes))
+
+    assert_equal [:abc, :def],   parse_to_str(HBase::ColumnKey.new(:abc, :def), :symbol)
+
+    assert_raise(ArgumentError) { Util.parse_column_name(nil) }
+    assert_raise(ArgumentError) { Util.parse_column_name('') }
+
+    assert_equal nil, Util.from_bytes(:string, nil)
   end
 
   def test_append_0

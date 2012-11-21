@@ -1,15 +1,12 @@
 require 'java'
 
 # @author Junegunn Choi <junegunn.c@gmail.com>
-# @!attribute [r] admin
-#   @return [org.apache.hadoop.hbase.client.HBaseAdmin]
 # @!attribute [r] config
-#   @return [org.apache.hadoop.hbase.HBaseConfiguration]
+#   @return [org.apache.hadoop.conf.Configuration]
 class HBase
-  attr_reader :admin
   attr_reader :config
 
-  include Util
+  include Admin
 
   # Connects to HBase
   # @param [Hash] config A key-value pairs to build HBaseConfiguration from
@@ -18,7 +15,7 @@ class HBase
 
     @config =
       case config
-      when HBaseConfiguration
+      when org.apache.hadoop.conf.Configuration
         config
       else
         HBaseConfiguration.create.tap do |hbcfg|
@@ -27,8 +24,18 @@ class HBase
           end
         end
       end
-    @admin = HBaseAdmin.new @config
     @htable_pool = HTablePool.new @config, java.lang.Integer::MAX_VALUE
+  end
+
+  # Returns an HBaseAdmin object for administration
+  # @yield [org.apache.hadoop.hbase.client.HBaseAdmin]
+  # @return [org.apache.hadoop.hbase.client.HBaseAdmin]
+  def admin
+    if block_given?
+      with_admin { |admin| yield admin }
+    else
+      HBaseAdmin.new @config
+    end
   end
 
   # Closes HTablePool and connection
@@ -47,14 +54,14 @@ class HBase
   # Returns the list of table names
   # @return [Array<String>]
   def table_names
-    @admin.list_tables.map(&:name_as_string)
+    with_admin { |admin| admin.list_tables.map(&:name_as_string) }
   end
 
   # Creates HBase::Table instance for the specified name
-  # @param [String, Symbol] table_name
+  # @param [#to_s] table_name The name of the table
   # @return [HBase::Table]
   def table table_name
-    ht = HBase::Table.send :new, @admin, @htable_pool, table_name
+    ht = HBase::Table.send :new, @config, @htable_pool, table_name
 
     if block_given?
       begin
