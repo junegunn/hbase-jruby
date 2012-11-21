@@ -344,7 +344,7 @@ table.range('A'..'Z').                          # Row key range,
       project('cf2').                           # Select cf2 family as well
       filter('cf1:a' => 'Hello').               # Filter by cf1:a value
       filter('cf2:d' => 100..200).              # Range filter on cf2:d
-      filter('cf2:e' => [10, 20, 30]).          # Set-inclusion condition on cf2:e
+      filter('cf2:e' => [10, 20..30]).          # Set-inclusion condition on cf2:e
       filter(ColumnPaginationFilter.new(3, 1)). # Any HBase filter
       limit(10).                                # Limits the size of the result set
       versions(2).                              # Only fetches 2 versions for each value
@@ -397,7 +397,7 @@ scope.range(1, 100).range(50..100).range(1, 1000)
 ### filter
 
 Specifies server-side filtering of rows and columns.
-Multiple calls have additive effects.
+Multiple calls have additive (conjunctive) effects.
 
 ```ruby
 # Range scanning the table with filters
