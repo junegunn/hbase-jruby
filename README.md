@@ -438,14 +438,14 @@ to pass column filter to filter method.
 # Column prefix filter:
 #   Fetch columns whose qualifier starts with the specified prefixes
 scoped.project(:prefix => 'alice').
-       project(%w[alice bob])
+       project(:prefix => %w[alice bob])
 
 # Column range filter:
 #   Fetch columns whose qualifier within the ranges
 scoped.project(:range => 'a'...'c').
        project(:range => ['i'...'k', 'x'...'z'])
 
-# Column pagination filter (Cannot be chained)
+# Column pagination filter (Cannot be chained. Must be called exactly once.)
 #   Fetch columns within the specified offset and limit
 scoped.project(:offset => 1000, :limit => 10)
 ```
