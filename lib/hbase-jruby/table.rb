@@ -373,6 +373,12 @@ class Table
     each.versions vs
   end
 
+  # @see HBase::Scoped#batch
+  # @return [HBase::Scoped]
+  def batch b
+    each.batch b
+  end
+
   # Returns the underlying org.apache.hadoop.hbase.client.HTable object
   # @return [org.apache.hadoop.hbase.client.HTable]
   def htable

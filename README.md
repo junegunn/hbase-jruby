@@ -333,23 +333,23 @@ For example, `table.range(start, end)` is just a shorthand notation for
 ### Chaining scoping methods
 
 Scoping methods can be chained as follows.
-`filter` and `project` methods have additive effects.
 
 ```ruby
 # Chaining methods
-import org.apache.hadoop.hbase.filter.ColumnPaginationFilter
+import org.apache.hadoop.hbase.filter.RandomRowFilter
 
-table.range('A'..'Z').                          # Row key range,
-      project('cf1:a').                         # Select cf1:a column
-      project('cf2').                           # Select cf2 family as well
-      filter('cf1:a' => 'Hello').               # Filter by cf1:a value
-      filter('cf2:d' => 100..200).              # Range filter on cf2:d
-      filter('cf2:e' => [10, 20..30]).          # Set-inclusion condition on cf2:e
-      filter(ColumnPaginationFilter.new(3, 1)). # Any HBase filter
-      limit(10).                                # Limits the size of the result set
-      versions(2).                              # Only fetches 2 versions for each value
-      caching(100).                             # Caching 100 rows
-      to_a                                      # To Array
+table.range('A'..'Z').                   # Row key range,
+      project('cf1:a').                  # Select cf1:a column
+      project('cf2').                    # Select cf2 family as well
+      filter('cf1:a' => 'Hello').        # Filter by cf1:a value
+      filter('cf2:d' => 100..200).       # Range filter on cf2:d
+      filter('cf2:e' => [10, 20..30]).   # Set-inclusion condition on cf2:e
+      filter(RandomRowFilter.new(0.5)).  # Any HBase filter
+      limit(10).                         # Limits the size of the result set
+      versions(2).                       # Only fetches 2 versions for each value
+      batch(100).                        # Batch size for scan set to 100
+      caching(100).                      # Caching 100 rows
+      to_a                               # To Array
 ```
 
 ### range
@@ -397,16 +397,21 @@ scope.range(1, 100).range(50..100).range(1, 1000)
 ### filter
 
 Specifies server-side filtering of rows and columns.
-Multiple calls have additive (conjunctive) effects.
+Multiple calls have conjunctive effects.
 
 ```ruby
 # Range scanning the table with filters
 table.range(nil, 1000).
-      filter('cf1:a' => 'Hello',
-             'cf1:b' => 100...200).
-      filter('cf1:c' => ['Alice', 'Bob']).  # Multiple calls have additive effects
-      filter(org.apache.hadoop.hbase.filter.ColumnPaginationFilter.new(3, 1)).
-                                            # Java filters can be used
+      filter('cf1:a' => 'Hello',                  # cf1:a = 'Hello'
+             'cf1:b' => 100...200,                # cf1:b between 100 and 200
+             'cf1:c' => %w[A B C],                # cf1:c in ('A', 'B', 'C')
+             'cf1:d' => ['A'...'B', 'C'],         # ('A' <= cf1:d < 'B') or cf1:d = 'C'
+             'cf1:e' => { gt: 1000, lte: 2000 }). # cf1:e > 1000 and cf1:e <= 2000
+             'cf1:f' => { ne: 1000 }).            # cf1:f != 1000
+                                                  #   Supported operators: gt, lt, gte, lte, eq, ne
+      filter('cf1:g' => ['Alice'..'Bob', 'Cat']). # Multiple calls for conjunctive filtering
+      filter(org.apache.hadoop.hbase.filter.RandomRowFilter.new(0.5)).
+                                                  # Any number of Java filters can be applied
       each do |record|
   # ...
 end
@@ -419,7 +424,22 @@ Multiple calls have additive effects.
 
 ```ruby
 # Fetches cf1:a and all columns in column family cf2 and cf3
-scoped.project('cf1:a', 'cf2').project('cf3')
+scoped.project('cf1:a', 'cf2').
+       project('cf3')
+
+# Column prefix filter:
+#   Fetch columns whose qualifier starts with the specified prefixes
+scoped.project(:prefix => 'alice').
+       project(%w[alice bob])
+
+# Column range filter:
+#   Fetch columns whose qualifier within the ranges
+scoped.project(:range => 'a'...'c').
+       project(:range => ['i'...'k', 'x'...'z'])
+
+# Column pagination filter (Cannot be chained)
+#   Fetch columns within the specified offset and limit
+scoped.project(:offset => 1000, :limit => 10)
 ```
 
 ### Scoped SCAN / GET
