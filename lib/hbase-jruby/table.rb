@@ -443,10 +443,10 @@ private
           hcd.send method_map[key],
             ({
               :bloomfilter => proc { |v|
-                const_shortcut BloomType, v, "Invalid bloom filter type"
+                const_shortcut StoreFile::BloomType, v, "Invalid bloom filter type"
               },
               :compression => proc { |v|
-                const_shortcut Algorithm, v, "Invalid compression algorithm"
+                const_shortcut Compression::Algorithm, v, "Invalid compression algorithm"
               }
             }[key] || proc { |a| a }).call(val)
         else
