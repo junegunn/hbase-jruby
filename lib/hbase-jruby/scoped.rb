@@ -59,7 +59,9 @@ class Scoped
     end
   end
 
+  # Sets the number of rows for caching that will be passed to scanners.
   # @param [Fixnum] rows The number of rows to cache
+  # @return [HBase::Scoped] HBase::Scoped object with the caching option
   def caching rows
     spawn :@caching, rows
   end

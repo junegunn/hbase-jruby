@@ -379,6 +379,12 @@ class Table
     each.versions vs
   end
 
+  # @see HBase::Scoped#caching
+  # @return [HBase::Scoped]
+  def caching rows
+    each.caching rows
+  end
+
   # @see HBase::Scoped#batch
   # @return [HBase::Scoped]
   def batch b
