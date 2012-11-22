@@ -130,9 +130,12 @@ class TestTable < TestHBaseJRubyBase
     # get option: :versions
     assert_equal 1, @table.versions(1).get('row1').to_hash_with_versions(schema)['cf1:a'].length
 
-    # scoped get with filters TODO
+    # scoped get with filters
     assert_equal 2, @table.get(['row1', 'row2']).count
     assert_equal 1, @table.filter('cf1:a' => 'Hello').get(['row1', 'row2']).compact.count
+
+    # scoped get with projection
+    assert_equal %w[cf3 cf3:f], @table.project('cf3').get('row1').to_hash.keys.map(&:to_s)
   end
 
   def test_increment
@@ -270,15 +273,26 @@ class TestTable < TestHBaseJRubyBase
 
       # filter: Hash
       #   to_a.length instead of count :)
-      assert_equal 1, table.filter('cf1:a' => 50).to_a.length
-      assert_equal 3, table.filter('cf1:a' => [50, 60, 70]).to_a.length
-      assert_equal 2, table.filter('cf1:a' => [50, 60, 70], 'cf2:b' => [100, 140]).to_a.length
+      assert_equal 1,  table.filter('cf1:a' => 50).to_a.length
+      assert_equal 3,  table.filter('cf1:a' => [50, 60, 70]).to_a.length
+      assert_equal 2,  table.filter('cf1:a' => [50, 60, 70], 'cf2:b' => [100, 140]).to_a.length
       assert_equal 20, table.filter('cf1:a' => [41..50, 55, 61...70]).to_a.length
       assert_equal 12, table.filter('cf1:a' => [41..50, 61, 70]).to_a.length
-      assert_equal 0, table.filter('cf1:a' => 50, 'cf2:b' => 60).to_a.length
-      assert_equal 1, table.filter('cf1:a' => 50, 'cf2:b' => 90..100).to_a.length
-      assert_equal 0, table.filter('cf1:a' => 50, 'cf2:b' => 90...100).to_a.length
-      assert_equal 6, table.filter('cf1:a' => 50..60, 'cf2:b' => 100..110).to_a.length
+      assert_equal 0,  table.filter('cf1:a' => 50, 'cf2:b' => 60).to_a.length
+      assert_equal 1,  table.filter('cf1:a' => 50, 'cf2:b' => 90..100).to_a.length
+      assert_equal 0,  table.filter('cf1:a' => 50, 'cf2:b' => 90...100).to_a.length
+      assert_equal 6,  table.filter('cf1:a' => 50..60, 'cf2:b' => 100..110).to_a.length
+      assert_equal 10, table.filter('cf1:a' => { :> => 50,  :<= => 60 }).to_a.length
+      assert_equal 9,  table.filter('cf1:a' => { :> => 50,  :<= => 60, :!= => 55 }).to_a.length
+      assert_equal 10, table.filter('cf1:a' => { :>= => 50, :<= => 60, :!= => 55 }).to_a.length
+      assert_equal 9,  table.filter('cf1:a' => { :>= => 50, :< => 60,  :!= => 55 }).to_a.length
+      assert_equal 1,  table.filter('cf1:a' => { :> => 50,  :<= => 60, :== => 55 }).to_a.length
+      assert_equal 2,  table.filter('cf1:a' => { :> => 50,  :<= => 60, :== => [55, 57] }).to_a.length
+      assert_equal 9,  table.filter('cf1:a' => { gte: 50, lt: 60, ne: 55 }).to_a.length
+      assert_equal 7,  table.filter('cf1:a' => { gte: 50, lt: 60, ne: [55, 57, 59] }).to_a.length
+
+      assert_raise(ArgumentError) { table.filter('cf1:a' => { xxx: 50 }) }
+      assert_raise(ArgumentError) { table.filter('cf1:a' => { eq: { 1 => 2 } }) }
 
       # filter: Hash + additive
       assert_equal 6, table.filter('cf1:a' => 50..60).filter('cf2:b' => 100..110).to_a.length
@@ -429,6 +443,32 @@ class TestTable < TestHBaseJRubyBase
     assert_equal 52, @table.range(nil, 'd', :prefix => ['a', 'c', 'd']).count
     assert_equal 52, @table.range('b', :prefix => ['a', 'c', 'd']).count
     assert_equal 78, @table.range('a', 'e', :prefix => ['a', 'c', 'd']).count
+  end
+
+  def test_advanced_projection
+    @table.put :rk, Hash[ ('aa'..'zz').map { |cq| [ "cf1:#{cq}", 100 ] } ]
+
+    assert_equal 26,   @table.project(:prefix => 'd').first.count
+    assert_equal 52,   @table.project(:prefix => ['d', 'f']).first.count
+    assert_equal 52,   @table.project(:range => 'b'...'d').first.count
+    assert_equal 105,  @table.project(:range => ['b'...'d', 'x'..'za']).first.count
+    assert_equal 10,   @table.project(:offset => 10, :limit => 10).first.count
+    assert_equal 'da', @table.project(:offset => 26 * 3, :limit => 10).first.first.cq
+    assert_equal 10,   @table.project(:offset => 26 * 3).project(:limit => 10).first.count
+    assert_equal 'da', @table.project(:offset => 26 * 3).project(:limit => 10).first.first.cq
+
+    assert_raise(ArgumentError) { @table.project(:offset => 'a', :limit => 10).to_a }
+    assert_raise(ArgumentError) { @table.project(:offset => 10, :limit => 'a').to_a }
+    assert_raise(ArgumentError) { @table.project(:offset => 100).to_a }
+    assert_raise(ArgumentError) { @table.project(:limit => 10).to_a }
+    assert_raise(ArgumentError) { @table.project(:offset => 10, :limit => 10).project(:limit => 10).to_a }
+    assert_raise(ArgumentError) { @table.project(:offset => 10, :limit => 10).project(:offset => 10).to_a }
+  end
+
+  def test_batch
+    @table.put :rk, Hash[ ('aa'..'zz').map { |cq| [ "cf1:#{cq}", 100 ] } ]
+
+    assert_equal [10, 10, 6], @table.batch(10).project(:prefix => 'd').map(&:count)
   end
 end
 

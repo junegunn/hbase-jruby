@@ -136,13 +136,16 @@ module Util
             import org.apache.hadoop.hbase.client.Get
             import org.apache.hadoop.hbase.client.Scan
             import org.apache.hadoop.hbase.filter.BinaryComparator
+            import org.apache.hadoop.hbase.filter.ColumnPaginationFilter
+            import org.apache.hadoop.hbase.filter.MultipleColumnPrefixFilter
+            import org.apache.hadoop.hbase.filter.ColumnRangeFilter
             import org.apache.hadoop.hbase.filter.CompareFilter
             import org.apache.hadoop.hbase.filter.FilterBase
             import org.apache.hadoop.hbase.filter.FilterList
             import org.apache.hadoop.hbase.filter.FirstKeyOnlyFilter
             import org.apache.hadoop.hbase.filter.KeyOnlyFilter
-            import org.apache.hadoop.hbase.filter.RowFilter
             import org.apache.hadoop.hbase.filter.PrefixFilter
+            import org.apache.hadoop.hbase.filter.RowFilter
             import org.apache.hadoop.hbase.filter.SingleColumnValueFilter
           end
         end

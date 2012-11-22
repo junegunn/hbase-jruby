@@ -158,6 +158,13 @@ class Scoped
     spawn :@versions, vs
   end
 
+  # Returns an HBase::Scoped object with the specified batch limit
+  # @param [Fixnum] b Sets the maximum number of values to fetch each time
+  # @return [HBase::Scoped] HBase::Scoped object with the specified batch limit
+  def batch b
+    spawn :@batch, b
+  end
+
 private
   # @param [HBase::Table] table
   def initialize table
@@ -167,6 +174,7 @@ private
     @range    = []
     @prefixes = []
     @versions = nil
+    @batch    = nil
     @caching  = nil
     @limit    = nil
   end
@@ -184,6 +192,75 @@ private
     @table.htable
   end
 
+  def process_projection! obj
+    limit   = offset = nil
+    ranges  = prefixes = []
+    filters = []
+
+    @project.each do |col|
+      case col
+      when Hash
+        col.each do |prop, val|
+          case prop
+          when :prefix
+            prefixes += [*val]
+          when :range
+            ranges += val.is_a?(Array) ? val : [val]
+          when :limit
+            raise ArgumentError, "Multiple :limit's" if limit
+            raise ArgumentError, ":limit must be an integer" unless val.is_a?(Fixnum)
+            limit = val
+          when :offset
+            raise ArgumentError, "Multiple :offset's" if offset
+            raise ArgumentError, ":offset must be an integer" unless val.is_a?(Fixnum)
+            offset = val
+          else
+            raise ArgumentError, "Invalid projection: #{prop}"
+          end
+        end
+      else
+        cf, cq = Util.parse_column_name col
+        if cq
+          obj.addColumn cf, cq
+        else
+          obj.addFamily cf
+        end
+      end
+    end
+
+    if (limit && !offset) || (!limit && offset)
+      raise ArgumentError, "Both `limit` and `offset` must be specified"
+    end
+
+    # Column prefix filter
+    unless prefixes.empty?
+      # disjunctive
+      filters <<
+        MultipleColumnPrefixFilter.new(
+          prefixes.map { |pref| Util.to_bytes(pref).to_a }.to_java(Java::byte[]))
+    end
+
+    # Column range filter
+    unless ranges.empty?
+      # disjunctive
+      filters <<
+        FilterList.new(FilterList::Operator::MUST_PASS_ONE,
+          ranges.map { |range|
+            raise ArgumentError, "Invalid range type" unless range.is_a? Range
+
+            ColumnRangeFilter.new(
+              Util.to_bytes(range.begin), true,
+              Util.to_bytes(range.end), !range.exclude_end?) })
+    end
+
+    # Column pagniation filter (last)
+    if limit && offset
+      filters << ColumnPaginationFilter.new(limit, offset)
+    end
+
+    filters
+  end
+
   def getify rowkey
     Get.new(Util.to_bytes rowkey).tap { |get|
       if @versions
@@ -193,6 +270,8 @@ private
       end
 
       filters = []
+      filters += process_projection!(get)
+
       if @range
         case @range
         when Range
@@ -245,11 +324,47 @@ private
           (val.exclude_end? ? CompareFilter::CompareOp::LESS :
                               CompareFilter::CompareOp::LESS_OR_EQUAL), max)
       ])
-    when nil
-      SingleColumnValueFilter.new(
-        cf, cq,
-        CompareFilter::CompareOp::EQUAL,
-        BinaryComparator.new(nil))
+    when Hash
+      FilterList.new(FilterList::Operator::MUST_PASS_ALL,
+        val.map { |op, v|
+          operator = 
+            case op
+            when :gt, :>
+              CompareFilter::CompareOp::GREATER
+            when :gte, :>=
+              CompareFilter::CompareOp::GREATER_OR_EQUAL
+            when :lt, :<
+              CompareFilter::CompareOp::LESS
+            when :lte, :<=
+              CompareFilter::CompareOp::LESS_OR_EQUAL
+            when :eq, :==
+              CompareFilter::CompareOp::EQUAL
+            when :ne, :!=
+              CompareFilter::CompareOp::NOT_EQUAL
+            else
+              raise ArgumentError, "Unknown operator: #{op}"
+            end
+          case v
+          when Array
+            # XXX TODO Undocumented feature
+            FilterList.new(
+              case op
+              when :ne, :!=
+                FilterList::Operator::MUST_PASS_ALL
+              else
+                FilterList::Operator::MUST_PASS_ONE
+              end,
+              v.map { |vv|
+                SingleColumnValueFilter.new(cf, cq, operator, Util.to_bytes(vv))
+              }
+            )
+          when Hash
+            raise ArgumentError, "Hash predicate not supported"
+          else
+            SingleColumnValueFilter.new(cf, cq, operator, Util.to_bytes(v))
+          end
+        }
+      )
     else
       SingleColumnValueFilter.new(
         cf, cq,
@@ -281,16 +396,9 @@ private
       # Filters
       prefix_filter = [*build_prefix_filter]
       filters = prefix_filter + @filters
-      scan.setFilter FilterList.new(filters) unless filters.empty?
+      filters += process_projection!(scan)
 
-      @project.each do |col|
-        cf, cq = Util.parse_column_name col
-        if cq
-          scan.addColumn cf, cq
-        else
-          scan.addFamily cf
-        end
-      end
+      scan.setFilter FilterList.new(filters) unless filters.empty?
 
       if @limit
         # setMaxResultSize not implemented in 0.92
@@ -306,6 +414,9 @@ private
       else
         scan.setMaxVersions
       end
+
+      # Batch
+      scan.setBatch @batch if @batch
     }
   end
 
