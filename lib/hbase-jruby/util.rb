@@ -98,57 +98,67 @@ module Util
 
     # @return [nil]
     def import_java_classes!
-      @@imported ||= begin
-        ::HBase.class_eval do
-          import org.apache.hadoop.hbase.HBaseConfiguration
-          import org.apache.hadoop.hbase.client.HBaseAdmin
-          import org.apache.hadoop.hbase.client.HTablePool
-          import org.apache.hadoop.hbase.client.HConnectionManager
-
-          Util.module_eval do
-            import java.nio.ByteBuffer
-            import org.apache.hadoop.hbase.util.Bytes
-            import org.apache.hadoop.hbase.KeyValue
-          end
-
-          Cell.class_eval do
-            import org.apache.hadoop.hbase.KeyValue
-          end
-
-          ColumnKey.class_eval do
-            import java.util.Arrays
-            import org.apache.hadoop.hbase.util.Bytes
-          end
-
-          Table.class_eval do
-            import org.apache.hadoop.hbase.HTableDescriptor
-            import org.apache.hadoop.hbase.HColumnDescriptor
-
-            import org.apache.hadoop.hbase.client.Put
-            import org.apache.hadoop.hbase.client.Delete
-            import org.apache.hadoop.hbase.client.Increment
-
-            import org.apache.hadoop.hbase.io.hfile.Compression::Algorithm
-            import org.apache.hadoop.hbase.regionserver.StoreFile::BloomType
-          end
-
-          Scoped.class_eval do
-            import org.apache.hadoop.hbase.client.Get
-            import org.apache.hadoop.hbase.client.Scan
-            import org.apache.hadoop.hbase.filter.BinaryComparator
-            import org.apache.hadoop.hbase.filter.ColumnPaginationFilter
-            import org.apache.hadoop.hbase.filter.MultipleColumnPrefixFilter
-            import org.apache.hadoop.hbase.filter.ColumnRangeFilter
-            import org.apache.hadoop.hbase.filter.CompareFilter
-            import org.apache.hadoop.hbase.filter.FilterBase
-            import org.apache.hadoop.hbase.filter.FilterList
-            import org.apache.hadoop.hbase.filter.FirstKeyOnlyFilter
-            import org.apache.hadoop.hbase.filter.KeyOnlyFilter
-            import org.apache.hadoop.hbase.filter.PrefixFilter
-            import org.apache.hadoop.hbase.filter.RowFilter
-            import org.apache.hadoop.hbase.filter.SingleColumnValueFilter
+      imp = lambda { |base, classes|
+        base.class_eval do
+          classes.each do |klass|
+            begin
+              import klass
+            rescue NameError => e
+              warn e
+            end
           end
         end
+      }
+
+      @@imported ||= begin
+        imp.call HBase, %w[
+          org.apache.hadoop.hbase.HBaseConfiguration
+          org.apache.hadoop.hbase.client.HBaseAdmin
+          org.apache.hadoop.hbase.client.HTablePool
+          org.apache.hadoop.hbase.client.HConnectionManager
+        ]
+
+        imp.call HBase::Util, %w[
+          java.nio.ByteBuffer
+          org.apache.hadoop.hbase.util.Bytes
+          org.apache.hadoop.hbase.KeyValue
+        ]
+
+        imp.call HBase::Cell, %w[
+          org.apache.hadoop.hbase.KeyValue
+        ]
+
+        imp.call HBase::ColumnKey, %w[
+          java.util.Arrays
+          org.apache.hadoop.hbase.util.Bytes
+        ]
+
+        imp.call HBase::Table, %w[
+          org.apache.hadoop.hbase.HColumnDescriptor
+          org.apache.hadoop.hbase.HTableDescriptor
+          org.apache.hadoop.hbase.client.Delete
+          org.apache.hadoop.hbase.client.Increment
+          org.apache.hadoop.hbase.client.Put
+          org.apache.hadoop.hbase.io.hfile.Compression
+          org.apache.hadoop.hbase.regionserver.StoreFile
+        ]
+
+        imp.call HBase::Scoped, %w[
+          org.apache.hadoop.hbase.client.Get
+          org.apache.hadoop.hbase.client.Scan
+          org.apache.hadoop.hbase.filter.BinaryComparator
+          org.apache.hadoop.hbase.filter.ColumnPaginationFilter
+          org.apache.hadoop.hbase.filter.MultipleColumnPrefixFilter
+          org.apache.hadoop.hbase.filter.ColumnRangeFilter
+          org.apache.hadoop.hbase.filter.CompareFilter
+          org.apache.hadoop.hbase.filter.FilterBase
+          org.apache.hadoop.hbase.filter.FilterList
+          org.apache.hadoop.hbase.filter.FirstKeyOnlyFilter
+          org.apache.hadoop.hbase.filter.KeyOnlyFilter
+          org.apache.hadoop.hbase.filter.PrefixFilter
+          org.apache.hadoop.hbase.filter.RowFilter
+          org.apache.hadoop.hbase.filter.SingleColumnValueFilter
+        ]
       end
     end
   end
