@@ -153,7 +153,6 @@ module Util
           org.apache.hadoop.hbase.filter.CompareFilter
           org.apache.hadoop.hbase.filter.FilterBase
           org.apache.hadoop.hbase.filter.FilterList
-          org.apache.hadoop.hbase.filter.FirstKeyOnlyFilter
           org.apache.hadoop.hbase.filter.KeyOnlyFilter
           org.apache.hadoop.hbase.filter.PrefixFilter
           org.apache.hadoop.hbase.filter.RowFilter
