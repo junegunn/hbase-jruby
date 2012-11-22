@@ -427,9 +427,7 @@ private
       scan.cache_blocks = false
 
       if flist = scan.getFilter
-        filters.each do |filter|
-          flist.addFilter KeyOnlyFilter.new
-        end
+        flist.addFilter KeyOnlyFilter.new
       else
         scan.setFilter FilterList.new(KeyOnlyFilter.new)
       end

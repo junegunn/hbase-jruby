@@ -503,7 +503,7 @@ end
 # Scoped COUNT
 #   When counting the number of rows, use `HTable::Scoped#count`
 #   instead of just iterating through the scope, as it internally
-#   minimizes amount of data fetched.
+#   minimizes amount of data fetched with KeyOnlyFilter
 scoped.count
 ```
 
