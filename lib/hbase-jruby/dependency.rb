@@ -60,8 +60,9 @@ class HBase
       jars.select { |jar| File.exists?(jar) && File.extname(jar) == '.jar' }.select do |jar|
         require jar
       end
-    ensure
+
       Util.import_java_classes!
+    ensure
       tempfiles.each { |tempfile| tempfile.unlink rescue nil }
     end
   end
