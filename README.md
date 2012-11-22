@@ -426,7 +426,15 @@ Multiple calls have additive effects.
 # Fetches cf1:a and all columns in column family cf2 and cf3
 scoped.project('cf1:a', 'cf2').
        project('cf3')
+```
 
+HBase filters can not only filter rows but also columns.
+Since column filtering can be thought of as a kind of projection,
+it makes sense to internally utilize column filters in `HBase::Scoped#project`,
+instead of in `HBase::Scoped#filter`, although it's still perfectly valid
+to pass column filter to filter method.
+
+```ruby
 # Column prefix filter:
 #   Fetch columns whose qualifier starts with the specified prefixes
 scoped.project(:prefix => 'alice').
@@ -440,6 +448,26 @@ scoped.project(:range => 'a'...'c').
 # Column pagination filter (Cannot be chained)
 #   Fetch columns within the specified offset and limit
 scoped.project(:offset => 1000, :limit => 10)
+```
+
+When using column filters on *fat* rows with many columns,
+it's advised that you limit the batch size with `HBase::Scoped#batch` call
+to avoid fetching all columns at once.
+However setting batch size allows multiple rows with the same row key are returned during scan.
+
+```ruby
+puts scoped.range(1..100).
+            project(:prefix => 'str').
+            batch(10).
+            map { |row| [row.rowkey(:fixnum), row.count].map(&:to_s).join ': ' }
+
+  # 1: 10
+  # 1: 10
+  # 1: 5
+  # 2: 10
+  # 2: 2
+  # 3: 10
+  # ...
 ```
 
 ### Scoped SCAN / GET

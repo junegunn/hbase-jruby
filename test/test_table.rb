@@ -469,6 +469,16 @@ class TestTable < TestHBaseJRubyBase
     @table.put :rk, Hash[ ('aa'..'zz').map { |cq| [ "cf1:#{cq}", 100 ] } ]
 
     assert_equal [10, 10, 6], @table.batch(10).project(:prefix => 'd').map(&:count)
+
+    # # README example
+    # (1..100).each do |rk|
+    #   @table.put rk, Hash[ ('aa'..'zz').map { |cq| [ "cf1:#{cq}", 100 ] } ]
+    # end
+    # scoped = @table.each
+    # scoped.range(1..100).
+    #        project(:prefix => 'c').
+    #        batch(10).
+    #        map { |row| [row.rowkey(:fixnum), row.count].map(&:to_s).join ': ' }
   end
 end
 
