@@ -70,7 +70,9 @@ Current version of *hbase-jruby* is shipped with Maven dependency specifications
 for the following Hadoop/HBase distributions.
 
 * cdh4.1.2
-* cdh3u5 (NOT TESTED, yet)
+    * Recommended
+* cdh3u5
+    * Does not support some features
 
 ```ruby
 require 'hbase-jruby'
@@ -134,11 +136,13 @@ hbase.table(:test_table) do |table|
 end
 ```
 
-## Table administraion
+## Basic table administration
 
 ### Creating tables
 
 ```ruby
+table = hbase.table(:my_table)
+
 # Drop table if exists
 table.drop! if table.exists?
 
@@ -283,6 +287,9 @@ table.delete('rowkey1', 'cf1:')
 # Deletes a version of a column
 table.delete('rowkey1', 'cf1:col1', 1352978648642)
 
+# Deletes multiple versions of a column
+table.delete('rowkey1', 'cf1:col1', 1352978648642, 1352978649642)
+
 # Batch delete
 table.delete(['rowkey1'], ['rowkey2'], ['rowkey3', 'cf1:col1'])
 
@@ -313,11 +320,13 @@ end
 
 ## Scoped access
 
-SCAN and GET operation is actually implemented in enumerable `HBase::Scoped` class,
-whose instance is implicitly used/returned by `HBase::Table#each` call.
+SCAN and GET operations are actually implemented in enumerable `HBase::Scoped` class,
+whose instance is created by `HBase::Table#each` call.
 
 ```ruby
 scoped = table.each
+scoped.get(1)
+scoped.to_a
 ```
 
 An `HBase::Scoped` object provides a set of methods for controlling data retrieval
@@ -330,9 +339,9 @@ which is simply forwarded to a new `HBase::Scoped` object implicitly created.
 For example, `table.range(start, end)` is just a shorthand notation for
 `table.each.range(start, end)`.
 
-### Chaining scoping methods
+### Chaining methods
 
-Scoping methods can be chained as follows.
+Methods of `HBase::Scoped` can be chained as follows.
 
 ```ruby
 # Chaining methods
@@ -436,17 +445,17 @@ to pass column filter to filter method.
 
 ```ruby
 # Column prefix filter:
-#   Fetch columns whose qualifier starts with the specified prefixes
+#   Fetch columns whose qualifiers start with the specified prefixes
 scoped.project(:prefix => 'alice').
        project(:prefix => %w[alice bob])
 
 # Column range filter:
-#   Fetch columns whose qualifier within the ranges
+#   Fetch columns whose qualifiers within the ranges
 scoped.project(:range => 'a'...'c').
        project(:range => ['i'...'k', 'x'...'z'])
 
 # Column pagination filter (Cannot be chained. Must be called exactly once.)
-#   Fetch columns within the specified offset and limit
+#   Fetch columns within the specified intra-scan offset and limit
 scoped.project(:offset => 1000, :limit => 10)
 ```
 
