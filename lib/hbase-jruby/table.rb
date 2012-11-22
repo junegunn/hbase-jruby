@@ -1,4 +1,5 @@
 require 'bigdecimal'
+require 'thread'
 
 class HBase
 # @!attribute [r] name
@@ -18,10 +19,13 @@ class Table
   # Closes the table and returns HTable object back to the HTablePool.
   # @return [nil]
   def close
-    if @htable
-      @htable.close 
-      @htable = nil
+    (Thread.current[:htable] || {}).each do |objid, htable|
+      htable.close
     end
+
+    Thread.current[:htable] = {}
+
+    nil
   end
 
   # Checks if the table of the name exists
@@ -75,6 +79,7 @@ class Table
   #   @param [org.apache.hadoop.hbase.HTableDescriptor] Table descriptor
   #   @return [nil]
   def create! desc, props = {}
+    todo = nil
     with_admin do |admin|
       raise RuntimeError, 'Table already exists' if admin.tableExists(@name)
 
@@ -83,7 +88,7 @@ class Table
         patch_table_descriptor! desc, props
         admin.createTable desc
       when Symbol, String
-        create!({desc => {}}, props)
+        todo = lambda { create!({desc => {}}, props) }
       when Hash
         htd = HTableDescriptor.new(@name.to_java_bytes)
         patch_table_descriptor! htd, props
@@ -96,6 +101,7 @@ class Table
         raise ArgumentError, 'Invalid table description'
       end
     end
+    todo.call if todo # Avoids mutex relocking
   end
 
 # # Renames the table (FIXME DOESN'T WORK)
@@ -379,10 +385,12 @@ class Table
     each.batch b
   end
 
-  # Returns the underlying org.apache.hadoop.hbase.client.HTable object
+  # Returns the underlying org.apache.hadoop.hbase.client.HTable object (local to current thread)
   # @return [org.apache.hadoop.hbase.client.HTable]
   def htable
-    @htable ||= @pool.get_table(@name)
+    # @htable ||= @pool.get_table(@name)
+    (local_htables = Thread.current[:htable] ||= {})[object_id] ||
+      (local_htables[object_id] = @pool.get_table(@name))
   end
 
   # Returns table description
