@@ -426,15 +426,12 @@ private
     filtered_scan.tap do |scan|
       scan.cache_blocks = false
 
-      # A filter that will only return the first KV from each row
-      # A filter that will only return the key component of each KV
-      filters = [FirstKeyOnlyFilter.new, KeyOnlyFilter.new]
       if flist = scan.getFilter
         filters.each do |filter|
-          flist.addFilter filter
+          flist.addFilter KeyOnlyFilter.new
         end
       else
-        scan.setFilter FilterList.new(filters)
+        scan.setFilter FilterList.new(KeyOnlyFilter.new)
       end
     end
   end
