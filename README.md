@@ -2,10 +2,15 @@
 
 *hbase-jruby* provides Ruby-esque interface for accessing HBase from JRuby.
 
-Of course JRuby allows you to directly call native Java APIs of HBase,
+You can of course just use the native Java APIs of HBase,
 but doing so requires a lot of keystrokes even for the most basic operations and
 leads to verbose code that will be frowned upon by any sane Rubyist.
 Anyhow, JRuby is Ruby, not Java, right?
+
+*hbase-jruby* provides the followings:
+- Easy Ruby-esque interface for the fundamental HBase operations
+- ActiveRecord-like method chaining for scanning tables
+- Automatic Hadoop/HBase dependency resolution
 
 ## A quick example
 
@@ -387,13 +392,17 @@ Optionally, prefix filter can be applied as follows.
 ```ruby
 # Prefix filter
 # Row keys with "APPLE" prefix
+#   Start key is automatically set to "APPLE",
+#   stop key "APPLF" to avoid unnecessary disk access
 table.range(:prefix => 'APPLE')
 
-# Row keys with "APPLE" prefix from 'A' ~ 'B'
-table.range('A'...'B', :prefix => 'APPLE')
+# Row keys with "ACE" or "BLUE" or "APPLE" prefix
+#   Start key is automatically set to "ACE",
+#   stop key "BLUF"
+table.range(:prefix => ['ACE', 'BLUE', 'APPLE'])
 
-# Row keys with "ACE" or "APPLE" or "BLUE" prefix from 'A' ~ 'C'
-table.range('A'...'C', :prefix => ['ACE', 'APPLE', 'BLUE'])
+# Prefix filter with start key and stop key.
+table.range('ACE', 'BLUEMARINE', :prefix => ['ACE', 'BLUE', 'APPLE'])
 ```
 
 Subsequent calls to `#range` override the range previously defined.
