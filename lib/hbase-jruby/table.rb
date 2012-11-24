@@ -19,12 +19,9 @@ class Table
   # Closes the table and returns HTable object back to the HTablePool.
   # @return [nil]
   def close
-    (Thread.current[:htable] || {}).each do |objid, htable|
-      htable.close
-    end
-
-    Thread.current[:htable] = {}
-
+    Thread.current[:htable] ||= {}
+    ht = Thread.current[:htable].delete(@name)
+    ht.close if ht
     nil
   end
 
@@ -383,8 +380,8 @@ class Table
   # @return [org.apache.hadoop.hbase.client.HTable]
   def htable
     # @htable ||= @pool.get_table(@name)
-    (local_htables = Thread.current[:htable] ||= {})[object_id] ||
-      (local_htables[object_id] = @pool.get_table(@name))
+    (local_htables = Thread.current[:htable] ||= {})[@name] ||
+      (local_htables[@name] = @pool.get_table(@name))
   end
 
   # Returns table description

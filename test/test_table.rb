@@ -15,6 +15,7 @@ class TestScoped < TestHBaseJRubyBase
       assert_equal TABLE, table.name
       assert table.exists?
       table.close
+      table.close
 
       # Gets another HTable instance from HTablePool
       table.put('rowkey' => { 'cf1:a' => 1 })
