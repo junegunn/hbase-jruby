@@ -4,11 +4,11 @@
 
 You can of course just use the native Java APIs of HBase,
 but doing so requires a lot of keystrokes even for the most basic operations and
-leads to verbose code that will be frowned upon by any sane Rubyist.
+can easily lead to overly verbose code that will be frowned upon by Rubyists.
 Anyhow, JRuby is Ruby, not Java, right?
 
 *hbase-jruby* provides the followings:
-- Easy Ruby-esque interface for the fundamental HBase operations
+- Easy, Ruby-esque interface for the fundamental HBase operations
 - ActiveRecord-like method chaining for scanning tables
 - Automatic Hadoop/HBase dependency resolution
 
@@ -75,7 +75,7 @@ Current version of *hbase-jruby* is shipped with Maven dependency specifications
 for the following Hadoop/HBase distributions.
 
 * cdh4.1.2
-    * Recommended
+    * Recommended as of now
 * cdh3u5
     * Does not support some features
 
@@ -123,7 +123,7 @@ hbase.close
 
 ## Accessing data with HBase::Table instance
 
-`HBase#table` method creates an `HBase::Table` instance which represents an HBase table.
+`HBase#table` method creates an `HBase::Table` instance which represents a table on HBase.
 
 ```ruby
 table = hbase.table(:test_table)
