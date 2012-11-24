@@ -1,6 +1,6 @@
 # hbase-jruby
 
-*hbase-jruby* provides Ruby-esque interface for accessing HBase from JRuby.
+*hbase-jruby* is a Ruby-esque interface for accessing HBase from JRuby.
 
 You can of course just use the native Java APIs of HBase,
 but doing so requires a lot of keystrokes even for the most basic operations and
