@@ -109,7 +109,12 @@ class Scoped
       raise ArgumentError, "Invalid range" unless [1, 2].include?(key_range.length)
     end
 
-    spawn :@range, key_range[0].is_a?(Range) ? key_range[0] : key_range, :@prefixes, prefixes || []
+    spawn :@range,
+          key_range[0].is_a?(Range) ?
+              key_range[0] :
+              (key_range.empty? ? nil : key_range),
+          :@prefixes,
+          prefixes || []
   end
 
   # Returns an HBase::Scoped object with the filters added
@@ -173,8 +178,8 @@ private
     @table    = table
     @filters  = []
     @project  = []
-    @range    = []
     @prefixes = []
+    @range    = nil
     @versions = nil
     @batch    = nil
     @caching  = nil
@@ -274,34 +279,33 @@ private
       filters = []
       filters += process_projection!(get)
 
-      if @range
-        case @range
-        when Range
-          filters <<
-            RowFilter.new(
-              CompareFilter::CompareOp::GREATER_OR_EQUAL,
-              BinaryComparator.new(Util.to_bytes @range.begin))
+      range = @range || range_for_prefix
+      case range
+      when Range
+        filters <<
+          RowFilter.new(
+            CompareFilter::CompareOp::GREATER_OR_EQUAL,
+            BinaryComparator.new(Util.to_bytes range.begin))
 
-          filters <<
-            RowFilter.new(
-              (@range.exclude_end? ?
-                CompareFilter::CompareOp::LESS :
-                CompareFilter::CompareOp::LESS_OR_EQUAL),
-              BinaryComparator.new(Util.to_bytes @range.end))
-        when Array
-          filters <<
-            RowFilter.new(
-              CompareFilter::CompareOp::GREATER_OR_EQUAL,
-              BinaryComparator.new(Util.to_bytes @range[0])) if @range[0]
+        filters <<
+          RowFilter.new(
+            (range.exclude_end? ?
+              CompareFilter::CompareOp::LESS :
+              CompareFilter::CompareOp::LESS_OR_EQUAL),
+            BinaryComparator.new(Util.to_bytes range.end))
+      when Array
+        filters <<
+          RowFilter.new(
+            CompareFilter::CompareOp::GREATER_OR_EQUAL,
+            BinaryComparator.new(Util.to_bytes range[0])) if range[0]
 
-          filters <<
-            RowFilter.new(
-              CompareFilter::CompareOp::LESS,
-              BinaryComparator.new(Util.to_bytes @range[1])) if @range[1]
-        else
-          raise ArgumentError, "Invalid range"
-        end
-      end
+        filters <<
+          RowFilter.new(
+            CompareFilter::CompareOp::LESS,
+            BinaryComparator.new(Util.to_bytes range[1])) if range[1]
+      else
+        raise ArgumentError, "Invalid range"
+      end if range
 
       # Prefix filters
       filters += [*build_prefix_filter]
@@ -377,21 +381,22 @@ private
 
   def filtered_scan
     Scan.new.tap { |scan|
-      case @range
+      range = @range || range_for_prefix
+      case range
       when Range
-        scan.setStartRow Util.to_bytes @range.begin
+        scan.setStartRow Util.to_bytes range.begin
 
-        if @range.exclude_end?
-          scan.setStopRow Util.to_bytes @range.end
+        if range.exclude_end?
+          scan.setStopRow Util.to_bytes range.end
         else
-          scan.setStopRow Util.append_0(Util.to_bytes @range.end)
+          scan.setStopRow Util.append_0(Util.to_bytes range.end)
         end
       when Array
-        scan.setStartRow Util.to_bytes @range[0] if @range[0]
-        scan.setStopRow  Util.to_bytes @range[1] if @range[1]
+        scan.setStartRow Util.to_bytes range[0] if range[0]
+        scan.setStopRow  Util.to_bytes range[1] if range[1]
       else
-        scan.setStartRow Util.to_bytes @range
-      end
+        scan.setStartRow Util.to_bytes range
+      end if range
 
       scan.caching = @caching if @caching
 
@@ -446,6 +451,16 @@ private
     else
       FilterList.new FilterList::Operator::MUST_PASS_ONE, filters
     end
+  end
+
+  def range_for_prefix
+    return nil if @prefixes.empty?
+
+    byte_arrays = @prefixes.map { |pref| ByteArray.new(pref) }.sort
+    start = byte_arrays.first
+    stop  = byte_arrays.last
+
+    [start.java, stop.stopkey_bytes_for_prefix]
   end
 end#Scoped
 end#HBase
