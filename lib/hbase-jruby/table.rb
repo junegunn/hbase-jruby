@@ -120,6 +120,7 @@ class Table
       patch_table_descriptor! htd, props
       while_disabled(admin) do
         admin.modifyTable @name.to_java_bytes, htd
+        wait_async_admin(admin)
       end
     end
   end
@@ -132,6 +133,7 @@ class Table
     with_admin do |admin|
       while_disabled(admin) do
         admin.addColumn @name, hcd(name.to_s, opts)
+        wait_async_admin(admin)
       end
     end
   end
@@ -144,6 +146,7 @@ class Table
     with_admin do |admin|
       while_disabled(admin) do
         admin.modifyColumn @name, hcd(name.to_s, opts)
+        wait_async_admin(admin)
       end
     end
   end
@@ -155,6 +158,7 @@ class Table
     with_admin do |admin|
       while_disabled(admin) do
         admin.deleteColumn @name, name.to_s
+        wait_async_admin(admin)
       end
     end
   end

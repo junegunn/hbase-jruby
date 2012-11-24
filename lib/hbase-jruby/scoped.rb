@@ -63,6 +63,7 @@ class Scoped
   # @param [Fixnum] rows The number of rows to cache
   # @return [HBase::Scoped] HBase::Scoped object with the caching option
   def caching rows
+    raise ArgumentError, "Invalid caching size. Must be a non-negative integer." unless rows.is_a?(Fixnum) && rows >= 0
     spawn :@caching, rows
   end
 
@@ -100,6 +101,8 @@ class Scoped
   def range *key_range
     if key_range.last.is_a?(Hash)
       prefixes  = [*key_range.last[:prefix]]
+      raise ArgumentError,
+        "Invalid range. Unknown option(s) specified." unless (key_range.last.keys - [:prefix]).empty?
       key_range = key_range[0...-1]
     end
 
@@ -147,6 +150,7 @@ class Scoped
   # @param [Fixnum] rows Sets the maximum number of rows to return from scan
   # @return [HBase::Scoped] HBase::Scoped object with the specified row number limit
   def limit rows
+    raise ArgumentError, "Invalid limit. Must be a non-negative integer." unless rows.is_a?(Fixnum) && rows >= 0
     spawn :@limit, rows
   end
 
@@ -154,6 +158,24 @@ class Scoped
   # @param [Array<String>] columns Array of column expressions
   # @return [HBase::Scoped] HBase::Scoped object with the specified projection
   def project *columns
+    if columns.first.is_a?(Hash)
+      hash = columns.first
+      unless (hash.keys - [:prefix, :range, :limit, :offset]).empty?
+        raise ArgumentError, "Invalid projection"
+      end
+
+      if l = hash[:limit]
+        unless l.is_a?(Fixnum) && l >= 0
+          raise ArgumentError, ":limit must be a non-negative integer"
+        end
+      end
+
+      if o = hash[:offset]
+        unless o.is_a?(Fixnum) && o >= 0
+          raise ArgumentError, ":offset must be a non-negative integer"
+        end
+      end
+    end
     spawn :@project, @project + columns
   end
 
@@ -162,6 +184,7 @@ class Scoped
   # @param [Fixnum] vs Sets the maximum number of versions
   # @return [HBase::Scoped] HBase::Scoped object with the version number limit
   def versions vs
+    raise ArgumentError, "Invalid versions. Must be a positive integer." unless vs.is_a?(Fixnum) && vs > 0
     spawn :@versions, vs
   end
 
@@ -169,6 +192,7 @@ class Scoped
   # @param [Fixnum] b Sets the maximum number of values to fetch each time
   # @return [HBase::Scoped] HBase::Scoped object with the specified batch limit
   def batch b
+    raise ArgumentError, "Invalid batch size. Must be a positive integer." unless b.is_a?(Fixnum) && b > 0
     spawn :@batch, b
   end
 
@@ -214,14 +238,11 @@ private
           when :range
             ranges += val.is_a?(Array) ? val : [val]
           when :limit
-            raise ArgumentError, "Multiple :limit's" if limit
-            raise ArgumentError, ":limit must be an integer" unless val.is_a?(Fixnum)
             limit = val
           when :offset
-            raise ArgumentError, "Multiple :offset's" if offset
-            raise ArgumentError, ":offset must be an integer" unless val.is_a?(Fixnum)
             offset = val
           else
+            # Shouldn't happen
             raise ArgumentError, "Invalid projection: #{prop}"
           end
         end
@@ -395,7 +416,8 @@ private
         scan.setStartRow Util.to_bytes range[0] if range[0]
         scan.setStopRow  Util.to_bytes range[1] if range[1]
       else
-        scan.setStartRow Util.to_bytes range
+        # This shouldn't happen though.
+        raise ArgumentError, "Invalid range"
       end if range
 
       scan.caching = @caching if @caching
