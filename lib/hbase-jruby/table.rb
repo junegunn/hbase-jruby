@@ -104,22 +104,6 @@ class Table
     todo.call if todo # Avoids mutex relocking
   end
 
-# # Renames the table (FIXME DOESN'T WORK)
-# # @param [#to_s] New name
-# # @return [String] New name
-# def rename! new_name
-#   with_admin do |admin|
-#     new_name = new_name.to_s
-#     htd = admin.get_table_descriptor(@name.to_java_bytes)
-#     htd.setName new_name.to_java_bytes
-
-#     while_disabled(admin) do
-#       admin.modifyTable @name.to_java_bytes, htd
-#       @name = new_name
-#     end
-#   end
-# end
-
   # Alters the table
   # @param [Hash] props Table properties
   # @return [nil]
