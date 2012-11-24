@@ -98,7 +98,7 @@ HBase.resolve_dependency! '/project/my-hbase/pom.xml'
 
 If you have HBase installed on your system, it's possible to find the JAR files
 for that local installation with `hbase classpath` command.
-You can tell `resolve_dependency!` method to do so by giving it special `:hbase` parameter.
+You can tell `resolve_dependency!` method to do so by passing it special `:hbase` parameter.
 
 ```ruby
 HBase.resolve_dependency! :hbase
@@ -339,8 +339,8 @@ such as `range`, `filter`, `project`, `versions`, `caching`, et cetera.
 However, it doesn't respond to data manipulation methods (`put`, `delete` and `increment`),
 and methods for table administration.
 
-An `HBase::Table` object also responds to data retrieval methods described above,
-which is simply forwarded to a new `HBase::Scoped` object implicitly created.
+An `HBase::Table` object also responds to the data retrieval methods described above,
+but those calls are simply forwarded to a new `HBase::Scoped` object implicitly created.
 For example, `table.range(start, end)` is just a shorthand notation for
 `table.each.range(start, end)`.
 
@@ -358,7 +358,7 @@ table.range('A'..'Z').                   # Row key range,
       filter('cf1:a' => 'Hello').        # Filter by cf1:a value
       filter('cf2:d' => 100..200).       # Range filter on cf2:d
       filter('cf2:e' => [10, 20..30]).   # Set-inclusion condition on cf2:e
-      filter(RandomRowFilter.new(0.5)).  # Any HBase filter
+      filter(RandomRowFilter.new(0.5)).  # Any Java HBase filter
       limit(10).                         # Limits the size of the result set
       versions(2).                       # Only fetches 2 versions for each value
       batch(100).                        # Batch size for scan set to 100
@@ -396,7 +396,7 @@ Optionally, prefix filter can be applied as follows.
 #   stop key "APPLF" to avoid unnecessary disk access
 table.range(:prefix => 'APPLE')
 
-# Row keys with "ACE" or "BLUE" or "APPLE" prefix
+# Row keys with "ACE", "BLUE" or "APPLE" prefix
 #   Start key is automatically set to "ACE",
 #   stop key "BLUF"
 table.range(:prefix => ['ACE', 'BLUE', 'APPLE'])
@@ -409,12 +409,16 @@ Subsequent calls to `#range` override the range previously defined.
 
 ```ruby
 # Previous ranges are discarded
-scope.range(1, 100).range(50..100).range(1, 1000)
+scope.range(1, 100).
+      range(50..100).
+      range(:prefix => 'A').
+      range(1, 1000)
+  # Same as `scope.range(1, 1000)`
 ```
 
 ### filter
 
-Specifies server-side filtering of rows and columns.
+You can configure server-side filtering of rows and columns with `HBase::Scoped#filter` calls.
 Multiple calls have conjunctive effects.
 
 ```ruby
@@ -437,7 +441,7 @@ end
 
 ### project
 
-`HBase::Scoped#project` allows you to fetch only a subset of columns in rows.
+`HBase::Scoped#project` allows you to fetch only a subset of columns from each row.
 Multiple calls have additive effects.
 
 ```ruby
@@ -448,7 +452,7 @@ scoped.project('cf1:a', 'cf2').
 
 HBase filters can not only filter rows but also columns.
 Since column filtering can be thought of as a kind of projection,
-it makes sense to internally utilize column filters in `HBase::Scoped#project`,
+it makes sense to internally apply column filters in `HBase::Scoped#project`,
 instead of in `HBase::Scoped#filter`, although it's still perfectly valid
 to pass column filter to filter method.
 
@@ -463,7 +467,7 @@ scoped.project(:prefix => 'alice').
 scoped.project(:range => 'a'...'c').
        project(:range => ['i'...'k', 'x'...'z'])
 
-# Column pagination filter (Cannot be chained. Must be called exactly once.)
+# Column pagination filter (Cannot be chained. Must be called exactly once.):
 #   Fetch columns within the specified intra-scan offset and limit
 scoped.project(:offset => 1000, :limit => 10)
 ```
@@ -474,6 +478,7 @@ to avoid fetching all columns at once.
 However setting batch size allows multiple rows with the same row key are returned during scan.
 
 ```ruby
+# Let's say that we have rows with more than 10 columns whose qualifiers start with `str`
 puts scoped.range(1..100).
             project(:prefix => 'str').
             batch(10).
@@ -499,7 +504,7 @@ scoped = table.versions(1).                       # Limits the number of version
                project('cf1', 'cf2:x')            # Projection
 
 # Scoped GET
-# Nonexistent or filtered rows are returned as nils
+#   Nonexistent or filtered rows are returned as nils
 scoped.get(['rowkey1', 'rowkey2', 'rowkey4'])
 
 # Scoped SCAN
@@ -521,7 +526,7 @@ scoped.count
 ### Lexicographic scan order
 
 HBase stores rows in the lexicographic order of the rowkeys in their byte array representations.
-Thus the type of rowkey affects the scan order.
+Thus the type of row key affects the scan order.
 
 ```ruby
 (1..15).times do |i|
@@ -529,7 +534,7 @@ Thus the type of rowkey affects the scan order.
   table.put i.to_s, data
 end
 
-table.range(1..3).map { |r| r.rowkey :integer }
+table.range(1..3).map { |r| r.rowkey :fixnum }
   # [1, 2, 3]
 table.range('1'..'3').map { |r| r.rowkey :string }
   # %w[1 10 11 12 13 14 15 2 3]
@@ -574,7 +579,7 @@ table.alter!(
 
 # Add column family
 table.add_family! :cf3, :compression => :snappy,
-                         :bloomfilter => :row
+                        :bloomfilter => :row
 
 # Alter column family
 table.alter_family! :cf2, :bloomfilter => :rowcol
@@ -583,7 +588,7 @@ table.alter_family! :cf2, :bloomfilter => :rowcol
 table.delete_family! :cf1
 
 # Advanced table administration with HBaseAdmin object
-# http://hbase.apache.org/apidocs/org/apache/hadoop/hbase/client/HBaseAdmin.html
+#   http://hbase.apache.org/apidocs/org/apache/hadoop/hbase/client/HBaseAdmin.html
 admin = hbase.admin
 ```
 
