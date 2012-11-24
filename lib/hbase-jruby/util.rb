@@ -124,6 +124,11 @@ module Util
           org.apache.hadoop.hbase.KeyValue
         ]
 
+        imp.call HBase::ByteArray, %w[
+          java.util.Arrays
+          org.apache.hadoop.hbase.util.Bytes
+        ]
+
         imp.call HBase::Cell, %w[
           org.apache.hadoop.hbase.KeyValue
         ]
