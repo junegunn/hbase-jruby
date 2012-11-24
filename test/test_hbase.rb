@@ -19,6 +19,9 @@ class TestHBase < TestHBaseJRubyBase
 
   def test_admin
     assert_instance_of org.apache.hadoop.hbase.client.HBaseAdmin, @hbase.admin
+    @hbase.admin do |admin|
+      assert_instance_of org.apache.hadoop.hbase.client.HBaseAdmin, admin
+    end
   end
 
   def test_config

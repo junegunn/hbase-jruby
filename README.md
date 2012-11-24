@@ -559,6 +559,8 @@ table.get('rowkey').string(HBase::ColumnKey(:cf1, 100))
 
 ### Table administration
 
+`HBase#Table` provides a few *synchronous* table administration methods.
+
 ```ruby
 # Create a table with configurable table-level properties
 table.create!(
@@ -586,10 +588,23 @@ table.alter_family! :cf2, :bloomfilter => :rowcol
 
 # Remove column family
 table.delete_family! :cf1
+```
 
+You can perform other types of administrative tasks
+with Native Java [HBaseAdmin object](http://hbase.apache.org/apidocs/org/apache/hadoop/hbase/client/HBaseAdmin.html),
+which can be obtained by `HBase#admin` method which will automatically close the object at the end of the given block.
+
+```ruby
 # Advanced table administration with HBaseAdmin object
 #   http://hbase.apache.org/apidocs/org/apache/hadoop/hbase/client/HBaseAdmin.html
+hbase.admin do |admin|
+  # ...
+end
+
+# Without the block
 admin = hbase.admin
+# ...
+admin.close
 ```
 
 ## Test

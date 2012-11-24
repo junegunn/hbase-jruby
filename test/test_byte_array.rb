@@ -28,4 +28,13 @@ class TestByteArray < Test::Unit::TestCase
         HBase::ByteArray.new([126, 126, 127, 127, 127, 127].to_java(Java::byte)).stopkey_bytes_for_prefix
       )
   end
+
+  def test_as_hash_key
+    hash = {
+      HBase::ByteArray.new("Hello") => 1,
+      HBase::ByteArray.new("World") => 2
+    }
+    assert_equal 1, hash[ HBase::ByteArray.new("Hello") ]
+    assert_equal 2, hash[ HBase::ByteArray.new("World".to_java_bytes) ]
+  end
 end
