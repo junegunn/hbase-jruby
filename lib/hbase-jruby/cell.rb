@@ -14,7 +14,7 @@ class Cell
 
   # Returns the rowkey of the cell decoded as the given type
   # @param [Symbol] type The type of the rowkey.
-  #   Can be one of :string, :symbol, :fixnum, :float, :bignum, :bigdecimal, :boolean and :raw.
+  #   Can be one of :string, :symbol, :fixnum, :float, :bigdecimal, :boolean and :raw.
   # @return [String, byte[]]
   def rowkey type = :string
     Util.from_bytes type, @java.getRow
@@ -35,7 +35,7 @@ class Cell
 
   # Returns the column qualifier of the cell
   # @param [Symbol] type The type of the qualifier.
-  #   Can be one of :string, :symbol, :fixnum, :float, :bignum, :bigdecimal, :boolean and :raw.
+  #   Can be one of :string, :symbol, :fixnum, :float, :bigdecimal, :boolean and :raw.
   # @return [Object]
   def qualifier type = :string
     Util.from_bytes type, @java.getQualifier
@@ -77,14 +77,6 @@ class Cell
   end
   alias integer fixnum
   alias int     fixnum
-
-  # Returns the column value as a Bignum
-  # @return [Bignum]
-  def bignum
-    Util.from_bytes :bignum, value
-  end
-  alias biginteger bignum
-  alias bigint     bignum
 
   # Returns the column value as a BigDecimal
   # @return [BigDecimal]

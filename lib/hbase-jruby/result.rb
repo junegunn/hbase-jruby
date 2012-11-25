@@ -8,7 +8,7 @@ class Result
  
   # Returns the rowkey of the row
   # @param [Symbol] type The type of the rowkey
-  #   Can be one of :string, :symbol, :fixnum, :float, :bignum, :bigdecimal, :boolean and :raw.
+  #   Can be one of :string, :symbol, :fixnum, :float, :bigdecimal, :boolean and :raw.
   # @return [String, byte[]]
   def rowkey type = :string
     Util.from_bytes type, @result.getRow
@@ -191,36 +191,6 @@ class Result
   end
   alias integers fixnums
   alias ints     fixnums
-
-  # @overload bignum(column)
-  #   Returns the latest column value as a Bignum
-  #   @param [String, HBase::ColumnKey] column "FAMILY:QUALIFIER" expression or ColumnKey object.
-  #   @return [Bignum]
-  # @overload bignum(columns)
-  #   For each column specified, 
-  #   returns the latest column values as a Bignum
-  #   @param [Array<String|HBase::ColumnKey>] columns Array of "FAMILY:QUALIFIER" expressions and ColumnKey objects.
-  #   @return [Array<Bignum>]
-  def bignum cols
-    decode_values :bignum, cols
-  end
-  alias biginteger bignum
-  alias bigint     bignum
-
-  # @overload bignums(column)
-  #   Returns all versions of column values as Bignums in a Hash indexed by their timestamps
-  #   @param [String, HBase::ColumnKey] column "FAMILY:QUALIFIER" expression or ColumnKey object.
-  #   @return [Hash<Fixnum, Bignum>]
-  # @overload bignums(columns)
-  #   For each column specified, 
-  #   returns all versions of column values as Bignums in a Hash indexed by their timestamps
-  #   @param [Array<String|HBase::ColumnKey>] columns Array of "FAMILY:QUALIFIER" expressions and ColumnKey objects.
-  #   @return [Array<Hash<Fixnum, Bignum>>]
-  def bignums cols
-    decode_values :bignum, cols, true
-  end
-  alias bigintegers bignums
-  alias bigints     bignums
 
   # @overload bigdecimal(column)
   #   Returns the latest column value as a BigDecimal

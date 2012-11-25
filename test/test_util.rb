@@ -10,14 +10,13 @@ class TestUtil < Test::Unit::TestCase
   def test_bytea_conversion
     Util.import_java_classes!
 
+    assert_raise(ArgumentError) { Util.to_bytes(10 ** 30) }
+
     [:fixnum, :int, :integer].each do |type|
       assert_equal 100, Util.from_bytes( type, Util.to_bytes(100) )
     end
     [:float, :double].each do |type|
       assert_equal 3.14, Util.from_bytes( type, Util.to_bytes(3.14) )
-    end
-    [:bignum, :biginteger, :bigint].each do |type|
-      assert_equal 12345678901234567890, Util.from_bytes( type, Util.to_bytes(12345678901234567890) )
     end
     [:string, :str].each do |type|
       assert_equal "Hello", Util.from_bytes( type, Util.to_bytes("Hello") )

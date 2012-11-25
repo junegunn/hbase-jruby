@@ -9,13 +9,15 @@ Anyhow, JRuby is Ruby, not Java, right?
 
 *hbase-jruby* provides the followings:
 - Easy, Ruby-esque interface for the fundamental HBase operations
-- ActiveRecord-like method chaining for scanning tables
+- ActiveRecord-like method chaining for data retrieval
 - Automatic Hadoop/HBase dependency resolution
 
 ## A quick example
 
 ```ruby
 require 'hbase-jruby'
+
+HBase.resolve_dependency! 'cdh4.1.2'
 
 hbase = HBase.new
 table = hbase.table(:test_table)
@@ -25,7 +27,7 @@ table.put :rowkey1 => { 'cf1:a' => 100, 'cf2:b' => "Hello" }
 
 # GET
 row = table.get(:rowkey1)
-number = row.integer('cf1:a')
+number = row.fixnum('cf1:a')
 string = row.string('cf1:b')
 
 # SCAN
@@ -34,7 +36,7 @@ table.range('rowkey1'..'rowkey9').
              'cf2:b' => 'Hello',              # cf1:b = 'Hello'
              'cf2:c' => ['foo', 'bar']).      # cf2:c in ('foo', 'bar')
       project('cf1:a', 'cf2').each do |row|
-  puts row.integer('cf1:a')
+  puts row.fixnum('cf1:a')
 end
 
 # DELETE
@@ -191,12 +193,12 @@ rowk = row.rowkey
 col0 = row.raw 'cf1:col0'
 
 # Decode column values
-col1 = row.string  'cf1:col1'
-col2 = row.fixnum  'cf1:col2'
-col3 = row.bignum  'cf1:col3'
-col4 = row.float   'cf1:col4'
-col5 = row.boolean 'cf1:col5'
-col6 = row.symbol  'cf1:col6'
+col1 = row.string     'cf1:col1'
+col2 = row.fixnum     'cf1:col2'
+col3 = row.bigdecimal 'cf1:col3'
+col4 = row.float      'cf1:col4'
+col5 = row.boolean    'cf1:col5'
+col6 = row.symbol     'cf1:col6'
 
 # Decode multiple columns at once
 row.string ['cf1:str1', 'cf1:str2']
@@ -225,13 +227,13 @@ row.strings ['cf1:str1', 'cf1:str2']
   # ]
 
 # Plural-form methods are provided for any other data types as well
-cols0 = row.raws     'cf1:col0'
-cols1 = row.strings  'cf1:col1'
-cols2 = row.fixnums  'cf1:col2'
-cols3 = row.bignums  'cf1:col3'
-cols4 = row.floats   'cf1:col4'
-cols5 = row.booleans 'cf1:col5'
-cols6 = row.symbols  'cf1:col6'
+cols0 = row.raws        'cf1:col0'
+cols1 = row.strings     'cf1:col1'
+cols2 = row.fixnums     'cf1:col2'
+cols3 = row.bigdecimals 'cf1:col3'
+cols4 = row.floats      'cf1:col4'
+cols5 = row.booleans    'cf1:col5'
+cols6 = row.symbols     'cf1:col6'
 ```
 
 #### Intra-row scan
@@ -262,7 +264,7 @@ end
 schema = {
   'cf1:col1' => :string,
   'cf1:col2' => :fixnum,
-  'cf1:col3' => :bignum,
+  'cf1:col3' => :bigdecimal,
   'cf1:col4' => :float,
   'cf1:col5' => :boolean,
   'cf1:col6' => :symbol }

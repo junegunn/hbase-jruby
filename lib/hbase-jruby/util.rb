@@ -24,7 +24,7 @@ module Util
       when nil
         ''.to_java_bytes
       when Bignum
-        Bytes.java_send :toBytes, [java.math.BigDecimal], java.math.BigDecimal.new(v.to_s)
+        raise ArgumentError, "Integer too large. Consider storing it as a BigDecimal."
       when BigDecimal
         Bytes.java_send :toBytes, [java.math.BigDecimal], v.to_java
       when java.math.BigDecimal
@@ -52,8 +52,6 @@ module Util
         Bytes.to_long val
       when :symbol, :sym
         Bytes.to_string(val).to_sym
-      when :bignum, :bigint, :biginteger
-        BigDecimal.new(Bytes.to_big_decimal(val).to_s).to_i
       when :bigdecimal
         BigDecimal.new(Bytes.to_big_decimal(val).to_s)
       when :float, :double
