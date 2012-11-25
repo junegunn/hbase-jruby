@@ -14,7 +14,6 @@ class TestCell < Test::Unit::TestCase
       'value'                        => :string,
       :value                         => :symbol,
       123                            => :fixnum,
-      123456789012345678901234567890 => :bignum,
       123.456                        => :float,
       true                           => :boolean,
       false                          => :boolean,

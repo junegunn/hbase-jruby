@@ -2,6 +2,7 @@
 
 $LOAD_PATH.unshift File.expand_path('..', __FILE__)
 require 'helper'
+require 'bigdecimal'
 
 class TestScoped < TestHBaseJRubyBase 
   def test_table
@@ -23,14 +24,12 @@ class TestScoped < TestHBaseJRubyBase
   end
 
   def test_put_then_get
-    bignum = 123456789123456789123456789
     # Single record put
     assert_equal 1, @table.put('row1',
                                'cf1:a' => 2,
                                'cf1:b' => 'b',
                                'cf1:c' => 6.28,
                                'cf1:d' => false,
-                               'cf1:e' => bignum + 1,
                                'cf1:f' => :bol,
                                'cf1:g' => BigDecimal.new("456.123"),
                                'cf1:str1' => "Goodbye", 'cf1:str2' => "Cruel world")
@@ -39,7 +38,6 @@ class TestScoped < TestHBaseJRubyBase
                                'cf1:b' => 'a',
                                'cf1:c' => 3.14,
                                'cf1:d' => true,
-                               'cf1:e' => bignum,
                                'cf1:f' => :sym,
                                'cf1:g' => BigDecimal.new("123.456"),
                                'cf1:str1' => "Hello", 'cf1:str2' => "World")
@@ -55,7 +53,6 @@ class TestScoped < TestHBaseJRubyBase
     assert_equal 'a',    String.from_java_bytes(@table.get('row1').raw('cf1:b'))
     assert_equal 3.14,   @table.get('row1').float('cf1:c')
     assert_equal true,   @table.get('row1').boolean('cf1:d')
-    assert_equal bignum, @table.get('row1').bignum('cf1:e')
     assert_equal :sym,   @table.get('row1').symbol('cf1:f')
     assert_equal BigDecimal.new("123.456"), @table.get('row1').bigdecimal('cf1:g')
 
@@ -68,7 +65,6 @@ class TestScoped < TestHBaseJRubyBase
     assert_equal %w[a b],              @table.get('row1').raws('cf1:b').values.map { |v| String.from_java_bytes v }
     assert_equal [3.14, 6.28],         @table.get('row1').floats('cf1:c').values
     assert_equal [true, false],        @table.get('row1').booleans('cf1:d').values
-    assert_equal [bignum, bignum + 1], @table.get('row1').bignums('cf1:e').values
     assert_equal [:sym, :bol],         @table.get('row1').symbols('cf1:f').values
     assert_equal [
       BigDecimal.new("123.456"),
@@ -102,7 +98,7 @@ class TestScoped < TestHBaseJRubyBase
       'cf1:c' => 3.14,
       'cf2:d' => :world,
       'cf2:e' => false,
-      'cf3:f' => 1234567890123456789012345678901234567890,
+      'cf3:f' => BigDecimal.new(1234567890123456789012345678901234567890),
       'cf3'   => true
     }
     schema = {
@@ -111,7 +107,7 @@ class TestScoped < TestHBaseJRubyBase
       'cf1:c' => :float,
       HBase::ColumnKey(:cf2, :d) => :symbol,
       HBase::ColumnKey(:cf2, :e) => :boolean,
-      HBase::ColumnKey(:cf3, :f) => :biginteger,
+      HBase::ColumnKey(:cf3, :f) => :bigdecimal,
       'cf3'   => :boolean
     }
     @table.put('row1', data)
