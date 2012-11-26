@@ -33,8 +33,9 @@ string = row.string('cf1:b')
 # SCAN
 table.range('rowkey1'..'rowkey9').
       filter('cf1:a' => 100..200,             # cf1:a between 100 and 200
-             'cf2:b' => 'Hello',              # cf1:b = 'Hello'
-             'cf2:c' => ['foo', 'bar']).      # cf2:c in ('foo', 'bar')
+             'cf1:b' => 'Hello',              # cf1:b = 'Hello'
+             'cf2:c' => /world/i).            # cf2:c matches /world/i
+             'cf2:d' => ['foo', /^BAR/i],     # cf2:d = 'foo' OR matches /^BAR/i
       project('cf1:a', 'cf2').each do |row|
   puts row.fixnum('cf1:a')
 end
@@ -427,17 +428,32 @@ Multiple calls have conjunctive effects.
 ```ruby
 # Range scanning the table with filters
 table.range(nil, 1000).
-      filter('cf1:a' => 'Hello',                  # cf1:a = 'Hello'
-             'cf1:b' => 100..200,                # cf1:b between 100 and 200
-             'cf1:c' => %w[A B C],                # cf1:c in ('A', 'B', 'C')
-             'cf1:d' => ['A'...'B', 'C'],         # ('A' <= cf1:d < 'B') or cf1:d = 'C'
-             'cf1:e' => { gt: 1000, lte: 2000 }). # cf1:e > 1000 and cf1:e <= 2000
-             'cf1:f' => { ne: 1000 }).            # cf1:f != 1000
-                                                  #   Supported operators: gt, lt, gte, lte, eq, ne
-      filter('cf1:g' => ['Alice'..'Bob', 'Cat']). # Multiple calls for conjunctive filtering
+      filter(
+        # Numbers and characters: If the value equals to the given value
+        'cf1:a' => 'Hello',
+        'cf1:b' => 1024,
+
+        # Range of numbers or characters: If the value comes within the range
+        'cf1:c' => 100..200,
+        'cf1:d' => 'A'..'C',
+
+        # Regular expression: If the value matches the regular expression
+        'cf1:e' => /world$/i,
+
+        # Hash: Tests the value with operators (:gt, :lt, :gte, :lte, :eq, :ne)
+        'cf1:f' => { gt: 1000, lte: 2000 },
+        'cf1:g' => { ne: 1000 },
+
+        # Array of the aforementioned types: OR condition (disjuctive)
+        'cf1:h' => %w[A B C],
+        'cf1:i' => ['A'...'B', 'C', /^D/, { lt: 'F' }]).
+
+      # Multiple calls for conjunctive filtering
+      filter('cf1:j' => ['Alice'..'Bob', 'Cat']).
+
+      # Any number of Java filters can be applied
       filter(org.apache.hadoop.hbase.filter.RandomRowFilter.new(0.5)).
-                                                  # Any number of Java filters can be applied
-      each do |record|
+  each do |record|
   # ...
 end
 ```
@@ -458,6 +474,7 @@ table.filter('cf1:a' => { lte: 1 }).to_a
   # 0, 1, 10, 11, 20, 21
 table.while('cf1:a' => { lte: 1 }).to_a
   # 0, 1
+  #   Scan terminates immediately when condition not met.
 ```
 
 ### *project*
@@ -576,7 +593,6 @@ table.get('rowkey').string('cf1:col1')
 table.get('rowkey').string(HBase::ColumnKey(:cf1, 100))
 # ...
 ```
-
 
 ### Table administration
 

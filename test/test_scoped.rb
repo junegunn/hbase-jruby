@@ -317,11 +317,29 @@ class TestScoped < TestHBaseJRubyBase
 
   def test_while
     (0...100).each do |idx|
-      @table.put idx, 'cf1:a' => idx % 10
+      @table.put idx, 'cf1:a' => idx % 10, 'cf2:b' => 'Hello'
     end
 
-    assert_equal 20, @table.filter('cf1:a' => { lte: 1 }).count
-    assert_equal 2, @table.while('cf1:a' => { lte: 1 }).count
+    assert_equal 20, @table.filter('cf1:a' => { lte: 1 }, 'cf2:b' => 'Hello').count
+    assert_equal 2,  @table.while( 'cf1:a' => { lte: 1 }, 'cf2:b' => 'Hello').count
+  end
+
+  def test_regex
+    ('aa'..'zz').each do |rowkey|
+      @table.put rowkey, 'cf1:a' => rowkey
+    end
+
+    assert_equal  1, @table.filter('cf1:a' => /gg/).count
+    assert_equal  1, @table.filter('cf1:a' => /GG/i).count
+    assert_equal 51, @table.filter('cf1:a' => /g/).count
+    assert_equal  0, @table.filter('cf1:a' => /G/).count
+    assert_equal 51, @table.filter('cf1:a' => /G/i).count
+    assert_equal 26, @table.filter('cf1:a' => /g./).count
+    assert_equal 26, @table.filter('cf1:a' => /^g/).count
+    assert_equal 26, @table.filter('cf1:a' => /g$/).count
+    assert_equal  2, @table.filter('cf1:a' => /gg|ff/).count
+    assert_equal 28, @table.filter('cf1:a' => ['aa', 'cc', /^g/]).count
+    assert_equal 54, @table.filter('cf1:a' => ['aa', 'cc', /^g/, { gte: 'xa', lt: 'y'}]).count
   end
 end
 
