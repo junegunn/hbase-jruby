@@ -429,22 +429,22 @@ Multiple calls have conjunctive effects.
 # Range scanning the table with filters
 table.range(nil, 1000).
       filter(
-        # Numbers and characters: If the value equals to the given value
+        # Numbers and characters: Checks if the value is equal to the given value
         'cf1:a' => 'Hello',
         'cf1:b' => 1024,
 
-        # Range of numbers or characters: If the value comes within the range
+        # Range of numbers or characters: Checks if the value falls within the range
         'cf1:c' => 100..200,
         'cf1:d' => 'A'..'C',
 
-        # Regular expression: If the value matches the regular expression
+        # Regular expression: Checks if the value matches the regular expression
         'cf1:e' => /world$/i,
 
-        # Hash: Tests the value with operators (:gt, :lt, :gte, :lte, :eq, :ne)
+        # Hash: Tests the value with 6 types of operators (:gt, :lt, :gte, :lte, :eq, :ne)
         'cf1:f' => { gt: 1000, lte: 2000 },
         'cf1:g' => { ne: 1000 },
 
-        # Array of the aforementioned types: OR condition (disjuctive)
+        # Array of the aforementioned types: OR condition (disjunctive)
         'cf1:h' => %w[A B C],
         'cf1:i' => ['A'...'B', 'C', /^D/, { lt: 'F' }]).
 
@@ -462,7 +462,7 @@ end
 
 `HBase::Scoped#while` method takes the same parameters as `filter` method, the difference is that
 each filtering condition passed to `while` method is wrapped by `WhileMatchFilter`,
-which aborts scan immediately when the condition is not met with a certain row.
+which aborts scan immediately when the condition is not met at a certain row.
 See the following example.
 
 ```ruby
