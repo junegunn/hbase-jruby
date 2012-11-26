@@ -124,26 +124,14 @@ class Scoped
   # @param [Array<Hash, FilterBase, FilterList>] filters
   # @return [HBase::Scoped] HBase::Scoped object also with the specified filters
   def filter *filters
-    spawn :@filters, @filters + filters.map { |f|
-      case f
-      when Hash
-        f.map { |col, val|
-          cf, cq = Util.parse_column_name col
+    spawn :@filters, @filters + parse_filter_input(filters)
+  end
 
-          case val
-          when Array
-            FilterList.new(FilterList::Operator::MUST_PASS_ONE,
-              val.map { |v| filter_for cf, cq, v })
-          else
-            filter_for cf, cq, val
-          end
-        }.flatten
-      when FilterBase, FilterList
-        f
-      else
-        raise ArgumentError, "Unknown filter type"
-      end
-    }.flatten
+  # Returns an HBase::Scoped object with the additional filters which will cause early termination of scan
+  # @param [Array<Hash, FilterBase, FilterList>] filters
+  # @return [HBase::Scoped]HBase::Scoped object with the additional filters which will cause early termination of scan
+  def while *filters
+    spawn :@filters, @filters + parse_filter_input(filters).map { |filter| WhileMatchFilter.new(filter) }
   end
 
   # Returns an HBase::Scoped object with the specified row number limit
@@ -483,6 +471,29 @@ private
     stop  = byte_arrays.last
 
     [start.java, stop.stopkey_bytes_for_prefix]
+  end
+
+  def parse_filter_input filters
+    filters.map { |f|
+      case f
+      when Hash
+        f.map { |col, val|
+          cf, cq = Util.parse_column_name col
+
+          case val
+          when Array
+            FilterList.new(FilterList::Operator::MUST_PASS_ONE,
+              val.map { |v| filter_for cf, cq, v })
+          else
+            filter_for cf, cq, val
+          end
+        }.flatten
+      when FilterBase, FilterList
+        f
+      else
+        raise ArgumentError, "Unknown filter type"
+      end
+    }.flatten
   end
 end#Scoped
 end#HBase
