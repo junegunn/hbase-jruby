@@ -380,6 +380,12 @@ private
           end
         }
       )
+    when Regexp
+      SingleColumnValueFilter.new(
+        cf, cq,
+        CompareFilter::CompareOp::EQUAL,
+        RegexStringComparator.new(val.to_s)
+      )
     else
       SingleColumnValueFilter.new(
         cf, cq,

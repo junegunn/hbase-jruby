@@ -158,6 +158,7 @@ module Util
           org.apache.hadoop.hbase.filter.KeyOnlyFilter
           org.apache.hadoop.hbase.filter.MultipleColumnPrefixFilter
           org.apache.hadoop.hbase.filter.PrefixFilter
+          org.apache.hadoop.hbase.filter.RegexStringComparator
           org.apache.hadoop.hbase.filter.RowFilter
           org.apache.hadoop.hbase.filter.SingleColumnValueFilter
           org.apache.hadoop.hbase.filter.WhileMatchFilter
