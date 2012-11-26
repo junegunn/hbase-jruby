@@ -151,15 +151,16 @@ module Util
           org.apache.hadoop.hbase.client.Scan
           org.apache.hadoop.hbase.filter.BinaryComparator
           org.apache.hadoop.hbase.filter.ColumnPaginationFilter
-          org.apache.hadoop.hbase.filter.MultipleColumnPrefixFilter
           org.apache.hadoop.hbase.filter.ColumnRangeFilter
           org.apache.hadoop.hbase.filter.CompareFilter
           org.apache.hadoop.hbase.filter.FilterBase
           org.apache.hadoop.hbase.filter.FilterList
           org.apache.hadoop.hbase.filter.KeyOnlyFilter
+          org.apache.hadoop.hbase.filter.MultipleColumnPrefixFilter
           org.apache.hadoop.hbase.filter.PrefixFilter
           org.apache.hadoop.hbase.filter.RowFilter
           org.apache.hadoop.hbase.filter.SingleColumnValueFilter
+          org.apache.hadoop.hbase.filter.WhileMatchFilter
         ]
       end
     end

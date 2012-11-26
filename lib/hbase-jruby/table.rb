@@ -352,6 +352,12 @@ class Table
     each.filter(*filters)
   end
 
+  # @see HBase::Scoped#while
+  # @return [HBase::Scoped]
+  def while *filters
+    each.while(*filters)
+  end
+
   # @see HBase::Scoped#limit
   # @return [HBase::Scoped]
   def limit rows

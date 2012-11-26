@@ -314,5 +314,14 @@ class TestScoped < TestHBaseJRubyBase
     #        batch(10).
     #        map { |row| [row.rowkey(:fixnum), row.count].map(&:to_s).join ': ' }
   end
+
+  def test_while
+    (0...100).each do |idx|
+      @table.put idx, 'cf1:a' => idx % 10
+    end
+
+    assert_equal 20, @table.filter('cf1:a' => { lte: 1 }).count
+    assert_equal 2, @table.while('cf1:a' => { lte: 1 }).count
+  end
 end
 

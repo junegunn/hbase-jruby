@@ -361,6 +361,7 @@ table.range('A'..'Z').                   # Row key range,
       filter('cf2:d' => 100..200).       # Range filter on cf2:d
       filter('cf2:e' => [10, 20..30]).   # Set-inclusion condition on cf2:e
       filter(RandomRowFilter.new(0.5)).  # Any Java HBase filter
+      while('cf2:f' => { ne: 'OPEN' }).  # Early termination of scan
       limit(10).                         # Limits the size of the result set
       versions(2).                       # Only fetches 2 versions for each value
       batch(100).                        # Batch size for scan set to 100
@@ -368,7 +369,7 @@ table.range('A'..'Z').                   # Row key range,
       to_a                               # To Array
 ```
 
-### range
+### *range*
 
 `HBase::Scoped#range` method is used to filter rows based on their row keys.
 
@@ -418,7 +419,7 @@ scope.range(1, 100).
   # Same as `scope.range(1, 1000)`
 ```
 
-### filter
+### *filter*
 
 You can configure server-side filtering of rows and columns with `HBase::Scoped#filter` calls.
 Multiple calls have conjunctive effects.
@@ -427,7 +428,7 @@ Multiple calls have conjunctive effects.
 # Range scanning the table with filters
 table.range(nil, 1000).
       filter('cf1:a' => 'Hello',                  # cf1:a = 'Hello'
-             'cf1:b' => 100...200,                # cf1:b between 100 and 200
+             'cf1:b' => 100..200,                # cf1:b between 100 and 200
              'cf1:c' => %w[A B C],                # cf1:c in ('A', 'B', 'C')
              'cf1:d' => ['A'...'B', 'C'],         # ('A' <= cf1:d < 'B') or cf1:d = 'C'
              'cf1:e' => { gt: 1000, lte: 2000 }). # cf1:e > 1000 and cf1:e <= 2000
@@ -441,7 +442,25 @@ table.range(nil, 1000).
 end
 ```
 
-### project
+### *while*
+
+`HBase::Scoped#while` method takes the same parameters as `filter` method, the difference is that
+each filtering condition passed to `while` method is wrapped by `WhileMatchFilter`,
+which aborts scan immediately when the condition is not met with a certain row.
+See the following example.
+
+```ruby
+(0...30).each do |idx|
+  table.put idx, 'cf1:a' => idx % 10
+end
+
+table.filter('cf1:a' => { lte: 1 }).to_a
+  # 0, 1, 10, 11, 20, 21
+table.while('cf1:a' => { lte: 1 }).to_a
+  # 0, 1
+```
+
+### *project*
 
 `HBase::Scoped#project` allows you to fetch only a subset of columns from each row.
 Multiple calls have additive effects.
