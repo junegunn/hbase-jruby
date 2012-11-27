@@ -415,7 +415,14 @@ private
     Put.new(Util.to_bytes rowkey).tap { |put|
       props.each do |col, val|
         cf, cq = Util.parse_column_name(col)
-        put.add cf, cq, Util.to_bytes(val)
+        case val
+        when Hash
+          val.each do |ts, v|
+            put.add cf, cq, ts, Util.to_bytes(v)
+          end
+        else
+          put.add cf, cq, Util.to_bytes(val)
+        end
       end
     }
   end

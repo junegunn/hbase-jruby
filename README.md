@@ -177,6 +177,14 @@ table.put 'rowkey1', 'cf1:col1' => "Hello", 'cf2:col2' => "World"
 table.put 'rowkey1' => { 'cf1:col1' => "Hello",   'cf2:col2' => "World" },
           'rowkey2' => { 'cf1:col1' => "Howdy",   'cf2:col2' => "World" },
           'rowkey3' => { 'cf1:col1' => "So long", 'cf2:col2' => "World" }
+
+# Putting values with timestamps
+table.put 'rowkey1' => {
+    'cf1:col1' => {
+      1353143856665 => "Hello",
+      1352978648642 => "Goodbye" },
+    'cf2:col2' => "World"
+  }
 ```
 
 ### GET
