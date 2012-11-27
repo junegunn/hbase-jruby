@@ -91,6 +91,22 @@ class TestScoped < TestHBaseJRubyBase
     assert_equal nil,    @table.get('xxx')
   end
 
+  def test_put_timestamp
+    @table.put :rowkey => {
+      'cf1:a' => {
+        1250000000000 => 'A1',
+        1260000000000 => 'A2',
+        1270000000000 => 'A3',
+      },
+      'cf1:b' => 'B1'
+    }
+
+    assert_equal [1270000000000, 'A3'], @table.get(:rowkey).strings('cf1:a').first
+    assert_equal 'A2', @table.get(:rowkey).strings('cf1:a')[1260000000000]
+    assert_equal [1250000000000, 'A1'], @table.get(:rowkey).strings('cf1:a').to_a.last
+    assert_equal ['B1'], @table.get(:rowkey).strings('cf1:b').values
+  end
+
   def test_to_hash
     data = {
       'cf1:a' => 'Hello',

@@ -14,3 +14,4 @@ Changelog
 - Added coprocessor administration methods
 - Basic aggregation with Coprocessor
 - `HBase::Scoped#count` with block
+- Allows PUT operation with timestamps
