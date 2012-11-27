@@ -559,7 +559,7 @@ end
 scoped.count
 ```
 
-## Basic aggregation with Coprocessors (*experimental*)
+## Basic aggregation using coprocessor
 
 *hbase-jruby* provides a few basic aggregation methods using
 the built-in coprocessor called
