@@ -2,7 +2,7 @@ require 'bigdecimal'
 
 class HBase
 module Util
-  JAVA_BYTE_ARRAY_EMPTY = [].to_java(Java::byte) 
+  JAVA_BYTE_ARRAY_EMPTY = [].to_java(Java::byte)
   JAVA_BYTE_ARRAY_CLASS = JAVA_BYTE_ARRAY_EMPTY.java_class
 
   class << self
@@ -131,6 +131,10 @@ module Util
           org.apache.hadoop.hbase.KeyValue
         ]
 
+        imp.call HBase::Result, %w[
+          org.apache.hadoop.hbase.util.Bytes
+        ]
+
         imp.call HBase::ColumnKey, %w[
           java.util.Arrays
           org.apache.hadoop.hbase.util.Bytes
@@ -144,6 +148,7 @@ module Util
           org.apache.hadoop.hbase.client.Put
           org.apache.hadoop.hbase.io.hfile.Compression
           org.apache.hadoop.hbase.regionserver.StoreFile
+          org.apache.hadoop.hbase.Coprocessor
         ]
 
         imp.call HBase::Scoped, %w[
@@ -162,6 +167,8 @@ module Util
           org.apache.hadoop.hbase.filter.RowFilter
           org.apache.hadoop.hbase.filter.SingleColumnValueFilter
           org.apache.hadoop.hbase.filter.WhileMatchFilter
+          org.apache.hadoop.hbase.client.coprocessor.AggregationClient
+          org.apache.hadoop.hbase.client.coprocessor.LongColumnInterpreter
         ]
       end
     end

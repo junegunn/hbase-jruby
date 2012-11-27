@@ -49,7 +49,7 @@ class Cell
   end
   alias ts timestamp
 
-  # Returns the value of the cell as a Java byte array 
+  # Returns the value of the cell as a Java byte array
   # @return [byte[]]
   def value
     @java.getValue

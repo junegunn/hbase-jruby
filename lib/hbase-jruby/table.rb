@@ -4,11 +4,15 @@ require 'thread'
 class HBase
 # @!attribute [r] name
 #   @return [String] The name of the table
+# @!attribute [r] config
+#   @return [org.apache.hadoop.conf.Configuration]
 class Table
   attr_reader :name
+  attr_reader :config
 
   include Enumerable
   include Admin
+  include Scoped::Aggregation::Admin
 
   # Returns a read-only org.apache.hadoop.hbase.HTableDescriptor object
   # @return [org.apache.hadoop.hbase.client.UnmodifyableHTableDescriptor]
@@ -160,11 +164,59 @@ class Table
     end
   end
 
+  # Adds the table coprocessor to the table
+  # @param [String] class_name Full class name of the coprocessor
+  # @param [Hash] props Coprocessor properties
+  # @option props [String] path The path of the JAR file
+  # @option props [Fixnum] priority Coprocessor priority
+  # @option props [Hash<#to_s, #to_s>] params Arbitrary key-value parameter pairs passed into the coprocessor
+  def add_coprocessor! class_name, props = {}
+    with_admin do |admin|
+      while_disabled(admin) do
+
+        htd = admin.get_table_descriptor(@name.to_java_bytes)
+        if props.empty?
+          htd.addCoprocessor class_name
+        else
+          path, priority, params = props.values_at :path, :priority, :params
+          params = Hash[ params.map { |k, v| [k.to_s, v.to_s] } ]
+          htd.addCoprocessor class_name, path, priority || Coprocessor::PRIORITY_USER, params
+        end
+        admin.modifyTable @name.to_java_bytes, htd
+        wait_async_admin(admin)
+      end
+    end
+  end
+
+  # Removes the coprocessor from the table.
+  # @param [String] class_name Full class name of the coprocessor
+  # @return [nil]
+  def remove_coprocessor! name
+    unless org.apache.hadoop.hbase.HTableDescriptor.respond_to?(:removeCoprocessor)
+      raise NotImplementedError, "org.apache.hadoop.hbase.HTableDescriptor.removeCoprocessor not implemented"
+    end
+    with_admin do |admin|
+      while_disabled(admin) do
+        htd = admin.get_table_descriptor(@name.to_java_bytes)
+        htd.removeCoprocessor name
+        admin.modifyTable @name.to_java_bytes, htd
+        wait_async_admin(admin)
+      end
+    end
+  end
+
+  # Return if the table has the coprocessor of the given class name
+  # @param [String] class_name Full class name of the coprocessor
+  # @return [true, false]
+  def has_coprocessor? class_name
+    descriptor.hasCoprocessor(class_name)
+  end
+
   # Enables the table
   # @return [nil]
   def enable!
     with_admin do |admin|
-      admin.enableTable @name unless admin.isTableEnabled(@name) 
+      admin.enableTable @name unless admin.isTableEnabled(@name)
     end
   end
 
@@ -172,7 +224,7 @@ class Table
   # @return [nil]
   def disable!
     with_admin do |admin|
-      admin.disableTable @name if admin.isTableEnabled(@name) 
+      admin.disableTable @name if admin.isTableEnabled(@name)
     end
   end
 
@@ -190,24 +242,19 @@ class Table
     with_admin do |admin|
       raise RuntimeError, 'Table does not exist' unless admin.tableExists @name
 
-      admin.disableTable @name if admin.isTableEnabled(@name) 
+      admin.disableTable @name if admin.isTableEnabled(@name)
       admin.deleteTable  @name
       close
     end
   end
 
-  # @overload get(rowkey)
-  #   Single GET.
-  #   Gets a record with the given rowkey. If the record is not found, nil is returned.
-  #   @param [Object] rowkey Rowkey
-  #   @return [HBase::Result, nil]
-  # @overload get(rowkeys)
-  #   Batch GET. Gets an array of records with the given rowkeys.
-  #   Nonexistent records will be returned as nils.
-  #   @param [Array<Object>] rowkeys Rowkeys
-  #   @return [Array<HBase::Result>]
-  def get rowkeys
-    each.get rowkeys
+  [:get, :count, :aggregate,
+   :range, :project, :filter, :while,
+   :limit, :versions, :caching, :batch
+  ].each do |method|
+    define_method(method) do |*args|
+      self.each.send(method, *args)
+    end
   end
 
   # @overload put(rowkey, data)
@@ -272,7 +319,7 @@ class Table
       rowkey, cfcq, *ts = spec
       cf, cq = Util.parse_column_name(cfcq) if cfcq
 
-      Delete.new(Util.to_bytes rowkey).tap { |del| 
+      Delete.new(Util.to_bytes rowkey).tap { |del|
         if !ts.empty?
           ts.each do |t|
             del.deleteColumn cf, cq, t
@@ -317,12 +364,6 @@ class Table
     end
   end
 
-  # Returns the count of the rows in the table
-  # @return [Fixnum]
-  def count
-    each.count
-  end
-
   # Scan through the table
   # @yield [HBase::Result] Yields each row in the scope
   # @return [HBase::Scoped]
@@ -332,54 +373,6 @@ class Table
     else
       Scoped.send(:new, self)
     end
-  end
-
-  # @see HBase::Scoped#range
-  # @return [HBase::Scoped]
-  def range *key_range
-    each.range(*key_range)
-  end
-
-  # @see HBase::Scoped#project
-  # @return [HBase::Scoped]
-  def project *columns
-    each.project(*columns)
-  end
-
-  # @see HBase::Scoped#filter
-  # @return [HBase::Scoped]
-  def filter *filters
-    each.filter(*filters)
-  end
-
-  # @see HBase::Scoped#while
-  # @return [HBase::Scoped]
-  def while *filters
-    each.while(*filters)
-  end
-
-  # @see HBase::Scoped#limit
-  # @return [HBase::Scoped]
-  def limit rows
-    each.limit rows
-  end
-
-  # @see HBase::Scoped#versions
-  # @return [HBase::Scoped]
-  def versions vs
-    each.versions vs
-  end
-
-  # @see HBase::Scoped#caching
-  # @return [HBase::Scoped]
-  def caching rows
-    each.caching rows
-  end
-
-  # @see HBase::Scoped#batch
-  # @return [HBase::Scoped]
-  def batch b
-    each.batch b
   end
 
   # Returns the underlying org.apache.hadoop.hbase.client.HTable object (local to current thread)
@@ -411,7 +404,7 @@ private
 
   def while_disabled admin
     begin
-      admin.disableTable @name if admin.isTableEnabled(@name) 
+      admin.disableTable @name if admin.isTableEnabled(@name)
       yield
     ensure
       admin.enableTable @name

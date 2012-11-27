@@ -1,11 +1,11 @@
 require 'bigdecimal'
 
-# Represents a row returned by HBase
 class HBase
+# Represents a row returned by HBase
 # @author Junegunn Choi <junegunn.c@gmail.com>
 class Result
   include Enumerable
- 
+
   # Returns the rowkey of the row
   # @param [Symbol] type The type of the rowkey
   #   Can be one of :string, :symbol, :fixnum, :float, :bigdecimal, :boolean and :raw.
@@ -55,7 +55,7 @@ class Result
           name = ColumnKey.new(cf, cq)
           type = schema[name]
 
-          ret[name] = 
+          ret[name] =
             Hash[
               tsmap.map { |ts, val|
                 [ ts,  type ? Util.from_bytes(type, val) : val ]
@@ -71,7 +71,7 @@ class Result
   #   @param [String, HBase::ColumnKey] column "FAMILY:QUALIFIER" expression or ColumnKey object.
   #   @return [byte[]] Byte array representation of the latest value
   # @overload raw(columns)
-  #   For each column specified, 
+  #   For each column specified,
   #   returns the latest column value as a byte array
   #   @param [<String|HBase::ColumnKey>] column "FAMILY:QUALIFIER" expression or ColumnKey object.
   #   @return [Array<byte[]>] Byte array representations of the latest values
@@ -91,7 +91,7 @@ class Result
   #   @param [String, HBase::ColumnKey] column "FAMILY:QUALIFIER" expression or ColumnKey object.
   #   @return [Hash<Fixnum, byte[]>]
   # @overload raws(columns)
-  #   For each column specified, 
+  #   For each column specified,
   #   returns all versions of column values as byte arrays in a Hash indexed by their timestamps
   #   @param [Array<String|HBase::ColumnKey>] columns Array of "FAMILY:QUALIFIER" expressions and ColumnKey objects.
   #   @return [Array<Hash<Fixnum, byte[]>>]
@@ -111,7 +111,7 @@ class Result
   #   @param [String, HBase::ColumnKey] column "FAMILY:QUALIFIER" expression or ColumnKey object.
   #   @return [String]
   # @overload string(columns)
-  #   For each column specified, 
+  #   For each column specified,
   #   returns the latest column value as a String
   #   @param [Array<String|HBase::ColumnKey>] columns Array of "FAMILY:QUALIFIER" expressions and ColumnKey objects.
   #   @return [Array<String>]
@@ -125,7 +125,7 @@ class Result
   #   @param [String, HBase::ColumnKey] column "FAMILY:QUALIFIER" expression or ColumnKey object.
   #   @return [Hash<Fixnum, String>]
   # @overload strings(columns)
-  #   For each column specified, 
+  #   For each column specified,
   #   returns all versions of column values as Strings in a Hash indexed by their timestamps
   #   @param [Array<String|HBase::ColumnKey>] columns Array of "FAMILY:QUALIFIER" expressions and ColumnKey objects.
   #   @return [Array<Hash<Fixnum, String>>]
@@ -139,7 +139,7 @@ class Result
   #   @param [String, HBase::ColumnKey] column "FAMILY:QUALIFIER" expression or ColumnKey object.
   #   @return [Symbol]
   # @overload symbol(columns)
-  #   For each column specified, 
+  #   For each column specified,
   #   returns the latest column values as a Symbol
   #   @param [Array<String|HBase::ColumnKey>] columns Array of "FAMILY:QUALIFIER" expressions and ColumnKey objects.
   #   @return [Array<Symbol>]
@@ -153,7 +153,7 @@ class Result
   #   @param [String, HBase::ColumnKey] column "FAMILY:QUALIFIER" expression or ColumnKey object.
   #   @return [Hash<Fixnum, Symbol>]
   # @overload symbols(columns)
-  #   For each column specified, 
+  #   For each column specified,
   #   returns all versions of column values as Symbols in a Hash indexed by their timestamps
   #   @param [Array<String|HBase::ColumnKey>] columns Array of "FAMILY:QUALIFIER" expressions and ColumnKey objects.
   #   @return [Array<Hash<Fixnum, Symbol>>]
@@ -167,7 +167,7 @@ class Result
   #   @param [String, HBase::ColumnKey] column "FAMILY:QUALIFIER" expression or ColumnKey object.
   #   @return [Fixnum]
   # @overload fixnum(columns)
-  #   For each column specified, 
+  #   For each column specified,
   #   returns the latest column values as a Fixnum
   #   @param [Array<String|HBase::ColumnKey>] columns Array of "FAMILY:QUALIFIER" expressions and ColumnKey objects.
   #   @return [Array<Fixnum>]
@@ -182,7 +182,7 @@ class Result
   #   @param [String, HBase::ColumnKey] column "FAMILY:QUALIFIER" expression or ColumnKey object.
   #   @return [Hash<Fixnum, Fixnum>]
   # @overload fixnums(columns)
-  #   For each column specified, 
+  #   For each column specified,
   #   returns all versions of column values as Fixnums in a Hash indexed by their timestamps
   #   @param [Array<String|HBase::ColumnKey>] columns Array of "FAMILY:QUALIFIER" expressions and ColumnKey objects.
   #   @return [Array<Hash<Fixnum, Fixnum>>]
@@ -197,7 +197,7 @@ class Result
   #   @param [String, HBase::ColumnKey] column "FAMILY:QUALIFIER" expression or ColumnKey object.
   #   @return [BigDecimal]
   # @overload bigdecimal(columns)
-  #   For each column specified, 
+  #   For each column specified,
   #   returns the latest column values as a BigDecimal
   #   @param [Array<String|HBase::ColumnKey>] columns Array of "FAMILY:QUALIFIER" expressions and ColumnKey objects.
   #   @return [Array<BigDecimal>]
@@ -210,7 +210,7 @@ class Result
   #   @param [String, HBase::ColumnKey] column "FAMILY:QUALIFIER" expression or ColumnKey object.
   #   @return [Hash<Fixnum, BigDecimal>]
   # @overload bigdecimals(columns)
-  #   For each column specified, 
+  #   For each column specified,
   #   returns all versions of column values as BigDecimals in a Hash indexed by their timestamps
   #   @param [Array<String|HBase::ColumnKey>] columns Array of "FAMILY:QUALIFIER" expressions and ColumnKey objects.
   #   @return [Array<Hash<Fixnum, BigDecimal>>]
@@ -223,7 +223,7 @@ class Result
   #   @param [String, HBase::ColumnKey] column "FAMILY:QUALIFIER" expression or ColumnKey object.
   #   @return [Float]
   # @overload float(columns)
-  #   For each column specified, 
+  #   For each column specified,
   #   returns the latest column values as a Float
   #   @param [Array<String|HBase::ColumnKey>] columns Array of "FAMILY:QUALIFIER" expressions and ColumnKey objects.
   #   @return [Array<Float>]
@@ -237,7 +237,7 @@ class Result
   #   @param [String, HBase::ColumnKey] column "FAMILY:QUALIFIER" expression or ColumnKey object.
   #   @return [Hash<Fixnum, Float>]
   # @overload floats(columns)
-  #   For each column specified, 
+  #   For each column specified,
   #   returns all versions of column values as Floats in a Hash indexed by their timestamps
   #   @param [Array<String|HBase::ColumnKey>] columns Array of "FAMILY:QUALIFIER" expressions and ColumnKey objects.
   #   @return [Array<Hash<Fixnum, Float>>]
@@ -251,7 +251,7 @@ class Result
   #   @param [String, HBase::ColumnKey] column "FAMILY:QUALIFIER" expression or ColumnKey object.
   #   @return [true, false]
   # @overload boolean(columns)
-  #   For each column specified, 
+  #   For each column specified,
   #   returns the latest column values as a boolean value
   #   @param [Array<String|HBase::ColumnKey>] columns Array of "FAMILY:QUALIFIER" expressions and ColumnKey objects.
   #   @return [Array<true|false>]
@@ -265,7 +265,7 @@ class Result
   #   @param [String, HBase::ColumnKey] column "FAMILY:QUALIFIER" expression or ColumnKey object.
   #   @return [Hash<Fixnum, true|false>]
   # @overload booleans(columns)
-  #   For each column specified, 
+  #   For each column specified,
   #   returns all versions of column values as boolean values in a Hash indexed by their timestamps
   #   @param [Array<String|HBase::ColumnKey>] columns Array of "FAMILY:QUALIFIER" expressions and ColumnKey objects.
   #   @return [Array<Hash<Fixnum, true|false>>]
@@ -273,6 +273,10 @@ class Result
     decode_values :boolean, cols, true
   end
   alias bools booleans
+
+  def <=> other
+    Bytes.compareTo(rowkey(:raw), other.rowkey(:raw))
+  end
 
 private
   HASH_TEMPLATE = {}.tap { |h|
@@ -335,7 +339,7 @@ private
   def parse_schema schema
     {}.tap { |ret|
       schema.each do |name, type|
-        ck = 
+        ck =
           case name
           when ColumnKey
             name
@@ -348,5 +352,5 @@ private
     }
   end
 end#Result
-end#HBase 
+end#HBase
 

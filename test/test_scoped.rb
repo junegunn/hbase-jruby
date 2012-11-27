@@ -88,6 +88,10 @@ class TestScoped < TestHBaseJRubyBase
     assert_equal 9,   @table.range(111..150).filter('cf1:a' => 131...140).count
     assert_equal 2,   @table.range(111..150).filter('cf1:a' => 131...140, 'cf2:b' => 132..133).count
 
+    # Count with block
+    assert_equal 5,  @table.range(111..150).filter('cf1:a' => 131..140).
+                            count { |result| result.fixnum('cf1:a') % 2 == 0 }
+
     # Unscope
     assert_equal 50, @table.range(111..150).filter('cf1:a' => 131...140, 'cf2:b' => 132..133).unscope.count
   end
@@ -322,6 +326,18 @@ class TestScoped < TestHBaseJRubyBase
 
     assert_equal 20, @table.filter('cf1:a' => { lte: 1 }, 'cf2:b' => 'Hello').count
     assert_equal 2,  @table.while( 'cf1:a' => { lte: 1 }, 'cf2:b' => 'Hello').count
+
+    # while == filter for gets
+    assert_equal 20, @table.filter('cf1:a' => { lte: 1 }, 'cf2:b' => 'Hello').get((0..100).to_a).compact.length
+    assert_equal 20, @table.while( 'cf1:a' => { lte: 1 }, 'cf2:b' => 'Hello').get((0..100).to_a).compact.length
+  end
+
+  def test_min_max
+    (0...100).each do |idx|
+      @table.put idx, 'cf1:a' => 1
+      assert_equal 0,   @table.to_a.reverse.min.rowkey(:fixnum)
+      assert_equal idx, @table.to_a.reverse.max.rowkey(:fixnum)
+    end
   end
 
   def test_regex

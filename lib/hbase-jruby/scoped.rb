@@ -1,8 +1,13 @@
 class HBase
-# Scope of table scan
+# Scope of data access
 # @author Junegunn Choi <junegunn.c@gmail.com>
+# @!attribute [r] table
+#   @return [HBase::Table] HBase::Table instance for this scope
 class Scoped
   include Enumerable
+  include Scoped::Aggregation
+
+  attr_reader :table
 
   # A clean HBase::Scoped object for the same table
   # @return [HBase::Scope] A clean HBase::Scoped object for the same table
@@ -14,8 +19,14 @@ class Scoped
   # @return [Fixnum, Bignum] The number of rows in the scope
   def count
     cnt = 0
-    htable.getScanner(filtered_scan_minimum).each do
-      cnt += 1
+    if block_given?
+      htable.getScanner(filtered_scan).each do |result|
+        cnt += 1 if yield(Result.send(:new, result))
+      end
+    else
+      htable.getScanner(filtered_scan_minimum).each do
+        cnt += 1
+      end
     end
     cnt
   end
@@ -342,7 +353,7 @@ private
     when Hash
       FilterList.new(FilterList::Operator::MUST_PASS_ALL,
         val.map { |op, v|
-          operator = 
+          operator =
             case op
             when :gt, :>
               CompareFilter::CompareOp::GREATER

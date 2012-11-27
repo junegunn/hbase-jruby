@@ -112,6 +112,18 @@ class TestTableAdmin < TestHBaseJRubyBase
     }
   end
 
+  def test_add_coprocessor!
+    coproc = 'org.apache.hadoop.hbase.coprocessor.AggregateImplementation'
+    assert_false @table.has_coprocessor? coproc
+    @table.add_coprocessor! coproc, :priority => 20000, :params => { :abc => 'def', 'xyz' => 1 }
+    assert @table.has_coprocessor? coproc
+
+    # TODO
+    assert_raise(NotImplementedError) do
+      @table.remove_coprocessor! 'org.apache.hadoop.hbase.coprocessor.AggregateImplementation'
+    end
+  end
+
   def test_inspect
     @table.drop!
     assert "{NAME => '#{TABLE}'}", @table.inspect # FIXME
