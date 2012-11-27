@@ -87,6 +87,9 @@ class TestScoped < TestHBaseJRubyBase
     assert_equal nil,    @table.get('row1').symbol('cf1:xxx')
     assert_equal nil,    @table.get('row1').integer('cf1:xxx')
 
+    # Unavailable columns (plural form)
+    assert_equal({},    @table.get('row1').strings('cf1:xxx'))
+
     # Row not found
     assert_equal nil,    @table.get('xxx')
   end
