@@ -1,6 +1,7 @@
 require 'thread'
 
 class HBase
+# @private
 module Admin
 private
   def with_admin

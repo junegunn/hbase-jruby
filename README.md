@@ -559,6 +559,44 @@ end
 scoped.count
 ```
 
+## Basic aggregation with Coprocessors (*experimental*)
+
+*hbase-jruby* provides a few basic aggregation methods using
+the built-in coprocessor called
+`org.apache.hadoop.hbase.coprocessor.AggregateImplementation`.
+
+To enable this feature, call `enable_aggregation!` method,
+which will first disable the table, add the coprocessor, then enable it.
+
+```ruby
+table.enable_aggregation!
+  # Just a shorthand notation for
+  #   table.add_coprocessor! 'org.apache.hadoop.hbase.coprocessor.AggregateImplementation'
+```
+
+Then you can get the sum, average, minimum, maximum, row count, and standard deviation
+of the projected columns.
+
+```ruby
+# cf1:a must hold 8-byte integer values
+table.project('cf1:a').aggregate(:sum)
+table.project('cf1:a').aggregate(:avg)
+table.project('cf1:a').aggregate(:min)
+table.project('cf1:a').aggregate(:max)
+table.project('cf1:a').aggregate(:std)
+table.project('cf1:a').aggregate(:row_count)
+
+# Aggregation of multiple columns
+table.project('cf1:a', 'cf1:b').aggregate(:sum)
+```
+
+By default, aggregate method assumes the column values are 8-byte integers.
+For types other than that, you can pass your own ColumnInterpreter.
+
+```ruby
+table.project('cf1:b').aggregate(:sum, MyColumnInterpreter.new)
+```
+
 ## Advanced topics
 
 ### Lexicographic scan order
@@ -625,6 +663,16 @@ table.alter_family! :cf2, :bloomfilter => :rowcol
 
 # Remove column family
 table.delete_family! :cf1
+
+# Add Coprocessor
+unless table.has_coprocessor?(cp_class_name1)
+  table.add_coprocessor! cp_class_name1
+end
+table.add_coprocessor! cp_class_name2,
+  :path => path, :priority => priority, :params => params
+
+# Remove coprocessor
+table.remove_coprocessor! cp_class_name1
 ```
 
 You can perform other types of administrative tasks
