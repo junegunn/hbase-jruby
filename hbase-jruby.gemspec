@@ -12,6 +12,7 @@ Gem::Specification.new do |gem|
   gem.summary       = %q{Ruby-esque interface for accessing HBase from JRuby}
   gem.homepage      = "https://github.com/junegunn/hbase-jruby"
   gem.platform      = 'java'
+  gem.license       = 'MIT'
 
   gem.files         = `git ls-files`.split($/)
   gem.executables   = gem.files.grep(%r{^bin/}).map{ |f| File.basename(f) }
