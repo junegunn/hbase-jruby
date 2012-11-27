@@ -300,7 +300,9 @@ private
     cols.map { |col|
       cf, cq = Util.parse_column_name(col)
       if with_versions
-        Hash[ allmap[cf][cq] ]
+        # Need to make it a Ruby hash:
+        #   Prevents implicit conversion from ruby type to java type when updating the Hash
+        Hash[ allmap.fetch(cf, {}).fetch(cq, {}) ]
       else
         @result.getValue cf, cq
       end
