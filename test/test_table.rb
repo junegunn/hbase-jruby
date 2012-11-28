@@ -4,7 +4,7 @@ $LOAD_PATH.unshift File.expand_path('..', __FILE__)
 require 'helper'
 require 'bigdecimal'
 
-class TestScoped < TestHBaseJRubyBase 
+class TestScoped < TestHBaseJRubyBase
   def test_table
     @hbase.table(TABLE) do |table|
       assert_equal TABLE, table.name
@@ -47,6 +47,10 @@ class TestScoped < TestHBaseJRubyBase
       'row3' => { 'cf1:a' => 4, 'cf1:b' => 'c', 'cf1:c' => 6.28 })
 
     # single-get (latest version)
+    result = @table.get('row1')
+    assert_equal result, result.each
+
+    assert_equal 'row1', @table.get('row1').rowkey
     assert_equal 'row1', @table.get('row1').rowkey
     assert_equal 1,      @table.get('row1').fixnum('cf1:a')
     assert_equal 'a',    @table.get('row1').string('cf1:b')
@@ -73,9 +77,9 @@ class TestScoped < TestHBaseJRubyBase
     assert @table.get('row1').fixnums('cf1:a').keys.all? { |k| k.instance_of? Fixnum }
 
     # single-get-multi-col-multi=ver
-    ret = @table.get('row1').strings(['cf1:str1', 'cf1:str2'])
-    assert_equal ['Hello', 'World'], ret.map(&:values).map(&:first)
-    assert_equal ['Goodbye', 'Cruel world'], ret.map(&:values).map(&:last)
+    rets = @table.get('row1').strings(['cf1:str1', 'cf1:str2'])
+    assert_equal ['Hello', 'World'], rets.map(&:values).map(&:first)
+    assert_equal ['Goodbye', 'Cruel world'], rets.map(&:values).map(&:last)
 
     # multi-get
     assert_equal %w[row1 row2 row3], @table.get(['row1', 'row2', 'row3']).map { |r| r.rowkey }
@@ -89,25 +93,41 @@ class TestScoped < TestHBaseJRubyBase
 
     # Unavailable columns (plural form)
     assert_equal({},    @table.get('row1').strings('cf1:xxx'))
+    assert_equal({},    @table.get('row1').strings('cfx:xxx'))
 
     # Row not found
     assert_equal nil,    @table.get('xxx')
   end
 
+  # Put added after a delete is overshadowed if its timestamp is older than than that of the tombstone
+  # https://issues.apache.org/jira/browse/HBASE-2847
+  def test_put_delete_put
+    pend("https://issues.apache.org/jira/browse/HBASE-2847") do
+      data = { 'cf1:pdp' => { 1250000000000 => 'A1' } }
+      @table.put :rowkey => data
+      assert_equal 'A1', @table.get(:rowkey).string('cf1:pdp')
+      @table.delete :rowkey
+      assert_nil @table.get(:rowkey)
+      @table.put :rowkey => data
+      assert_equal 'A1', @table.get(:rowkey).string('cf1:pdp')
+    end
+  end
+
   def test_put_timestamp
-    @table.put :rowkey => {
+    rowkey = :test_put_timestamp
+    @table.put rowkey => {
+      'cf1:b' => 'B1',
       'cf1:a' => {
         1250000000000 => 'A1',
         1260000000000 => 'A2',
         1270000000000 => 'A3',
       },
-      'cf1:b' => 'B1'
     }
 
-    assert_equal [1270000000000, 'A3'], @table.get(:rowkey).strings('cf1:a').first
-    assert_equal 'A2', @table.get(:rowkey).strings('cf1:a')[1260000000000]
-    assert_equal [1250000000000, 'A1'], @table.get(:rowkey).strings('cf1:a').to_a.last
-    assert_equal ['B1'], @table.get(:rowkey).strings('cf1:b').values
+    assert_equal [1270000000000, 'A3'], @table.get(rowkey).strings('cf1:a').first
+    assert_equal 'A2', @table.get(rowkey).strings('cf1:a')[1260000000000]
+    assert_equal [1250000000000, 'A1'], @table.get(rowkey).strings('cf1:a').to_a.last
+    assert_equal ['B1'], @table.get(rowkey).strings('cf1:b').values
   end
 
   def test_to_hash

@@ -38,9 +38,7 @@ class TestHBaseJRubyBase < Test::Unit::TestCase
     @table.enable! if @table.disabled?
 
     unless RECREATE
-      @table.each do |row|
-        @table.delete row.rowkey :raw
-      end
+      @table.delete(*@table.map { |row| [row.rowkey(:raw)] })
       assert_equal 0, @table.count
     end
   end
