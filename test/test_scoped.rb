@@ -3,7 +3,7 @@
 $LOAD_PATH.unshift File.expand_path('..', __FILE__)
 require 'helper'
 
-class TestScoped < TestHBaseJRubyBase 
+class TestScoped < TestHBaseJRubyBase
   def test_invalid_limit
     assert_raise(ArgumentError) { @table.limit }
     assert_raise(ArgumentError) { @table.limit(-1) }
@@ -95,6 +95,7 @@ class TestScoped < TestHBaseJRubyBase
     # Unscope
     assert_equal 50, @table.range(111..150).filter('cf1:a' => 131...140, 'cf2:b' => 132..133).unscope.count
   end
+
   def test_scan
     insert = lambda do
       (40..70).each do |i|

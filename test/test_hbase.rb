@@ -3,7 +3,7 @@
 $LOAD_PATH.unshift File.expand_path('..', __FILE__)
 require 'helper'
 
-class TestHBase < TestHBaseJRubyBase 
+class TestHBase < TestHBaseJRubyBase
   def test_tables
     assert @hbase.table_names.include?(TABLE)
     assert @hbase.tables.map(&:name).include?(TABLE)

@@ -36,6 +36,8 @@ class TestTableAdmin < TestHBaseJRubyBase
     @table.drop!
     @table.create! :cf1, :max_filesize => max_fs
     assert_equal max_fs, @table.descriptor.get_max_file_size
+
+    @table.drop!
   end
 
   def test_create_table_invalid_input
@@ -91,6 +93,8 @@ class TestTableAdmin < TestHBaseJRubyBase
     assert_equal mem_fs, @table.descriptor.get_mem_store_flush_size
     assert_equal false,  @table.descriptor.is_read_only
     assert_equal true,   @table.descriptor.is_deferred_log_flush
+
+    @table.drop!
   end
 
   def test_column_family_alteration!
@@ -110,6 +114,8 @@ class TestTableAdmin < TestHBaseJRubyBase
     assert_raise(ArgumentError) {
       @table.alter_family! :cf4, :bloomfilter => :xxx
     }
+
+    @table.drop!
   end
 
   def test_add_coprocessor!
@@ -122,6 +128,8 @@ class TestTableAdmin < TestHBaseJRubyBase
     assert_raise(NotImplementedError) do
       @table.remove_coprocessor! 'org.apache.hadoop.hbase.coprocessor.AggregateImplementation'
     end
+
+    @table.drop!
   end
 
   def test_inspect
@@ -155,6 +163,8 @@ class TestTableAdmin < TestHBaseJRubyBase
     assert_equal '131072', cf[:blocksize]
     assert_equal 'true', cf[:in_memory]
     assert_equal 'true', cf[:blockcache]
+
+    @table.drop!
   end
 end
 

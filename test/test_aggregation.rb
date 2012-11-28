@@ -30,6 +30,11 @@ class TestAggregation < TestHBaseJRubyBase
     # No projection
     assert_raise(ArgumentError) { @table.aggregate(:sum) }
     assert_raise(ArgumentError) { @table.each.aggregate(:sum) }
+
+    # Invalid type
+    assert_raise(ArgumentError) { @table.project('cf1:a').aggregate(:sum, :float) }
+
+    @table.drop!
   end
 end
 
