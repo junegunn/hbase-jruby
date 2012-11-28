@@ -2,9 +2,9 @@
 
 *hbase-jruby* is a Ruby-esque interface for accessing HBase from JRuby.
 
-You can of course just use the native Java APIs of HBase,
-but doing so requires a lot of keystrokes even for the most basic operations and
-can easily lead to overly verbose code that will be frowned upon by Rubyists.
+With JRuby, you can of course just use the native Java APIs of HBase,
+but doing so requires lots of keystrokes even for the most basic operations and
+can lead to having overly verbose code that will be frowned upon by Rubyists.
 Anyhow, JRuby is Ruby, not Java, right?
 
 *hbase-jruby* provides the followings:
@@ -34,9 +34,10 @@ string = row.string('cf1:b')
 table.range('rowkey1'..'rowkey9').
       filter('cf1:a' => 100..200,             # cf1:a between 100 and 200
              'cf1:b' => 'Hello',              # cf1:b = 'Hello'
-             'cf2:c' => /world/i).            # cf2:c matches /world/i
-             'cf2:d' => ['foo', /^BAR/i],     # cf2:d = 'foo' OR matches /^BAR/i
-      project('cf1:a', 'cf2').each do |row|
+             'cf2:c' => /world/i,             # cf2:c matches /world/i
+             'cf2:d' => ['foo', /^BAR/i]).    # cf2:d = 'foo' OR matches /^BAR/i
+      project('cf1:a', 'cf2').
+      each do |row|
   puts row.fixnum('cf1:a')
 end
 
@@ -46,16 +47,6 @@ table.delete(:rowkey9)
 
 ## Installation
 
-Add this line to your application's Gemfile:
-
-    gem 'hbase-jruby'
-
-And then execute:
-
-    $ bundle
-
-Or install it yourself as:
-
     $ gem install hbase-jruby
 
 ## Setting up
@@ -63,13 +54,10 @@ Or install it yourself as:
 ### Resolving Hadoop/HBase dependency
 
 To be able to access HBase from JRuby, Hadoop/HBase dependency must be satisfied.
-This can be done by setting up CLASSPATH variable beforehand
-or by `require`ing relevant JAR files after launch.
-However, downloading all the JAR files and manually putting them in CLASSPATH is a PITA,
-especially when HBase is not installed on local system.
-
-*hbase-jruby* includes `HBase.resolve_dependency!` helper method,
-which resolves Hadoop/HBase dependency.
+This can be done by either setting up CLASSPATH variable beforehand
+or by `require`ing relevant JAR files after launching JRuby.
+However, that's a lot of work, so *hbase-jruby* provides `HBase.resolve_dependency!` helper method,
+which automatically resolves Hadoop/HBase dependency.
 
 #### Preconfigured dependencies
 
@@ -88,10 +76,10 @@ require 'hbase-jruby'
 HBase.resolve_dependency! 'cdh4.1.2'
 ```
 
-#### Customized dependencies
+#### Custom dependency
 
-If you use another version of HBase and Hadoop,
-you can use your own Maven pom.xml file with its customized Hadoop/HBase dependency
+If you use other versions of HBase and Hadoop,
+you can use your own Maven pom.xml file with its Hadoop/HBase dependency.
 
 ```ruby
 HBase.resolve_dependency! '/project/my-hbase/pom.xml'
@@ -99,7 +87,7 @@ HBase.resolve_dependency! '/project/my-hbase/pom.xml'
 
 #### Using `hbase classpath` command
 
-If you have HBase installed on your system, it's possible to find the JAR files
+If you have HBase installed on your system, it's possible to locate the JAR files
 for that local installation with `hbase classpath` command.
 You can tell `resolve_dependency!` method to do so by passing it special `:hbase` parameter.
 
@@ -569,17 +557,16 @@ scoped.count
 
 ## Basic aggregation using coprocessor
 
-*hbase-jruby* provides a few basic aggregation methods using
-the built-in coprocessor called
+You can perform some basic aggregation using the built-in coprocessor called
 `org.apache.hadoop.hbase.coprocessor.AggregateImplementation`.
 
 To enable this feature, call `enable_aggregation!` method,
-which will first disable the table, add the coprocessor, then enable it.
+which adds the coprocessor to the table.
 
 ```ruby
 table.enable_aggregation!
-  # Just a shorthand notation for
-  #   table.add_coprocessor! 'org.apache.hadoop.hbase.coprocessor.AggregateImplementation'
+# Just a shorthand notation for
+#   table.add_coprocessor! 'org.apache.hadoop.hbase.coprocessor.AggregateImplementation'
 ```
 
 Then you can get the sum, average, minimum, maximum, row count, and standard deviation
@@ -598,8 +585,8 @@ table.project('cf1:a').aggregate(:row_count)
 table.project('cf1:a', 'cf1:b').aggregate(:sum)
 ```
 
-By default, aggregate method assumes the column values are 8-byte integers.
-For types other than that, you can pass your own ColumnInterpreter.
+By default, aggregate method assumes that the projected values are 8-byte integers.
+For other data types, you can pass your own ColumnInterpreter.
 
 ```ruby
 table.project('cf1:b').aggregate(:sum, MyColumnInterpreter.new)
@@ -685,19 +672,20 @@ table.remove_coprocessor! cp_class_name1
 
 You can perform other types of administrative tasks
 with Native Java [HBaseAdmin object](http://hbase.apache.org/apidocs/org/apache/hadoop/hbase/client/HBaseAdmin.html),
-which can be obtained by `HBase#admin` method which will automatically close the object at the end of the given block.
+which can be obtained by `HBase#admin` method. Optionally, a block can be given
+so that the HBaseAdmin object is automatically closed at the end of the given block.
 
 ```ruby
 # Advanced table administration with HBaseAdmin object
 #   http://hbase.apache.org/apidocs/org/apache/hadoop/hbase/client/HBaseAdmin.html
-hbase.admin do |admin|
-  # ...
-end
-
-# Without the block
 admin = hbase.admin
 # ...
 admin.close
+
+# With the block
+hbase.admin do |admin|
+  # ...
+end
 ```
 
 ## Test
