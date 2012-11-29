@@ -76,6 +76,9 @@ require 'hbase-jruby'
 HBase.resolve_dependency! 'cdh4.1.2'
 ```
 
+(If you're behind an http proxy, set up your ~/.m2/settings.xml file
+as described in [this page](http://maven.apache.org/guides/mini/guide-proxies.html))
+
 #### Custom dependency
 
 If you use other versions of HBase and Hadoop,
