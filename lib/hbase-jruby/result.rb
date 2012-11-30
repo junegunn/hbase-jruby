@@ -66,6 +66,7 @@ class Result
     }
   end
 
+  # Returns column values as byte arrays
   # @overload raw(column)
   #   Returns the latest column value as a byte array
   #   @param [String, HBase::ColumnKey] column "FAMILY:QUALIFIER" expression or ColumnKey object.
@@ -86,6 +87,7 @@ class Result
     end
   end
 
+  # Returns all versions of column values as byte arrays in a Hash indexed by their timestamps
   # @overload raws(column)
   #   Returns all versions of column values as byte arrays in a Hash indexed by their timestamps
   #   @param [String, HBase::ColumnKey] column "FAMILY:QUALIFIER" expression or ColumnKey object.
@@ -106,6 +108,7 @@ class Result
     end
   end
 
+  # Returns column values as Strings
   # @overload string(column)
   #   Returns the latest column value as a String
   #   @param [String, HBase::ColumnKey] column "FAMILY:QUALIFIER" expression or ColumnKey object.
@@ -120,6 +123,7 @@ class Result
   end
   alias str string
 
+  # Returns all versions of column values as Strings in a Hash indexed by their timestamps
   # @overload strings(column)
   #   Returns all versions of column values as Strings in a Hash indexed by their timestamps
   #   @param [String, HBase::ColumnKey] column "FAMILY:QUALIFIER" expression or ColumnKey object.
@@ -134,6 +138,7 @@ class Result
   end
   alias strs strings
 
+  # Returns column values as Symbols
   # @overload symbol(column)
   #   Returns the latest column value as a Symbol
   #   @param [String, HBase::ColumnKey] column "FAMILY:QUALIFIER" expression or ColumnKey object.
@@ -148,6 +153,7 @@ class Result
   end
   alias sym symbol
 
+  # Returns all versions of column values as Symbols in a Hash indexed by their timestamps
   # @overload symbols(column)
   #   Returns all versions of column values as Symbols in a Hash indexed by their timestamps
   #   @param [String, HBase::ColumnKey] column "FAMILY:QUALIFIER" expression or ColumnKey object.
@@ -162,6 +168,7 @@ class Result
   end
   alias syms symbols
 
+  # Returns column values as Fixnums
   # @overload fixnum(column)
   #   Returns the latest column value as a Fixnum
   #   @param [String, HBase::ColumnKey] column "FAMILY:QUALIFIER" expression or ColumnKey object.
@@ -177,6 +184,7 @@ class Result
   alias integer fixnum
   alias int     fixnum
 
+  # Returns all versions of column values as Fixnums in a Hash indexed by their timestamps
   # @overload fixnums(column)
   #   Returns all versions of column values as Fixnums in a Hash indexed by their timestamps
   #   @param [String, HBase::ColumnKey] column "FAMILY:QUALIFIER" expression or ColumnKey object.
@@ -192,6 +200,7 @@ class Result
   alias integers fixnums
   alias ints     fixnums
 
+  # Returns column values as Bigdecimals
   # @overload bigdecimal(column)
   #   Returns the latest column value as a BigDecimal
   #   @param [String, HBase::ColumnKey] column "FAMILY:QUALIFIER" expression or ColumnKey object.
@@ -205,6 +214,7 @@ class Result
     decode_values :bigdecimal, cols
   end
 
+  # Returns all versions of column values as BigDecimals in a Hash indexed by their timestamps
   # @overload bigdecimals(column)
   #   Returns all versions of column values as BigDecimals in a Hash indexed by their timestamps
   #   @param [String, HBase::ColumnKey] column "FAMILY:QUALIFIER" expression or ColumnKey object.
@@ -218,6 +228,7 @@ class Result
     decode_values :bigdecimal, cols, true
   end
 
+  # Returns column values as Floats
   # @overload float(column)
   #   Returns the latest column value as a Float
   #   @param [String, HBase::ColumnKey] column "FAMILY:QUALIFIER" expression or ColumnKey object.
@@ -232,6 +243,7 @@ class Result
   end
   alias double float
 
+  # Returns all versions of column values as Floats in a Hash indexed by their timestamps
   # @overload floats(column)
   #   Returns all versions of column values as Floats in a Hash indexed by their timestamps
   #   @param [String, HBase::ColumnKey] column "FAMILY:QUALIFIER" expression or ColumnKey object.
@@ -246,6 +258,7 @@ class Result
   end
   alias doubles floats
 
+  # Returns column values as Booleans
   # @overload boolean(column)
   #   Returns the latest column value as a boolean value
   #   @param [String, HBase::ColumnKey] column "FAMILY:QUALIFIER" expression or ColumnKey object.
@@ -260,6 +273,7 @@ class Result
   end
   alias bool boolean
 
+  # Returns all versions of column values as Booleans in a Hash indexed by their timestamps
   # @overload booleans(column)
   #   Returns all versions of column values as boolean values in a Hash indexed by their timestamps
   #   @param [String, HBase::ColumnKey] column "FAMILY:QUALIFIER" expression or ColumnKey object.
@@ -274,6 +288,7 @@ class Result
   end
   alias bools booleans
 
+  # Compares two Result instances on their row keys
   def <=> other
     Bytes.compareTo(rowkey(:raw), other.rowkey(:raw))
   end

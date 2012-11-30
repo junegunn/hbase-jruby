@@ -8,6 +8,8 @@ class << self
   end
 end
 # Boxed class for column keys
+# @!attribute [r] cf
+#   @return [String] The column family
 class ColumnKey
   attr_reader :cf
   alias family cf
@@ -20,12 +22,14 @@ class ColumnKey
     @cq = Util.to_bytes(cq)
   end
 
+  # Returns the column qualifer decoded as the given type
   # @param [Symbol] type
   def cq type = :string
     Util.from_bytes type, @cq
   end
   alias qualifier cq
 
+  # Checks whether if the two ColumnKeys are equal
   # @param [Object] other
   def eql? other
     other = other_as_ck(other)
@@ -33,6 +37,7 @@ class ColumnKey
   end
   alias == eql?
 
+  # Compares two ColumnKeys
   # @param [Object] other
   def <=> other
     other = other_as_ck(other)
@@ -40,10 +45,14 @@ class ColumnKey
     d != 0 ? d : Bytes.compareTo(@cq, other.cq(:raw))
   end
 
+  # Returns a hash number for this ColumnKey
+  # @return [Fixnum]
   def hash
     [@cf, Arrays.java_send(:hashCode, [Util::JAVA_BYTE_ARRAY_CLASS], @cq)].hash
   end
 
+  # Returns String representation of the column key (Qualifier decoded as a String)
+  # @return [String]
   def to_s
     [@cf, @cq.empty? ? nil : cq].compact.join(':')
   end

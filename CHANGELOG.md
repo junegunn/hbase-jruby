@@ -1,6 +1,15 @@
 Changelog
 =========
 
+0.1.4
+-----
+- Fix: Start/stop row not correctly set when byte array rowkey range specified
+- More efficient count with FirstKeyOnlyFilter
+- Added `HBase::ByteArray` method as a shorthand notation for `HBase::ByteArray.new`
+- Added `HBase::ByteArray#+` method for concatenating two byte arrays
+- Added `HBase::Util::java_bytes?` method
+- Documentation
+
 0.1.3
 -----
 - Supports Ruby 1.8 compatibility mode

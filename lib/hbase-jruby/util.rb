@@ -6,12 +6,16 @@ module Util
   JAVA_BYTE_ARRAY_CLASS = JAVA_BYTE_ARRAY_EMPTY.java_class
 
   class << self
+    def java_bytes? v
+      v.respond_to?(:java_class) && v.java_class == JAVA_BYTE_ARRAY_CLASS
+    end
+
     # Returns byte array representation of the Ruby object
     # @param [byte[]] v
     # @return [byte[]]
     def to_bytes v
       case v
-      when String
+      when String, ByteArray
         v.to_java_bytes
       when Fixnum
         Bytes.java_send :toBytes, [Java::long], v
@@ -30,7 +34,7 @@ module Util
       when java.math.BigDecimal
         Bytes.java_send :toBytes, [java.math.BigDecimal], v
       else
-        if v.respond_to?(:java_class) && v.java_class == JAVA_BYTE_ARRAY_CLASS
+        if java_bytes?(v)
           v
         else
           raise ArgumentError.new("Don't know how to convert #{v.class} into Java bytes")
@@ -94,6 +98,7 @@ module Util
       end
     end
 
+    # Import Java classes (Prerequisite for classes in hbase-jruby)
     # @return [nil]
     def import_java_classes!
       imp = lambda { |base, classes|
@@ -161,6 +166,7 @@ module Util
           org.apache.hadoop.hbase.filter.FilterBase
           org.apache.hadoop.hbase.filter.FilterList
           org.apache.hadoop.hbase.filter.KeyOnlyFilter
+          org.apache.hadoop.hbase.filter.FirstKeyOnlyFilter
           org.apache.hadoop.hbase.filter.MultipleColumnPrefixFilter
           org.apache.hadoop.hbase.filter.PrefixFilter
           org.apache.hadoop.hbase.filter.RegexStringComparator
