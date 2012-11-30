@@ -1,9 +1,9 @@
 class HBase
 class << self
   # Shortcut method to HBase::ByteArray.new
-  # @param [Object] value
-  def ByteArray value
-    ByteArray.new value
+  # @param [*Object] values
+  def ByteArray *values
+    ByteArray.new *values
   end
 end
 # Boxed class for Java byte arrays
@@ -12,9 +12,11 @@ end
 class ByteArray
   attr_reader :java
 
-  # @param [Object] value
-  def initialize value
-    @java = Util.to_bytes value
+  # @param [*Object] values
+  def initialize *values
+    @java = values.inject(Util::JAVA_BYTE_ARRAY_EMPTY) { |sum, value|
+      Bytes.add sum, Util.to_bytes(value)
+    }
   end
 
   # Checks if the two byte arrays are the same
@@ -40,6 +42,46 @@ class ByteArray
   # @return [byte[]]
   def to_java_bytes
     @java
+  end
+
+  # Returns the length of the byte array
+  # @return [Fixnum]
+  def length
+    @java.length
+  end
+
+  # Slices the byte array
+  # @param [Object] index
+  # @return [ByteArray]
+  def [] *index
+    ByteArray.new(@java.to_a[*index].to_java(Java::byte))
+  end
+
+  # @param [Symbol] type
+  # @return [Object]
+  def decode type
+    Util.from_bytes type, @java
+  end
+
+  # @param [Symbol] type
+  # @return [Object]
+  def shift type, length = nil
+    length =
+      case type
+      when :fixnum, :int, :integer, :float, :double
+        8
+      when :boolean, :bool
+        1
+      else
+        length
+      end
+    raise ArgumentError.new("Byte length must be specified for type: #{type}") unless length
+
+    arr   = @java.to_a
+    val   = arr[0, length].to_java(Java::byte)
+    @java = arr[length..-1].to_java(Java::byte)
+
+    Util.from_bytes type, val
   end
 
   # Returns the first byte array whose prefix doesn't match this byte array

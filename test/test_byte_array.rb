@@ -45,5 +45,38 @@ class TestByteArray < Test::Unit::TestCase
 
     assert_equal 100, HBase::Util.from_bytes( :fixnum, concat.to_java_bytes.to_a[0, 8].to_java(Java::byte) )
     assert_equal 200, HBase::Util.from_bytes( :fixnum, concat.java.to_a[8, 8].to_java(Java::byte) )
+
+    assert HBase::ByteArray(100, 200).eql?(concat)
+  end
+
+  def test_default_constructor
+    assert_equal 0, HBase::ByteArray().java.to_a.length
+    assert_equal 0, HBase::ByteArray.new.java.to_a.length
+  end
+
+  def test_slice
+    ba = HBase::ByteArray(100, 200, "Hello", 3.14)
+
+    assert_equal 100, ba[0, 8].decode(:fixnum)
+    assert_equal 200, ba[8...16].decode(:fixnum)
+    assert_equal "Hello", ba[16, 5].decode(:string)
+    assert_equal 3.14, ba[21..-1].decode(:float)
+  end
+
+  def test_length_shift
+    ba = HBase::ByteArray(100, 200, "Hello", false, 3.14)
+
+    assert_equal 30, ba.length
+    assert_equal 100, ba.shift(:fixnum)
+    assert_equal 22, ba.length
+    assert_equal 200, ba.shift(:fixnum)
+    assert_equal 14, ba.length
+    assert_raise(ArgumentError) { ba.shift(:string) }
+    assert_equal "Hello", ba.shift(:string, 5)
+    assert_equal 9, ba.length
+    assert_equal false, ba.shift(:boolean)
+    assert_equal 8, ba.length
+    assert_equal 3.14, ba.shift(:float)
+    assert_equal 0, ba.length
   end
 end
