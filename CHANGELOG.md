@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.1.5
+-----
+- `HBase::ByteArray` now takes arbitrary number of objects, and concatenates them
+  - `HBase::ByteArray.new(100, 200, 300, "Hello")`
+
 0.1.4
 -----
 - Fix: Start/stop row not correctly set when byte array rowkey range specified
