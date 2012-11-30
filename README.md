@@ -504,7 +504,7 @@ scoped.project(:prefix => 'alice').
 scoped.project(:range => 'a'...'c').
        project(:range => ['i'...'k', 'x'...'z'])
 
-# Column pagination filter (Cannot be chained. Must be called exactly once.):
+# Column pagination filter:
 #   Fetch columns within the specified intra-scan offset and limit
 scoped.project(:offset => 1000, :limit => 10)
 ```
