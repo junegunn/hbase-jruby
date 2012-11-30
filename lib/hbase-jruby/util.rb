@@ -89,7 +89,7 @@ module Util
         raise ArgumentError, "Column family not specified"
       else
         cf, cq = KeyValue.parseColumn(col.to_s.to_java_bytes)
-        cq = JAVA_BYTE_ARRAY_EMPTY if cq.nil? && col.to_s[-1] == ':'
+        cq = JAVA_BYTE_ARRAY_EMPTY if cq.nil? && col.to_s[-1, 1] == ':'
         return cf, cq
       end
     end
@@ -171,6 +171,8 @@ module Util
           org.apache.hadoop.hbase.client.coprocessor.LongColumnInterpreter
         ]
       end
+
+      nil
     end
   end
 end#Util

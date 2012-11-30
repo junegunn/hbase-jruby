@@ -45,8 +45,8 @@ class TestScoped < TestHBaseJRubyBase
 
   def test_invalid_filter
     assert_raise(ArgumentError) { @table.filter(3.14) }
-    assert_raise(ArgumentError) { @table.filter('cf1:a' => { xxx: 50 }) }
-    assert_raise(ArgumentError) { @table.filter('cf1:a' => { eq: { 1 => 2 } }) }
+    assert_raise(ArgumentError) { @table.filter('cf1:a' => { :xxx => 50 }) }
+    assert_raise(ArgumentError) { @table.filter('cf1:a' => { :eq => { 1 => 2 } }) }
   end
 
   def test_each_and_count
@@ -132,13 +132,13 @@ class TestScoped < TestHBaseJRubyBase
       assert_equal 0,  table.filter('cf1:a' => 50, 'cf2:b' => 90...100).to_a.length
       assert_equal 6,  table.filter('cf1:a' => 50..60, 'cf2:b' => 100..110).to_a.length
       assert_equal 10, table.filter('cf1:a' => { :> => 50,  :<= => 60 }).to_a.length
-      assert_equal 9,  table.filter('cf1:a' => { :> => 50,  :<= => 60, :!= => 55 }).to_a.length
-      assert_equal 10, table.filter('cf1:a' => { :>= => 50, :<= => 60, :!= => 55 }).to_a.length
-      assert_equal 9,  table.filter('cf1:a' => { :>= => 50, :< => 60,  :!= => 55 }).to_a.length
+      assert_equal 9,  table.filter('cf1:a' => { :> => 50,  :<= => 60, :ne => 55 }).to_a.length
+      assert_equal 10, table.filter('cf1:a' => { :>= => 50, :<= => 60, :ne => 55 }).to_a.length
+      assert_equal 9,  table.filter('cf1:a' => { :>= => 50, :< => 60,  :ne => 55 }).to_a.length
       assert_equal 1,  table.filter('cf1:a' => { :> => 50,  :<= => 60, :== => 55 }).to_a.length
       assert_equal 2,  table.filter('cf1:a' => { :> => 50,  :<= => 60, :== => [55, 57] }).to_a.length
-      assert_equal 9,  table.filter('cf1:a' => { gte: 50, lt: 60, ne: 55 }).to_a.length
-      assert_equal 7,  table.filter('cf1:a' => { gte: 50, lt: 60, ne: [55, 57, 59] }).to_a.length
+      assert_equal 9,  table.filter('cf1:a' => { :gte => 50, :lt => 60, :ne => 55 }).to_a.length
+      assert_equal 7,  table.filter('cf1:a' => { :gte => 50, :lt => 60, :ne => [55, 57, 59] }).to_a.length
 
       # filter: Hash + additive
       assert_equal 6, table.filter('cf1:a' => 50..60).filter('cf2:b' => 100..110).to_a.length
@@ -149,7 +149,7 @@ class TestScoped < TestHBaseJRubyBase
       assert_equal 3, table.filter(ColumnPaginationFilter.new(3, 1)).first.to_hash.keys.length
 
       # filter: Java filter list
-      import org.apache.hadoop.hbase.filter.FilterList 
+      import org.apache.hadoop.hbase.filter.FilterList
       import org.apache.hadoop.hbase.filter.ColumnRangeFilter
       assert_equal %w[cf2:b cf3:c],
           table.filter(FilterList.new [
@@ -216,7 +216,7 @@ class TestScoped < TestHBaseJRubyBase
 
     hash = @table.get('rowkey').to_hash(
       HBase::ColumnKey('cf1', 1) => :fixnum,
-      HBase::ColumnKey('cf1', 2) => :fixnum,
+      HBase::ColumnKey('cf1', 2) => :fixnum
     )
     assert_equal 1, hash[HBase::ColumnKey(:cf1, 1)]
     assert_equal 2, hash[HBase::ColumnKey(:cf1, 2)]
@@ -325,12 +325,12 @@ class TestScoped < TestHBaseJRubyBase
       @table.put idx, 'cf1:a' => idx % 10, 'cf2:b' => 'Hello'
     end
 
-    assert_equal 20, @table.filter('cf1:a' => { lte: 1 }, 'cf2:b' => 'Hello').count
-    assert_equal 2,  @table.while( 'cf1:a' => { lte: 1 }, 'cf2:b' => 'Hello').count
+    assert_equal 20, @table.filter('cf1:a' => { :lte => 1 }, 'cf2:b' => 'Hello').count
+    assert_equal 2,  @table.while( 'cf1:a' => { :lte => 1 }, 'cf2:b' => 'Hello').count
 
     # while == filter for gets
-    assert_equal 20, @table.filter('cf1:a' => { lte: 1 }, 'cf2:b' => 'Hello').get((0..100).to_a).compact.length
-    assert_equal 20, @table.while( 'cf1:a' => { lte: 1 }, 'cf2:b' => 'Hello').get((0..100).to_a).compact.length
+    assert_equal 20, @table.filter('cf1:a' => { :lte => 1 }, 'cf2:b' => 'Hello').get((0..100).to_a).compact.length
+    assert_equal 20, @table.while( 'cf1:a' => { :lte => 1 }, 'cf2:b' => 'Hello').get((0..100).to_a).compact.length
   end
 
   def test_min_max
@@ -356,7 +356,7 @@ class TestScoped < TestHBaseJRubyBase
     assert_equal 26, @table.filter('cf1:a' => /g$/).count
     assert_equal  2, @table.filter('cf1:a' => /gg|ff/).count
     assert_equal 28, @table.filter('cf1:a' => ['aa', 'cc', /^g/]).count
-    assert_equal 54, @table.filter('cf1:a' => ['aa', 'cc', /^g/, { gte: 'xa', lt: 'y'}]).count
+    assert_equal 54, @table.filter('cf1:a' => ['aa', 'cc', /^g/, { :gte => 'xa', :lt => 'y'}]).count
   end
 end
 

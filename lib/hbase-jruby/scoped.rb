@@ -19,14 +19,18 @@ class Scoped
   # @return [Fixnum, Bignum] The number of rows in the scope
   def count
     cnt = 0
-    if block_given?
-      htable.getScanner(filtered_scan).each do |result|
-        cnt += 1 if yield(Result.send(:new, result))
+    begin
+      if block_given?
+        scanner = htable.getScanner(filtered_scan)
+        scanner.each do |result|
+          cnt += 1 if yield(Result.send(:new, result))
+        end
+      else
+        scanner = htable.getScanner(filtered_scan_minimum)
+        scanner.each { cnt += 1 }
       end
-    else
-      htable.getScanner(filtered_scan_minimum).each do
-        cnt += 1
-      end
+    ensure
+      scanner.close if scanner
     end
     cnt
   end
@@ -111,7 +115,7 @@ class Scoped
   #     table.range(:prefix => ['2010', '2012'])
   def range *key_range
     if key_range.last.is_a?(Hash)
-      prefixes  = [*key_range.last[:prefix]]
+      prefixes  = [*key_range.last[:prefix]].compact
       raise ArgumentError,
         "Invalid range. Unknown option(s) specified." unless (key_range.last.keys - [:prefix]).empty?
       key_range = key_range[0...-1]
@@ -328,7 +332,7 @@ private
       end if range
 
       # Prefix filters
-      filters += [*build_prefix_filter]
+      filters += [*build_prefix_filter].compact
 
       # RowFilter must precede the others
       filters += @filters
@@ -365,7 +369,7 @@ private
               CompareFilter::CompareOp::LESS_OR_EQUAL
             when :eq, :==
               CompareFilter::CompareOp::EQUAL
-            when :ne, :!=
+            when :ne # , :!= # Ruby 1.8 compatibility
               CompareFilter::CompareOp::NOT_EQUAL
             else
               raise ArgumentError, "Unknown operator: #{op}"
@@ -375,7 +379,7 @@ private
             # XXX TODO Undocumented feature
             FilterList.new(
               case op
-              when :ne, :!=
+              when :ne # , :!=
                 FilterList::Operator::MUST_PASS_ALL
               else
                 FilterList::Operator::MUST_PASS_ONE
@@ -428,7 +432,7 @@ private
       scan.caching = @caching if @caching
 
       # Filters
-      prefix_filter = [*build_prefix_filter]
+      prefix_filter = [*build_prefix_filter].compact
       filters = prefix_filter + @filters
       filters += process_projection!(scan)
 

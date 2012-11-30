@@ -3,22 +3,23 @@
 $LOAD_PATH.unshift File.expand_path('..', __FILE__)
 require 'helper'
 
-class TestAggregation < TestHBaseJRubyBase 
+class TestAggregation < TestHBaseJRubyBase
   def test_aggregation
     (1..100).each do |idx|
       @table.put idx, 'cf1:a' => idx, 'cf1:b' => idx * 2
     end
 
-    @table.enable_aggregation!
+    assert_nil @table.enable_aggregation!
+    assert_nil @table.enable_aggregation! # no prob!
 
     lci = org.apache.hadoop.hbase.client.coprocessor.LongColumnInterpreter.new
     [nil, :fixnum, :int, :integer, lci].each do |ci|
-      assert_equal 100,  @table.project('cf1:a').aggregate(:row_count, *[*ci])
-      assert_equal 5050, @table.project('cf1:a').aggregate(:sum, *[*ci])
-      assert_equal 1,    @table.project('cf1:a').aggregate(:min, *[*ci])
-      assert_equal 100,  @table.project('cf1:a').aggregate(:max, *[*ci])
-      assert_equal 50.5, @table.project('cf1:a').aggregate(:avg, *[*ci])
-      assert_equal 28,   @table.project('cf1:a').aggregate(:std, *[*ci]).to_i # FIXME: 28 or 29?
+      assert_equal 100,  @table.project('cf1:a').aggregate(:row_count, *[*ci].compact)
+      assert_equal 5050, @table.project('cf1:a').aggregate(:sum, *[*ci].compact)
+      assert_equal 1,    @table.project('cf1:a').aggregate(:min, *[*ci].compact)
+      assert_equal 100,  @table.project('cf1:a').aggregate(:max, *[*ci].compact)
+      assert_equal 50.5, @table.project('cf1:a').aggregate(:avg, *[*ci].compact)
+      assert_equal 28,   @table.project('cf1:a').aggregate(:std, *[*ci].compact).to_i # FIXME: 28 or 29?
     end
 
     [%w[cf1:a cf1:b], %w[cf1]].each do |prj|

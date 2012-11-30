@@ -137,7 +137,7 @@ class TestScoped < TestHBaseJRubyBase
       'cf1:c' => 3.14,
       'cf2:d' => :world,
       'cf2:e' => false,
-      'cf3:f' => BigDecimal.new(1234567890123456789012345678901234567890),
+      'cf3:f' => BigDecimal.new('1234567890123456789012345678901234567890'),
       'cf3'   => true
     }
     schema = {
