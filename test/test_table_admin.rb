@@ -3,7 +3,7 @@
 $LOAD_PATH.unshift File.expand_path('..', __FILE__)
 require 'helper'
 
-class TestTableAdmin < TestHBaseJRubyBase 
+class TestTableAdmin < TestHBaseJRubyBase
   def teardown
     @table.drop! if @table.exists?
   end
@@ -11,7 +11,7 @@ class TestTableAdmin < TestHBaseJRubyBase
   def test_create_table_symbol_string
     t = @hbase.table(:test_hbase_jruby_create_table)
     t.drop! if t.exists?
-    [ :cf, 'cf', :cf => {} ].each do |cf|
+    [ :cf, 'cf', {:cf => {}} ].each do |cf|
       assert_false t.exists?
       t.create! cf
       assert t.exists?

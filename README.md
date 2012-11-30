@@ -694,8 +694,14 @@ end
 ## Test
 
 ```
+# Bash script
 export HBASE_JRUBY_TEST_ZK='your-hbaase.domain.net'
-rake test
+
+# Test both for 1.8 and 1.9
+for v in --1.8 --1.9; do
+  export JRUBY_OPTS=$v
+  rake test
+done
 ```
 
 ## Contributing

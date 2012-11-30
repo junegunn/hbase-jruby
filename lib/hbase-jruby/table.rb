@@ -462,11 +462,11 @@ private
   end
 
   def const_shortcut base, v, message
-    vs = v.to_s.upcase.to_sym
-    #if base.constants.map { |c| base.const_get c }.include?(v)
+    vs = v.to_s.upcase
+    # const_get doesn't work with symbols in 1.8 compatibility mode
     if base.constants.map { |c| base.const_get c }.any? { |cv| v == cv }
       v
-    elsif base.constants.include? vs
+    elsif base.constants.map(&:to_s).include?(vs)
       base.const_get vs
     else
       raise ArgumentError, [message, v.to_s].join(': ')

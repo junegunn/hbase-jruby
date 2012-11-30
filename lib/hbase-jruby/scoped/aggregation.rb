@@ -7,7 +7,8 @@ module Aggregation
     # Enables aggregation support for the table
     # @return [nil]
     def enable_aggregation!
-      add_coprocessor! 'org.apache.hadoop.hbase.coprocessor.AggregateImplementation'
+      cpc = 'org.apache.hadoop.hbase.coprocessor.AggregateImplementation'
+      add_coprocessor! cpc unless has_coprocessor?(cpc)
     end
   end
 

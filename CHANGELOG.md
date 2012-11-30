@@ -1,6 +1,12 @@
 Changelog
 =========
 
+0.1.3
+-----
+- Supports Ruby 1.8 compatibility mode
+- Fix: Correct return value from `HBase::resolve_dependency!`
+- Fix: Appropriately close result scanners
+
 0.1.2
 -----
 
