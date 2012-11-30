@@ -674,7 +674,7 @@ table.remove_coprocessor! cp_class_name1
 ```
 
 You can perform other types of administrative tasks
-with Native Java [HBaseAdmin object](http://hbase.apache.org/apidocs/org/apache/hadoop/hbase/client/HBaseAdmin.html),
+with native Java [HBaseAdmin object](http://hbase.apache.org/apidocs/org/apache/hadoop/hbase/client/HBaseAdmin.html),
 which can be obtained by `HBase#admin` method. Optionally, a block can be given
 so that the HBaseAdmin object is automatically closed at the end of the given block.
 
