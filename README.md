@@ -693,7 +693,7 @@ end
 
 ## Test
 
-```
+```bash
 # Bash script
 export HBASE_JRUBY_TEST_ZK='your-hbaase.domain.net'
 
