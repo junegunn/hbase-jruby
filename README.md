@@ -310,7 +310,7 @@ table.truncate!
 # Atomically increase cf1:counter by one
 table.increment('rowkey1', 'cf1:counter', 1)
 
-# Atomically increase two columns by one an two respectively
+# Atomically increase two columns by one and two respectively
 table.increment('rowkey1', 'cf1:counter' => 1, 'cf1:counter2' => 2)
 ```
 
