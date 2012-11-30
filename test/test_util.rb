@@ -14,12 +14,14 @@ class TestUtil < Test::Unit::TestCase
 
     [:fixnum, :int, :integer].each do |type|
       assert_equal 100, Util.from_bytes( type, Util.to_bytes(100) )
+      assert_equal 100, Util.from_bytes( type, Util.to_bytes(HBase::ByteArray(100)) )
     end
     [:float, :double].each do |type|
       assert_equal 3.14, Util.from_bytes( type, Util.to_bytes(3.14) )
     end
     [:string, :str].each do |type|
       assert_equal "Hello", Util.from_bytes( type, Util.to_bytes("Hello") )
+      assert_equal "Hello", Util.from_bytes( type, Util.to_bytes(HBase::ByteArray("Hello")) )
     end
     [:bool, :boolean].each do |type|
       assert_equal true,  Util.from_bytes( type, Util.to_bytes(true) )
@@ -46,8 +48,8 @@ class TestUtil < Test::Unit::TestCase
   end
 
   def test_parse_column_name
-    assert_equal ['abc', 'def'],  parse_to_str('abc:def') 
-    assert_equal ['abc', 'def:'], parse_to_str('abc:def:') 
+    assert_equal ['abc', 'def'],  parse_to_str('abc:def')
+    assert_equal ['abc', 'def:'], parse_to_str('abc:def:')
     assert_equal ['abc', ''],     parse_to_str('abc:')
     assert_equal ['abc', nil],    parse_to_str('abc')
     assert_equal ['abc', ':::'],  parse_to_str('abc::::')
@@ -70,6 +72,16 @@ class TestUtil < Test::Unit::TestCase
 
   def test_append_0
     assert_equal [97, 97, 97, 0], Util.append_0("aaa".to_java_bytes).to_a
+  end
+
+  def test_java_bytes
+    ["Hello", 1234, :symbol].each do |v|
+      assert_false Util.java_bytes?(v)
+    end
+
+    ["Hello".to_java_bytes, Util.to_bytes(1234), Util.to_bytes(:symbol)].each do |v|
+      assert Util.java_bytes?(v)
+    end
   end
 
 private

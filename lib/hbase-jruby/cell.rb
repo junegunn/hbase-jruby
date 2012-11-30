@@ -105,6 +105,7 @@ class Cell
     KeyValue.COMPARATOR.compare(@java, other.java)
   end
 
+  # Returns a printable version of this cell
   # @return [String]
   def inspect
     %[#{cf}:#{cq} = "#{string}"@#{ts}]

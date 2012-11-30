@@ -35,6 +35,7 @@ class Scoped
     cnt
   end
 
+  # Performs GET operations
   # @overload get(rowkey)
   #   Single GET.
   #   Gets a record with the given rowkey. If the record is not found, nil is returned.
@@ -115,7 +116,7 @@ class Scoped
   #     table.range(:prefix => ['2010', '2012'])
   def range *key_range
     if key_range.last.is_a?(Hash)
-      prefixes  = [*key_range.last[:prefix]].compact
+      prefixes  = arrayfy(key_range.last[:prefix]).compact
       raise ArgumentError,
         "Invalid range. Unknown option(s) specified." unless (key_range.last.keys - [:prefix]).empty?
       key_range = key_range[0...-1]
@@ -237,9 +238,9 @@ private
         col.each do |prop, val|
           case prop
           when :prefix
-            prefixes += [*val]
+            prefixes += arrayfy(val)
           when :range
-            ranges += val.is_a?(Array) ? val : [val]
+            ranges += arrayfy(val)
           when :limit
             limit = val
           when :offset
@@ -462,10 +463,15 @@ private
     filtered_scan.tap do |scan|
       scan.cache_blocks = false
 
+      # A filter that will only return the first KV from each row
+      # A filter that will only return the key component of each KV
+      filters = [FirstKeyOnlyFilter.new, KeyOnlyFilter.new]
       if flist = scan.getFilter
-        flist.addFilter KeyOnlyFilter.new
+        filters.each do |filter|
+          flist.addFilter filter
+        end
       else
-        scan.setFilter FilterList.new(KeyOnlyFilter.new)
+        scan.setFilter FilterList.new(filters)
       end
     end
   end
@@ -515,6 +521,17 @@ private
         raise ArgumentError, "Unknown filter type"
       end
     }.flatten
+  end
+
+  def arrayfy val
+    # No range splat
+    if Util.java_bytes?(val)
+      [val]
+    elsif val.is_a?(Array)
+      val
+    else
+      [val]
+    end
   end
 end#Scoped
 end#HBase

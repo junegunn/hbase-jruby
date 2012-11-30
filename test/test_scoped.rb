@@ -358,5 +358,25 @@ class TestScoped < TestHBaseJRubyBase
     assert_equal 28, @table.filter('cf1:a' => ['aa', 'cc', /^g/]).count
     assert_equal 54, @table.filter('cf1:a' => ['aa', 'cc', /^g/, { :gte => 'xa', :lt => 'y'}]).count
   end
+
+  def test_java_bytes_prefix
+    (1..100).each do |i|
+      (1..100).each do |j|
+        @table.put((HBase::ByteArray(i) + HBase::ByteArray(j)).to_java_bytes, 'cf1:a' => i * j)
+      end
+    end
+
+    assert_equal 100, @table.range(:prefix => HBase::ByteArray(50)).count
+    assert_equal 100, @table.range(:prefix => HBase::ByteArray(50).to_java_bytes).count
+    assert_equal 200, @table.range(HBase::ByteArray(50), HBase::ByteArray(52)).count
+    assert_equal 1,   @table.range(:prefix => (HBase::ByteArray(50) + HBase::ByteArray(50))).count
+
+    assert_equal 2,   @table.range(:prefix => [
+                                   (HBase::ByteArray(50) + HBase::ByteArray(50)).java,
+                                   (HBase::ByteArray(50) + HBase::ByteArray(51)).java ]).count
+
+    # Fails on 0.1.3
+    assert_equal 1,   @table.range(:prefix => (HBase::ByteArray(50) + HBase::ByteArray(50)).java).count
+  end
 end
 

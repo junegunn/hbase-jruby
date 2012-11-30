@@ -47,6 +47,7 @@ class Table
     !enabled?
   end
 
+  # Creates the table
   # @overload create!(column_family_name, props = {})
   #   Create the table with one column family of the given name
   #   @param [#to_s] The name of the column family
@@ -257,6 +258,7 @@ class Table
     end
   end
 
+  # Performs PUT operations
   # @overload put(rowkey, data)
   #   Put operation on a rowkey
   #   @param [Object] rowkey Rowkey
@@ -274,6 +276,7 @@ class Table
     puts.length
   end
 
+  # Deletes data
   # @overload delete(rowkey)
   #   Deletes a row with the given rowkey
   #   @param [Object] rowkey
@@ -334,6 +337,7 @@ class Table
     }
   end
 
+  # Atomically increase numeric values
   # @overload increment(rowkey, column, by)
   #   Atomically increase column value by the specified amount
   #   @param [Object] rowkey Rowkey
@@ -383,7 +387,7 @@ class Table
       (local_htables[@name] = @pool.get_table(@name))
   end
 
-  # Returns table description
+  # Returns a printable version of the table description
   # @return [String] Table description
   def inspect
     if exists?

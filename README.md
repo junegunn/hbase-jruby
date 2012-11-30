@@ -109,7 +109,9 @@ hbase = HBase.new 'hbase.zookeeper.quorum' => 'remote-server.mydomain.net'
 
 # Extra configuration
 hbase = HBase.new 'hbase.zookeeper.quorum' => 'remote-server.mydomain.net',
-                  'hbase.client.retries.number' => 3
+                  'hbase.client.retries.number' => 3,
+                  'hbase.client.scanner.caching' => 1000,
+                  'hbase.rpc.timeout' => 120000
 
 # Close HBase connection
 hbase.close
@@ -556,6 +558,9 @@ end
 #   instead of just iterating through the scope, as it internally
 #   minimizes amount of data fetched with KeyOnlyFilter
 scoped.count
+
+# This should be even faster as it dramatically reduces the number of RPC calls
+scoped.caching(1000).count
 ```
 
 ## Basic aggregation using coprocessor
