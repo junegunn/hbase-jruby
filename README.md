@@ -65,9 +65,9 @@ Apache Maven is the de facto standard dependency management mechanism for Java p
 Current version of *hbase-jruby* is shipped with Maven dependency specifications
 for the following Hadoop/HBase distributions.
 
-* cdh4.1.2
+* [cdh4.1.2](https://github.com/junegunn/hbase-jruby/blob/master/lib/hbase-jruby/pom/cdh4.1.2.xml)
     * Recommended as of now
-* cdh3u5
+* [cdh3u5](https://github.com/junegunn/hbase-jruby/blob/master/lib/hbase-jruby/pom/cdh3u5.xml)
     * Does not support some features
 
 ```ruby
@@ -667,7 +667,7 @@ which is a concatenation of several components of different types.
   [1]: http://blog.sematext.com/2012/08/09/consider-using-fuzzyrowfilter-when-in-need-for-secondary-indexes-in-hbase/
 
 `HBase::ByteArray` is a boxed class for native Java byte arrays,
-which greatly simplifies byte array manipulation.
+which makes byte array manipulation much easier.
 
 A ByteArray can be created as a concatenation of any number of objects.
 
@@ -680,17 +680,23 @@ Then you can slice it and decode each part,
 ```ruby
 # Slicing
 first  = ba[0, 8]
-second = ba[8..8]
+second = ba[8...16]
 
 first.decode(:fixnum)  # 100
 second.decode(:float)  # 3.14
 ```
 
-appends, prepends more elements to it,
+append, prepend more elements to it,
 
 ```ruby
 ba.unshift 200, true
 ba << { short: 300 }
+```
+
+concatenate another ByteArray, 
+
+```ruby
+ba += HBase::ByteArray(1024)
 ```
 
 or shift decoded objects from it.
@@ -701,7 +707,13 @@ ba.shift(:boolean)
 ba.shift(:fixnum)
 ba.shift(:float)
 ba.shift(:int)
-ba.shift(:string, 11)
+ba.shift(:string, 11)  # Byte length must be given as Strings are not fixed in size
+```
+
+`ByteArray#java` method returns the underlying native Java byte array.
+
+```ruby
+ba.java  # Returns the native Java byte array (byte[])
 ```
 
 ### Table administration
