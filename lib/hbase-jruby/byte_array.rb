@@ -8,9 +8,11 @@ class << self
 end
 # Boxed class for Java byte arrays
 # @!attribute [r] java
-#   @return [byte[]] Java byte array
+#   @return [byte[]] The underlying native Java byte array
 class ByteArray
   attr_reader :java
+  alias to_java java
+  alias to_java_bytes java
 
   include Enumerable
 
@@ -64,12 +66,6 @@ class ByteArray
   def unshift *args
     @java = (ByteArray.new(*args) + self).java
     self
-  end
-
-  # Returns the Java byte array
-  # @return [byte[]]
-  def to_java_bytes
-    @java
   end
 
   # Returns the length of the byte array

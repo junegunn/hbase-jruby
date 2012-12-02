@@ -49,6 +49,10 @@ class TestByteArray < Test::Unit::TestCase
     assert HBase::ByteArray(100, 200).eql?(concat)
     assert concat.eql?(HBase::ByteArray(100) + 200)
     assert concat.eql?(HBase::ByteArray(100) << 200)
+
+    ba = HBase::ByteArray(100)
+    ba += HBase::ByteArray(200)
+    assert_equal concat, ba
   end
 
   def test_default_constructor
