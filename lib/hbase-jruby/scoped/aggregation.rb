@@ -34,7 +34,7 @@ private
 
   def column_interpreter_for type
     case type
-    when :fixnum, :int, :integer
+    when :fixnum, :long
       LongColumnInterpreter.new
     when org.apache.hadoop.hbase.coprocessor.ColumnInterpreter
       type

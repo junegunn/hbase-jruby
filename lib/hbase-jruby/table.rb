@@ -421,8 +421,15 @@ private
         cf, cq = Util.parse_column_name(col)
         case val
         when Hash
-          val.each do |ts, v|
-            put.add cf, cq, ts, Util.to_bytes(v)
+          val.each do |t, v|
+            case t
+            # Timestamp
+            when Fixnum
+              put.add cf, cq, t, Util.to_bytes(v)
+            # Types: :byte, :short, :int, ...
+            else
+              put.add cf, cq, Util.to_bytes(t => v)
+            end
           end
         else
           put.add cf, cq, Util.to_bytes(val)

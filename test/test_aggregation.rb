@@ -13,7 +13,7 @@ class TestAggregation < TestHBaseJRubyBase
     assert_nil @table.enable_aggregation! # no prob!
 
     lci = org.apache.hadoop.hbase.client.coprocessor.LongColumnInterpreter.new
-    [nil, :fixnum, :int, :integer, lci].each do |ci|
+    [nil, :fixnum, :long, lci].each do |ci|
       assert_equal 100,  @table.project('cf1:a').aggregate(:row_count, *[*ci].compact)
       assert_equal 5050, @table.project('cf1:a').aggregate(:sum, *[*ci].compact)
       assert_equal 1,    @table.project('cf1:a').aggregate(:min, *[*ci].compact)

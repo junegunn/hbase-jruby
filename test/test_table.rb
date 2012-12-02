@@ -32,6 +32,9 @@ class TestScoped < TestHBaseJRubyBase
                                'cf1:d' => false,
                                'cf1:f' => :bol,
                                'cf1:g' => BigDecimal.new("456.123"),
+                               'cf1:byte'  => { :byte => 100 },
+                               'cf1:short' => { :short => 200 },
+                               'cf1:int'   => { :int => 300 },
                                'cf1:str1' => "Goodbye", 'cf1:str2' => "Cruel world")
     assert_equal 1, @table.put('row1',
                                'cf1:a' => 1,
@@ -40,6 +43,10 @@ class TestScoped < TestHBaseJRubyBase
                                'cf1:d' => true,
                                'cf1:f' => :sym,
                                'cf1:g' => BigDecimal.new("123.456"),
+                               'cf1:byte'  => { :byte => 101 },
+                               'cf1:short' => { :short => 201 },
+                               'cf1:int'   => { :int => 301 },
+                               'cf1:int2'  => { :int => 401 },
                                'cf1:str1' => "Hello", 'cf1:str2' => "World")
     # Batch put
     assert_equal 2, @table.put(
@@ -59,9 +66,13 @@ class TestScoped < TestHBaseJRubyBase
     assert_equal true,   @table.get('row1').boolean('cf1:d')
     assert_equal :sym,   @table.get('row1').symbol('cf1:f')
     assert_equal BigDecimal.new("123.456"), @table.get('row1').bigdecimal('cf1:g')
+    assert_equal 101,   @table.get('row1').byte('cf1:byte')
+    assert_equal 201,   @table.get('row1').short('cf1:short')
+    assert_equal 301,   @table.get('row1').int('cf1:int')
 
     # single-get-multi-col
     assert_equal %w[Hello World], @table.get('row1').string(['cf1:str1', 'cf1:str2'])
+    assert_equal [301, 401], @table.get('row1').int(['cf1:int', 'cf1:int2'])
 
     # single-get-multi-ver
     assert_equal [1, 2],               @table.get('row1').fixnums('cf1:a').values
@@ -73,6 +84,9 @@ class TestScoped < TestHBaseJRubyBase
     assert_equal [
       BigDecimal.new("123.456"),
       BigDecimal.new("456.123")], @table.get('row1').bigdecimals('cf1:g').values
+    assert_equal [101, 100],   @table.get('row1').bytes('cf1:byte').values
+    assert_equal [201, 200],   @table.get('row1').shorts('cf1:short').values
+    assert_equal [301, 300],   @table.get('row1').ints('cf1:int').values
 
     assert @table.get('row1').fixnums('cf1:a').keys.all? { |k| k.instance_of? Fixnum }
 
@@ -83,13 +97,13 @@ class TestScoped < TestHBaseJRubyBase
 
     # multi-get
     assert_equal %w[row1 row2 row3], @table.get(['row1', 'row2', 'row3']).map { |r| r.rowkey }
-    assert_equal [1, 2, 4         ], @table.get(['row1', 'row2', 'row3']).map { |r| r.integer('cf1:a') }
+    assert_equal [1, 2, 4         ], @table.get(['row1', 'row2', 'row3']).map { |r| r.fixnum('cf1:a') }
     assert_equal [3.14, 6.28, 6.28], @table.get(['row1', 'row2', 'row3']).map { |r| r.float('cf1:c') }
     assert_equal [nil, nil        ], @table.get(['xxx', 'yyy'])
 
     # Unavailable columns
     assert_equal nil,    @table.get('row1').symbol('cf1:xxx')
-    assert_equal nil,    @table.get('row1').integer('cf1:xxx')
+    assert_equal nil,    @table.get('row1').fixnum('cf1:xxx')
 
     # Unavailable columns (plural form)
     assert_equal({},    @table.get('row1').strings('cf1:xxx'))
@@ -142,7 +156,7 @@ class TestScoped < TestHBaseJRubyBase
     }
     schema = {
       'cf1:a' => :string,
-      'cf1:b' => :integer,
+      'cf1:b' => :fixnum,
       'cf1:c' => :float,
       HBase::ColumnKey(:cf2, :d) => :symbol,
       HBase::ColumnKey(:cf2, :e) => :boolean,
@@ -183,15 +197,15 @@ class TestScoped < TestHBaseJRubyBase
     assert_equal 1, @table.get('row1').fixnum('cf1:counter')
 
     @table.increment('row1', 'cf1:counter', 1)
-    assert_equal 2, @table.get('row1').int('cf1:counter')
+    assert_equal 2, @table.get('row1').fixnum('cf1:counter')
 
     @table.increment('row1', 'cf1:counter', 2)
-    assert_equal 4, @table.get('row1').integer('cf1:counter')
+    assert_equal 4, @table.get('row1').fixnum('cf1:counter')
 
     # Multi-column increment
     @table.increment('row1', 'cf1:counter' => 4, 'cf1:counter2' => 100)
-    assert_equal 8,   @table.get('row1').integer('cf1:counter')
-    assert_equal 200, @table.get('row1').integer('cf1:counter2')
+    assert_equal 8,   @table.get('row1').fixnum('cf1:counter')
+    assert_equal 200, @table.get('row1').fixnum('cf1:counter2')
   end
 
   def test_delete
@@ -210,21 +224,21 @@ class TestScoped < TestHBaseJRubyBase
     assert_equal new_versions, [versions[1]]
 
     # Deletes a column
-    assert_equal 3, @table.get('row1').integer('cf2:c')
+    assert_equal 3, @table.get('row1').fixnum('cf2:c')
     @table.delete('row1', 'cf2:c')
     assert_nil @table.get('row1').to_hash['cf2:c']
 
     # Deletes a column with empty qualifier
-    assert_equal 0, @table.get('row1').integer('cf1')
+    assert_equal 0, @table.get('row1').fixnum('cf1')
     @table.delete('row1', 'cf1:')
-    assert_equal 1, @table.get('row1').integer('cf1:a')
-    assert_equal 2, @table.get('row1').integer('cf1:b')
+    assert_equal 1, @table.get('row1').fixnum('cf1:a')
+    assert_equal 2, @table.get('row1').fixnum('cf1:b')
     assert_nil @table.get('row1').to_hash['cf1']
     assert_nil @table.get('row1').to_hash['cf1:']
 
     # Deletes a column family
-    assert_equal 1, @table.get('row1').integer('cf1:a')
-    assert_equal 2, @table.get('row1').integer('cf1:b')
+    assert_equal 1, @table.get('row1').fixnum('cf1:a')
+    assert_equal 2, @table.get('row1').fixnum('cf1:b')
     @table.delete('row1', 'cf1') # No trailing colon
     assert_nil @table.get('row1').to_hash['cf1:a']
     assert_nil @table.get('row1').to_hash['cf1:b']
@@ -240,7 +254,7 @@ class TestScoped < TestHBaseJRubyBase
     @table.delete ['row2'], ['row3', 'cf1:a']
     assert_nil @table.get('row2')
     assert_nil @table.get('row3').to_hash['cf1:a']
-    assert_equal 2, @table.get('row3').integer('cf1:b')
+    assert_equal 2, @table.get('row3').fixnum('cf1:b')
   end
 end
 

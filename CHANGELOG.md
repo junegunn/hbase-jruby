@@ -3,8 +3,8 @@ Changelog
 
 0.1.5
 -----
-- `HBase::ByteArray` now takes arbitrary number of objects, and concatenates them
-  - `HBase::ByteArray.new(100, 200, 300, "Hello")`
+- Added support for shorter integers
+- Extended `HBase::ByteArray` for easy manipulation of Java byte arrays
 
 0.1.4
 -----
