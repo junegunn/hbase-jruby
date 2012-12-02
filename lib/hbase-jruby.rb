@@ -15,3 +15,4 @@ require "hbase-jruby/table"
 require "hbase-jruby/result"
 require 'hbase-jruby/hbase'
 
+HBase.import_java_classes!
