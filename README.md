@@ -638,7 +638,7 @@ table.get('rowkey').string(HBase::ColumnKey(:cf1, 100))
 ### Shorter integers
 
 A Ruby Fixnum is an 8-byte integer, which is equivalent `long` type in Java.
-When you want to use shorter integers types such as int, short, or byte,
+When you want to use shorter integer types such as int, short, or byte,
 you can then use the special Hash representation of integers.
 
 ```ruby
@@ -661,13 +661,13 @@ result.int('cf1:c')    # 300
 In HBase, virtually everything is stored as a byte array.
 Although *hbase-jruby* tries hard to hide the fact,
 at some point you may need to get your hands dirty with native Java byte arrays.
-For example, it's a common practice to use a composite row key,
-which is a concatenation of several components of different types. [^1]
+For example, it's [a common practice] [1] to use a composite row key,
+which is a concatenation of several components of different types.
 
-  [^1]: http://blog.sematext.com/2012/08/09/consider-using-fuzzyrowfilter-when-in-need-for-secondary-indexes-in-hbase/
+  [1]: http://blog.sematext.com/2012/08/09/consider-using-fuzzyrowfilter-when-in-need-for-secondary-indexes-in-hbase/
 
 `HBase::ByteArray` is a boxed class for native Java byte arrays,
-which can greatly simplifies working with them.
+which greatly simplifies byte array manipulation.
 
 A ByteArray can be created as a concatenation of any number of objects.
 
@@ -675,7 +675,7 @@ A ByteArray can be created as a concatenation of any number of objects.
 ba = HBase::ByteArray(100, 3.14, {int: 300}, "Hello World")
 ```
 
-Then you can slice it and decode it,
+Then you can slice it and decode each part,
 
 ```ruby
 # Slicing
@@ -686,14 +686,14 @@ first.decode(:fixnum)  # 100
 second.decode(:float)  # 3.14
 ```
 
-or appends, prepends elements to it,
+appends, prepends more elements to it,
 
 ```ruby
 ba.unshift 200, true
 ba << { short: 300 }
 ```
 
-and shift decoded objects from it.
+or shift decoded objects from it.
 
 ```ruby
 ba.shift(:fixnum)
