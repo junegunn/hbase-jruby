@@ -11,7 +11,7 @@ class HBase
   # Connects to HBase
   # @param [Hash] config A key-value pairs to build HBaseConfiguration from
   def initialize config = {}
-    Util.import_java_classes!
+    HBase.import_java_classes!
 
     @config =
       case config

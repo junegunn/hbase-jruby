@@ -8,8 +8,6 @@ class TestUtil < Test::Unit::TestCase
   Util = HBase::Util
 
   def test_bytea_conversion
-    Util.import_java_classes!
-
     assert_raise(ArgumentError) { Util.to_bytes(10 ** 30) }
 
     [:fixnum, :long].each do |type|
