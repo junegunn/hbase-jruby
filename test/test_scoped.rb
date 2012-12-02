@@ -181,7 +181,7 @@ class TestScoped < TestHBaseJRubyBase
       @table.put rk, 'cf1:a' => rk
     end
     assert_equal 9, @table.range(1..9).count
-    assert_equal [1, 2, 3, 4, 5, 6, 7, 8, 9], @table.range(1..9).map { |row| row.rowkey :integer }
+    assert_equal [1, 2, 3, 4, 5, 6, 7, 8, 9], @table.range(1..9).map { |row| row.rowkey :fixnum }
     assert_equal 8, @table.range(1...9).count
 
     @table.truncate!
@@ -201,17 +201,17 @@ class TestScoped < TestHBaseJRubyBase
       @table.put i.to_s, data
     end
 
-    assert_equal [1, 2, 3], @table.range(1..3).map { |r| r.rowkey :integer }
+    assert_equal [1, 2, 3], @table.range(1..3).map { |r| r.rowkey :fixnum }
     assert_equal %w[1 10 11 12 13 14 15 2 3], @table.range('1'..'3').map { |r| r.rowkey :string }
   end
 
   def test_non_string_column_name
     @table.put 'rowkey', Hash[ (1..20).map { |cq| [HBase::ColumnKey('cf1', cq), cq] } ]
 
-    assert((1..20).all? { |cq| @table.get('rowkey').integer(HBase::ColumnKey('cf1', cq)) == cq })
+    assert((1..20).all? { |cq| @table.get('rowkey').fixnum(HBase::ColumnKey('cf1', cq)) == cq })
 
     assert @table.project(['cf1', 10], ['cf1', 20]).map { |r|
-      [r.integer(HBase::ColumnKey('cf1', 10)), r.integer(HBase::ColumnKey.new('cf1', 20))]
+      [r.fixnum(HBase::ColumnKey('cf1', 10)), r.fixnum(HBase::ColumnKey.new('cf1', 20))]
     }.all? { |e| e == [10, 20] }
 
     hash = @table.get('rowkey').to_hash(

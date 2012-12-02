@@ -8,7 +8,7 @@ class Result
 
   # Returns the rowkey of the row
   # @param [Symbol] type The type of the rowkey
-  #   Can be one of :string, :symbol, :fixnum, :float, :bigdecimal, :boolean and :raw.
+  #   Can be one of :string, :symbol, :fixnum, :float, :short, :int, :bigdecimal, :boolean and :raw.
   # @return [String, byte[]]
   def rowkey type = :string
     Util.from_bytes type, @result.getRow
@@ -168,37 +168,119 @@ class Result
   end
   alias syms symbols
 
-  # Returns column values as Fixnums
-  # @overload fixnum(column)
+  # Returns 1-byte column values as Fixnums
+  # @overload byte(column)
   #   Returns the latest column value as a Fixnum
+  #   @param [String, HBase::ColumnKey] column "FAMILY:QUALIFIER" expression or ColumnKey object.
+  #   @return [Fixnum]
+  # @overload byte(columns)
+  #   For each column specified,
+  #   returns the latest 1-byte column values as a Fixnum
+  #   @param [Array<String|HBase::ColumnKey>] columns Array of "FAMILY:QUALIFIER" expressions and ColumnKey objects.
+  #   @return [Array<Fixnum>]
+  def byte cols
+    decode_values :byte, cols
+  end
+
+  # Returns all versions of 1-byte column values as Fixnums in a Hash indexed by their timestamps
+  # @overload bytes(column)
+  #   Returns all versions of column values as Fixnums in a Hash indexed by their timestamps
+  #   @param [String, HBase::ColumnKey] column "FAMILY:QUALIFIER" expression or ColumnKey object.
+  #   @return [Hash<Fixnum, Fixnum>]
+  # @overload bytes(columns)
+  #   For each column specified,
+  #   returns all versions of 1-byte column values as Fixnums in a Hash indexed by their timestamps
+  #   @param [Array<String|HBase::ColumnKey>] columns Array of "FAMILY:QUALIFIER" expressions and ColumnKey objects.
+  #   @return [Array<Hash<Fixnum, Fixnum>>]
+  def bytes cols
+    decode_values :byte, cols, true
+  end
+
+  # Returns 2-byte column values as Fixnums
+  # @overload short(column)
+  #   Returns the latest 2-byte column value as a Fixnum
+  #   @param [String, HBase::ColumnKey] column "FAMILY:QUALIFIER" expression or ColumnKey object.
+  #   @return [Fixnum]
+  # @overload short(columns)
+  #   For each column specified,
+  #   returns the latest 2-byte column values as a Fixnum
+  #   @param [Array<String|HBase::ColumnKey>] columns Array of "FAMILY:QUALIFIER" expressions and ColumnKey objects.
+  #   @return [Array<Fixnum>]
+  def short cols
+    decode_values :short, cols
+  end
+
+  # Returns all versions of 2-byte column values as Fixnums in a Hash indexed by their timestamps
+  # @overload shorts(column)
+  #   Returns all versions of 2-byte column values as Fixnums in a Hash indexed by their timestamps
+  #   @param [String, HBase::ColumnKey] column "FAMILY:QUALIFIER" expression or ColumnKey object.
+  #   @return [Hash<Fixnum, Fixnum>]
+  # @overload shorts(columns)
+  #   For each column specified,
+  #   returns all versions of 2-byte column values as Fixnums in a Hash indexed by their timestamps
+  #   @param [Array<String|HBase::ColumnKey>] columns Array of "FAMILY:QUALIFIER" expressions and ColumnKey objects.
+  #   @return [Array<Hash<Fixnum, Fixnum>>]
+  def shorts cols
+    decode_values :short, cols, true
+  end
+
+  # Returns 4-byte column values as Fixnums
+  # @overload int(column)
+  #   Returns the latest 4-byte column value as a Fixnum
+  #   @param [String, HBase::ColumnKey] column "FAMILY:QUALIFIER" expression or ColumnKey object.
+  #   @return [Fixnum]
+  # @overload int(columns)
+  #   For each column specified,
+  #   returns the latest 4-byte column values as a Fixnum
+  #   @param [Array<String|HBase::ColumnKey>] columns Array of "FAMILY:QUALIFIER" expressions and ColumnKey objects.
+  #   @return [Array<Fixnum>]
+  def int cols
+    decode_values :int, cols
+  end
+
+  # Returns all versions of 4-byte column values as Fixnums in a Hash indexed by their timestamps
+  # @overload ints(column)
+  #   Returns all versions of 4-byte column values as Fixnums in a Hash indexed by their timestamps
+  #   @param [String, HBase::ColumnKey] column "FAMILY:QUALIFIER" expression or ColumnKey object.
+  #   @return [Hash<Fixnum, Fixnum>]
+  # @overload ints(columns)
+  #   For each column specified,
+  #   returns all versions of 4-byte column values as Fixnums in a Hash indexed by their timestamps
+  #   @param [Array<String|HBase::ColumnKey>] columns Array of "FAMILY:QUALIFIER" expressions and ColumnKey objects.
+  #   @return [Array<Hash<Fixnum, Fixnum>>]
+  def ints cols
+    decode_values :int, cols, true
+  end
+
+  # Returns 8-byte column values as Fixnums
+  # @overload fixnum(column)
+  #   Returns the latest 8-byte column value as a Fixnum
   #   @param [String, HBase::ColumnKey] column "FAMILY:QUALIFIER" expression or ColumnKey object.
   #   @return [Fixnum]
   # @overload fixnum(columns)
   #   For each column specified,
-  #   returns the latest column values as a Fixnum
+  #   returns the latest 8-byte column values as a Fixnum
   #   @param [Array<String|HBase::ColumnKey>] columns Array of "FAMILY:QUALIFIER" expressions and ColumnKey objects.
   #   @return [Array<Fixnum>]
   def fixnum cols
     decode_values :fixnum, cols
   end
-  alias integer fixnum
-  alias int     fixnum
+  alias long fixnum
 
-  # Returns all versions of column values as Fixnums in a Hash indexed by their timestamps
+  # Returns all versions of 8-byte column values as Fixnums in a Hash indexed by their timestamps
   # @overload fixnums(column)
-  #   Returns all versions of column values as Fixnums in a Hash indexed by their timestamps
+  #   Returns all versions of 8-byte column values as Fixnums in a Hash indexed by their timestamps
   #   @param [String, HBase::ColumnKey] column "FAMILY:QUALIFIER" expression or ColumnKey object.
   #   @return [Hash<Fixnum, Fixnum>]
   # @overload fixnums(columns)
   #   For each column specified,
-  #   returns all versions of column values as Fixnums in a Hash indexed by their timestamps
+  #   returns all versions of 8-byte column values as Fixnums in a Hash indexed by their timestamps
   #   @param [Array<String|HBase::ColumnKey>] columns Array of "FAMILY:QUALIFIER" expressions and ColumnKey objects.
   #   @return [Array<Hash<Fixnum, Fixnum>>]
   def fixnums cols
     decode_values :fixnum, cols, true
   end
-  alias integers fixnums
-  alias ints     fixnums
+  alias longs fixnums
 
   # Returns column values as Bigdecimals
   # @overload bigdecimal(column)

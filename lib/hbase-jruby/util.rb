@@ -33,6 +33,25 @@ module Util
         Bytes.java_send :toBytes, [java.math.BigDecimal], v.to_java
       when java.math.BigDecimal
         Bytes.java_send :toBytes, [java.math.BigDecimal], v
+      when Hash
+        len = v.length
+        raise ArgumentError, "Unknown value format" unless len == 1
+
+        val = v.values.first
+        raise ArgumentError, "Unknown value format" unless val.is_a?(Fixnum)
+
+        case v.keys.first
+        when :byte
+          [val].to_java(Java::byte)
+        when :int
+          Bytes.java_send :toBytes, [Java::int], val
+        when :short
+          Bytes.java_send :toBytes, [Java::short], val
+        when :long, :fixnum 
+          Bytes.java_send :toBytes, [Java::long], val
+        else
+          raise ArgumentError, "Invalid value format"
+        end
       else
         if java_bytes?(v)
           v
@@ -52,8 +71,14 @@ module Util
       case type
       when :string, :str
         Bytes.to_string val
-      when :fixnum, :int, :integer
+      when :fixnum, :long
         Bytes.to_long val
+      when :byte
+        val.first
+      when :int
+        Bytes.to_int val
+      when :short
+        Bytes.to_short val
       when :symbol, :sym
         Bytes.to_string(val).to_sym
       when :bigdecimal

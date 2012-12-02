@@ -635,6 +635,75 @@ table.get('rowkey').string(HBase::ColumnKey(:cf1, 100))
 # ...
 ```
 
+### Shorter integers
+
+A Ruby Fixnum is an 8-byte integer, which is equivalent `long` type in Java.
+When you want to use shorter integers types such as int, short, or byte,
+you can then use the special Hash representation of integers.
+
+```ruby
+# 4-byte int value as the rowkey
+table.put({ int: 12345 }, 'cf1:a' => { byte: 100 },   # 1-byte integer
+                          'cf1:b' => { short: 200 },  # 2-byte integer
+                          'cf1:c' => { int: 300 },    # 4-byte integer
+                          'cf1:4' => 400)             # Ordinary 8-byte integer
+
+result = table.get(int: 12345)
+
+result.byte('cf1:a')   # 100
+result.short('cf1:b')  # 200
+result.int('cf1:c')    # 300
+# ...
+```
+
+### Working with byte arrays
+
+In HBase, virtually everything is stored as a byte array.
+Although *hbase-jruby* tries hard to hide the fact,
+at some point you may need to get your hands dirty with native Java byte arrays.
+For example, it's a common practice to use a composite row key,
+which is a concatenation of several components of different types. [^1]
+
+  [^1]: http://blog.sematext.com/2012/08/09/consider-using-fuzzyrowfilter-when-in-need-for-secondary-indexes-in-hbase/
+
+`HBase::ByteArray` is a boxed class for native Java byte arrays,
+which can greatly simplifies working with them.
+
+A ByteArray can be created as a concatenation of any number of objects.
+
+```ruby
+ba = HBase::ByteArray(100, 3.14, {int: 300}, "Hello World")
+```
+
+Then you can slice it and decode it,
+
+```ruby
+# Slicing
+first  = ba[0, 8]
+second = ba[8..8]
+
+first.decode(:fixnum)  # 100
+second.decode(:float)  # 3.14
+```
+
+or appends, prepends elements to it,
+
+```ruby
+ba.unshift 200, true
+ba << { short: 300 }
+```
+
+and shift decoded objects from it.
+
+```ruby
+ba.shift(:fixnum)
+ba.shift(:boolean)
+ba.shift(:fixnum)
+ba.shift(:float)
+ba.shift(:int)
+ba.shift(:string, 11)
+```
+
 ### Table administration
 
 `HBase#Table` provides a few *synchronous* table administration methods.

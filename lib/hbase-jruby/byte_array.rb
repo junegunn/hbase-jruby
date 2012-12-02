@@ -12,11 +12,23 @@ end
 class ByteArray
   attr_reader :java
 
+  include Enumerable
+
+  # Initializes ByteArray instance with the given objects,
+  # each converted to its byte array representation
   # @param [*Object] values
   def initialize *values
     @java = values.inject(Util::JAVA_BYTE_ARRAY_EMPTY) { |sum, value|
       Bytes.add sum, Util.to_bytes(value)
     }
+  end
+
+  def each
+    if block_given?
+      @java.to_a.each { |byte| yield byte }
+    else
+      self
+    end
   end
 
   # Checks if the two byte arrays are the same
@@ -33,9 +45,25 @@ class ByteArray
   end
 
   # Concats two byte arrays
-  # @param [HBase::ByteArray] other
+  # @param [Object] other
   def + other
-    ByteArray.new(Bytes.add @java, other.java)
+    ByteArray.new(@java, other)
+  end
+
+  # Appends the byte array of the given object on to the end
+  # @param [Object] other
+  # @return [ByteArray] Modified self
+  def << other
+    @java = Bytes.add @java, Util.to_bytes(other)
+    self
+  end
+
+  # Prepends the byte array of the given object to the front
+  # @param [*Object] args Objects to prepend
+  # @return [ByteArray] Modified self
+  def unshift *args
+    @java = (ByteArray.new(*args) + self).java
+    self
   end
 
   # Returns the Java byte array
@@ -54,7 +82,11 @@ class ByteArray
   # @param [Object] index
   # @return [ByteArray]
   def [] *index
-    ByteArray.new(@java.to_a[*index].to_java(Java::byte))
+    if index.length == 1 && index.first.is_a?(Fixnum)
+      @java.to_a[*index]
+    else
+      ByteArray.new(@java.to_a[*index].to_java(Java::byte))
+    end
   end
 
   # @param [Symbol] type
@@ -63,19 +95,27 @@ class ByteArray
     Util.from_bytes type, @java
   end
 
+  # Returns the first element decoded as the given type
+  # and removes the portion from the byte array.
+  # For types of variable lengths, such as :string and :bigdecimal, byte size must be given.
   # @param [Symbol] type
   # @return [Object]
   def shift type, length = nil
     length =
       case type
-      when :fixnum, :int, :integer, :float, :double
+      when :fixnum, :long, :float, :double
         8
-      when :boolean, :bool
+      when :int
+        4
+      when :short
+        2
+      when :boolean, :bool, :byte
         1
       else
         length
       end
     raise ArgumentError.new("Byte length must be specified for type: #{type}") unless length
+    raise ArgumentError.new("Not enought bytes for #{type}") if length > @java.length
 
     arr   = @java.to_a
     val   = arr[0, length].to_java(Java::byte)

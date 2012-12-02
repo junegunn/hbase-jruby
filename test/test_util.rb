@@ -12,10 +12,18 @@ class TestUtil < Test::Unit::TestCase
 
     assert_raise(ArgumentError) { Util.to_bytes(10 ** 30) }
 
-    [:fixnum, :int, :integer].each do |type|
+    [:fixnum, :long].each do |type|
       assert_equal 100, Util.from_bytes( type, Util.to_bytes(100) )
       assert_equal 100, Util.from_bytes( type, Util.to_bytes(HBase::ByteArray(100)) )
     end
+
+    assert_equal 100, Util.from_bytes( :byte,  Util.to_bytes(:byte => 100) )
+    assert_equal 100, Util.from_bytes( :short, Util.to_bytes(:short => 100) )
+    assert_equal 100, Util.from_bytes( :int, Util.to_bytes(:int => 100) )
+    assert_raise(ArgumentError) { Util.to_bytes(:short => "Hello") }
+    assert_raise(ArgumentError) { Util.to_bytes(:xxx => 100) }
+    assert_raise(ArgumentError) { Util.to_bytes(:short => 100, :int => 200) }
+
     [:float, :double].each do |type|
       assert_equal 3.14, Util.from_bytes( type, Util.to_bytes(3.14) )
     end

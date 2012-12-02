@@ -47,6 +47,8 @@ class TestByteArray < Test::Unit::TestCase
     assert_equal 200, HBase::Util.from_bytes( :fixnum, concat.java.to_a[8, 8].to_java(Java::byte) )
 
     assert HBase::ByteArray(100, 200).eql?(concat)
+    assert concat.eql?(HBase::ByteArray(100) + 200)
+    assert concat.eql?(HBase::ByteArray(100) << 200)
   end
 
   def test_default_constructor
@@ -61,6 +63,7 @@ class TestByteArray < Test::Unit::TestCase
     assert_equal 200, ba[8...16].decode(:fixnum)
     assert_equal "Hello", ba[16, 5].decode(:string)
     assert_equal 3.14, ba[21..-1].decode(:float)
+    assert_equal "H".ord, ba[16]
   end
 
   def test_length_shift
@@ -78,5 +81,61 @@ class TestByteArray < Test::Unit::TestCase
     assert_equal 8, ba.length
     assert_equal 3.14, ba.shift(:float)
     assert_equal 0, ba.length
+
+    assert_raise(ArgumentError) { ba.shift(:fixnum) }
+  end
+
+  def test_short_int
+    assert_equal 1,  HBase::ByteArray(:byte => 12).length
+    assert_equal 12, HBase::ByteArray(:byte => 12).decode(:byte)
+    assert_raise(RangeError) { HBase::ByteArray(:byte => 128) }
+
+    assert_equal 2,     HBase::ByteArray(:short => 12345).length
+    assert_equal 12345, HBase::ByteArray(:short => 12345).decode(:short)
+    assert_raise(RangeError) { HBase::ByteArray( :short => 1 << 16 ) }
+
+    assert_equal 4,     HBase::ByteArray(:int => 12345).length
+    assert_equal 12345, HBase::ByteArray(:int => 12345).decode(:int)
+    assert_raise(RangeError) { HBase::ByteArray.new( :int => 1 << 32 ) }
+
+    ba = HBase::ByteArray( {:int => 10000}, 20000, {:short => 30000}, "Hello" )
+    assert_equal 10000, ba[0, 4].decode(:int)
+    assert_equal 20000, ba[4, 8].decode(:long)
+    assert_equal 30000, ba[12, 2].decode(:short)
+    assert_equal "Hell", ba[14, 4].decode(:string)
+  end
+
+  def test_each
+    ba = HBase::ByteArray("Hello world")
+    Hash[ba.to_a.zip("Hello world".each_char)].each do |ord, chr|
+      assert_equal ord, chr.ord
+    end
+  end
+
+  def test_unshift
+    bd = BigDecimal.new("123456789012345678901234567890")
+    ba = HBase::ByteArray(bd)
+    oid = ba.object_id
+    assert_equal oid, ba.unshift(:short => 1000).object_id
+
+    ba.unshift("a", "b", "c")
+    assert_equal 'a', ba[0].chr
+    assert_equal 'b', ba[1].chr
+    assert_equal 'c', ba[2].chr
+    assert_equal 1000, ba[3, 2].decode(:short)
+    assert_equal bd, ba[5..-1].decode(:bigdecimal)
+  end
+
+  def test_append
+    ba = HBase::ByteArray()
+    oid = ba.object_id
+    assert_equal oid, (ba << 100).object_id
+
+    ba << 200 << {:int => 300} << "Hello" << 3.14
+    assert_equal 100, ba.shift(:fixnum)
+    assert_equal 200, ba.shift(:long)
+    assert_equal 300, ba.shift(:int)
+    assert_equal "Hello", ba.shift(:string, 5)
+    assert_equal 3.14, ba.shift(:float)
   end
 end
