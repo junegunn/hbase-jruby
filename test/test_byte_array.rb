@@ -63,7 +63,7 @@ class TestByteArray < Test::Unit::TestCase
     assert_equal 200, ba[8...16].decode(:fixnum)
     assert_equal "Hello", ba[16, 5].decode(:string)
     assert_equal 3.14, ba[21..-1].decode(:float)
-    assert_equal "H".ord, ba[16]
+    assert_equal "H", ba[16].chr
   end
 
   def test_length_shift
@@ -107,8 +107,8 @@ class TestByteArray < Test::Unit::TestCase
 
   def test_each
     ba = HBase::ByteArray("Hello world")
-    Hash[ba.to_a.zip("Hello world".each_char)].each do |ord, chr|
-      assert_equal ord, chr.ord
+    Hash[ba.to_a.zip("Hello world".each_char.to_a)].each do |ord, chr|
+      assert_equal ord.chr, chr
     end
   end
 
