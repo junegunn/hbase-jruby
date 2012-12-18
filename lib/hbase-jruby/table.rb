@@ -106,7 +106,7 @@ class Table
     todo.call if todo # Avoids mutex relocking
   end
 
-  # Alters the table
+  # Alters the table (synchronous)
   # @param [Hash] props Table properties
   # @return [nil]
   # @example
@@ -116,53 +116,55 @@ class Table
   #     :readonly           => false,
   #     :deferred_log_flush => true
   #   )
-  def alter! props
-    with_admin do |admin|
-      htd = admin.get_table_descriptor(@name.to_java_bytes)
-      patch_table_descriptor! htd, props
-      while_disabled(admin) do
-        admin.modifyTable @name.to_java_bytes, htd
-        wait_async_admin(admin)
-      end
-    end
+  def alter! props, &block
+    _alter props, true, &block
   end
 
-  # Adds the column family
+  # Alters the table (asynchronous)
+  # @see HBase::Table#alter!
+  def alter props
+    _alter props, false
+  end
+
+  # Adds the column family (synchronous)
   # @param [#to_s] name The name of the column family
   # @param [Hash] opts Column family properties
   # @return [nil]
-  def add_family! name, opts
-    with_admin do |admin|
-      while_disabled(admin) do
-        admin.addColumn @name, hcd(name.to_s, opts)
-        wait_async_admin(admin)
-      end
-    end
+  def add_family! name, opts, &block
+    _add_family name, opts, true, &block
+  end
+
+  # Adds the column family (asynchronous)
+  # @see HBase::Table#add_family!
+  def add_family name, opts
+    _add_family name, opts, false
   end
 
   # Alters the column family
   # @param [#to_s] name The name of the column family
   # @param [Hash] opts Column family properties
   # @return [nil]
-  def alter_family! name, opts
-    with_admin do |admin|
-      while_disabled(admin) do
-        admin.modifyColumn @name, hcd(name.to_s, opts)
-        wait_async_admin(admin)
-      end
-    end
+  def alter_family! name, opts, &block
+    _alter_family name, opts, true, &block
+  end
+
+  # Alters the column family (asynchronous)
+  # @see HBase::Table#alter_family!
+  def alter_family name, opts
+    _alter_family name, opts, false
   end
 
   # Removes the column family
   # @param [#to_s] name The name of the column family
   # @return [nil]
-  def delete_family! name
-    with_admin do |admin|
-      while_disabled(admin) do
-        admin.deleteColumn @name, name.to_s
-        wait_async_admin(admin)
-      end
-    end
+  def delete_family! name, &block
+    _delete_family name, true, &block
+  end
+
+  # Removes the column family (asynchronous)
+  # @see HBase::Table#delete_family!
+  def delete_family name
+    _delete_family name, false
   end
 
   # Adds the table coprocessor to the table
@@ -171,39 +173,26 @@ class Table
   # @option props [String] path The path of the JAR file
   # @option props [Fixnum] priority Coprocessor priority
   # @option props [Hash<#to_s, #to_s>] params Arbitrary key-value parameter pairs passed into the coprocessor
-  def add_coprocessor! class_name, props = {}
-    with_admin do |admin|
-      while_disabled(admin) do
+  def add_coprocessor! class_name, props = {}, &block
+    _add_coprocessor class_name, props, true, &block
+  end
 
-        htd = admin.get_table_descriptor(@name.to_java_bytes)
-        if props.empty?
-          htd.addCoprocessor class_name
-        else
-          path, priority, params = props.values_at :path, :priority, :params
-          params = Hash[ params.map { |k, v| [k.to_s, v.to_s] } ]
-          htd.addCoprocessor class_name, path, priority || Coprocessor::PRIORITY_USER, params
-        end
-        admin.modifyTable @name.to_java_bytes, htd
-        wait_async_admin(admin)
-      end
-    end
+  # Adds the table coprocessor to the table (asynchronous)
+  def add_coprocessor class_name, props = {}
+    _add_coprocessor class_name, props, false
   end
 
   # Removes the coprocessor from the table.
   # @param [String] class_name Full class name of the coprocessor
   # @return [nil]
-  def remove_coprocessor! name
-    unless org.apache.hadoop.hbase.HTableDescriptor.respond_to?(:removeCoprocessor)
-      raise NotImplementedError, "org.apache.hadoop.hbase.HTableDescriptor.removeCoprocessor not implemented"
-    end
-    with_admin do |admin|
-      while_disabled(admin) do
-        htd = admin.get_table_descriptor(@name.to_java_bytes)
-        htd.removeCoprocessor name
-        admin.modifyTable @name.to_java_bytes, htd
-        wait_async_admin(admin)
-      end
-    end
+  def remove_coprocessor! class_name, &block
+    _remove_coprocessor class_name, true, &block
+  end
+
+  # Removes the coprocessor from the table (asynchronous)
+  # @see HBase::Table#remove_coprocessor!
+  def remove_coprocessor class_name
+    _remove_coprocessor class_name, false
   end
 
   # Return if the table has the coprocessor of the given class name
@@ -497,6 +486,76 @@ private
       htd.send method, value
     end
     htd
+  end
+
+  def _alter props, bang, &block
+    with_admin do |admin|
+      htd = admin.get_table_descriptor(@name.to_java_bytes)
+      patch_table_descriptor! htd, props
+      while_disabled(admin) do
+        admin.modifyTable @name.to_java_bytes, htd
+        wait_async_admin(admin, &block) if bang
+      end
+    end
+  end
+
+  def _add_family name, opts, bang, &block
+    with_admin do |admin|
+      while_disabled(admin) do
+        admin.addColumn @name, hcd(name.to_s, opts)
+        wait_async_admin(admin, &block) if bang
+      end
+    end
+  end
+
+  def _alter_family name, opts, bang, &block
+    with_admin do |admin|
+      while_disabled(admin) do
+        admin.modifyColumn @name, hcd(name.to_s, opts)
+        wait_async_admin(admin, &block) if bang
+      end
+    end
+  end
+
+  def _delete_family name, bang, &block
+    with_admin do |admin|
+      while_disabled(admin) do
+        admin.deleteColumn @name, name.to_s
+        wait_async_admin(admin, &block) if bang
+      end
+    end
+  end
+
+  def _add_coprocessor class_name, props = {}, bang, &block
+    with_admin do |admin|
+      while_disabled(admin) do
+
+        htd = admin.get_table_descriptor(@name.to_java_bytes)
+        if props.empty?
+          htd.addCoprocessor class_name
+        else
+          path, priority, params = props.values_at :path, :priority, :params
+          params = Hash[ params.map { |k, v| [k.to_s, v.to_s] } ]
+          htd.addCoprocessor class_name, path, priority || Coprocessor::PRIORITY_USER, params
+        end
+        admin.modifyTable @name.to_java_bytes, htd
+        wait_async_admin(admin, &block) if bang
+      end
+    end
+  end
+
+  def _remove_coprocessor name, bang, &block
+    unless org.apache.hadoop.hbase.HTableDescriptor.respond_to?(:removeCoprocessor)
+      raise NotImplementedError, "org.apache.hadoop.hbase.HTableDescriptor.removeCoprocessor not implemented"
+    end
+    with_admin do |admin|
+      while_disabled(admin) do
+        htd = admin.get_table_descriptor(@name.to_java_bytes)
+        htd.removeCoprocessor name
+        admin.modifyTable @name.to_java_bytes, htd
+        wait_async_admin(admin, &block) if bang
+      end
+    end
   end
 end#Table
 end#HBase
