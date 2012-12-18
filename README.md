@@ -693,7 +693,7 @@ ba.unshift 200, true
 ba << { short: 300 }
 ```
 
-concatenate another ByteArray, 
+concatenate another ByteArray,
 
 ```ruby
 ba += HBase::ByteArray(1024)
@@ -718,7 +718,10 @@ ba.java  # Returns the native Java byte array (byte[])
 
 ### Table administration
 
-`HBase#Table` provides a few *synchronous* table administration methods.
+`HBase#Table` provides a few synchronous (`HTable#method_name!`) and
+asynchronous (`HTable#method_name`) table administration methods.
+Synchronous *bang* methods for table alteration take an optional block and pass the progress of the operation to it
+as a pair of parameters, the number of regions processed and total number of regions to process.
 
 ```ruby
 # Create a table with configurable table-level properties
@@ -730,13 +733,24 @@ table.create!(
     :max_filesize       => 256 * 1024 ** 2,
     :deferred_log_flush => false)
 
-# Alter table properties
-table.alter!(
+# Alter table properties (asynchronous)
+table.alter(
   :max_filesize       => 512 * 1024 ** 2,
   :memstore_flushsize =>  64 * 1024 ** 2,
   :readonly           => false,
   :deferred_log_flush => true
 )
+
+# Alter table properties (synchronous)
+table.alter!(
+  :max_filesize       => 512 * 1024 ** 2,
+  :memstore_flushsize =>  64 * 1024 ** 2,
+  :readonly           => false,
+  :deferred_log_flush => true
+) { |progress, total|
+  # Progress report with an optional block
+  puts [progress, total].join('/')
+}
 
 # Add column family
 table.add_family! :cf3, :compression => :snappy,
