@@ -4,11 +4,18 @@ class Scoped
 # @author Junegunn Choi <junegunn.c@gmail.com>
 module Aggregation
   module Admin
-    # Enables aggregation support for the table
+    # Enables aggregation support for the table (asynchronous)
     # @return [nil]
-    def enable_aggregation!
+    def enable_aggregation
       cpc = 'org.apache.hadoop.hbase.coprocessor.AggregateImplementation'
-      add_coprocessor! cpc unless has_coprocessor?(cpc)
+      add_coprocessor cpc unless has_coprocessor?(cpc)
+    end
+
+    # Enables aggregation support for the table (synchronous)
+    # @return [nil]
+    def enable_aggregation! &block
+      cpc = 'org.apache.hadoop.hbase.coprocessor.AggregateImplementation'
+      add_coprocessor! cpc, &block unless has_coprocessor?(cpc)
     end
   end
 
