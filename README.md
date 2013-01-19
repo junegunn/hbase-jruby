@@ -17,7 +17,7 @@ Anyhow, JRuby is Ruby, not Java, right?
 ```ruby
 require 'hbase-jruby'
 
-HBase.resolve_dependency! 'cdh4.1.2'
+HBase.resolve_dependency! 'cdh4.1'
 
 hbase = HBase.new
 table = hbase.table(:test_table)
@@ -71,18 +71,19 @@ which automatically resolves Hadoop/HBase dependency.
 #### Preconfigured dependencies
 
 Apache Maven is the de facto standard dependency management mechanism for Java projects.
-Current version of *hbase-jruby* is shipped with Maven dependency specifications
+Current version of *hbase-jruby* is shipped with
+[Maven dependency specifications](https://github.com/junegunn/hbase-jruby/blob/master/lib/hbase-jruby/pom/pom.xml)
 for the following Hadoop/HBase distributions.
 
-* [cdh4.1.2](https://github.com/junegunn/hbase-jruby/blob/master/lib/hbase-jruby/pom/cdh4.1.2.xml)
-    * Recommended as of now
-* [cdh3u5](https://github.com/junegunn/hbase-jruby/blob/master/lib/hbase-jruby/pom/cdh3u5.xml)
-    * Does not support some features
+* cdh4.1
+* cdh3
+* 0.94
+* 0.92
 
 ```ruby
 require 'hbase-jruby'
 
-HBase.resolve_dependency! 'cdh4.1.2'
+HBase.resolve_dependency! 'cdh4.1'
 ```
 
 (If you're behind an http proxy, set up your ~/.m2/settings.xml file
@@ -805,6 +806,7 @@ end
 ```bash
 # Bash script
 export HBASE_JRUBY_TEST_ZK='your-hbaase.domain.net'
+export HBASE_JRUBY_TEST_DIST='0.94'
 
 # Test both for 1.8 and 1.9
 for v in --1.8 --1.9; do

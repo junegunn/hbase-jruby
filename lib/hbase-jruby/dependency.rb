@@ -23,36 +23,22 @@ class HBase
           mvn = `which mvn`
           raise RuntimeError, "Cannot find executable `mvn`" if mvn.empty?
 
-          distname = dist.downcase.sub(/\.xml$/, '')
-          path = [
-            File.expand_path("../pom/#{distname}.xml", __FILE__),
-            dist.to_s,
-          ].select { |f| File.exists? f }.first
-
-          # Try github head
-          unless path
-            begin
-              xml = open("https://raw.github.com/junegunn/hbase-jruby/master/lib/hbase-jruby/pom/#{distname}.xml").read
-              tempfiles << tf = Tempfile.new("#{distname}.xml")
-              tf.close(false)
-              path = tf.path
-              File.open(path, 'w') do |f|
-                f << xml
-              end
-            rescue OpenURI::HTTPError => e
-              # No such distribution anywhere. Leave path to be nil.
-            end
+          if File.exists?(dist)
+            path = dist
+          else
+            path = File.expand_path("../pom/pom.xml", __FILE__)
+            profile = "-P #{dist}"
           end
-
-          raise ArgumentError, "Invalid distribution: #{dist}" unless path
 
           # Download dependent JAR files and build classpath string
           tempfiles << tf = Tempfile.new('hbase-jruby-classpath')
           tf.close(false)
-          system "mvn org.apache.maven.plugins:maven-dependency-plugin:2.5.1:resolve org.apache.maven.plugins:maven-dependency-plugin:2.5.1:build-classpath -Dsilent=true -Dmdep.outputFile=#{tf.path} -f #{path} #{silencer}"
+          system "mvn org.apache.maven.plugins:maven-dependency-plugin:2.5.1:resolve org.apache.maven.plugins:maven-dependency-plugin:2.5.1:build-classpath -Dsilent=true -Dmdep.outputFile=#{tf.path} #{profile} -f #{path} #{silencer}"
 
           raise RuntimeError.new("Error occurred. Set verbose parameter to see the log.") unless $?.exitstatus == 0
 
+          output = File.read(tf.path)
+          raise ArgumentError.new("Invalid profile: #{dist}") if output.empty?
           File.read(tf.path).split(':')
         end
 

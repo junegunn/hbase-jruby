@@ -11,7 +11,7 @@ $LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
 require "hbase-jruby"
 
 # Required
-unless HBase.resolve_dependency!('cdh4.1.2').all? { |f| File.exists? f }
+unless HBase.resolve_dependency!(ENV.fetch 'HBASE_JRUBY_TEST_DIST').all? { |f| File.exists? f }
   puts "Invalid return value from HBase.resolve_dependency!"
   exit 1
 end

@@ -1,6 +1,12 @@
 Changelog
 =========
 
+0.1.6
+-----
+- Maven dependencies for 0.94 and 0.92
+- Progress reporting for synchronous table administration
+- Added asynchronous versions of table administration methods
+
 0.1.5
 -----
 - Added support for shorter integers
