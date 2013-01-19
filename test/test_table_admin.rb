@@ -146,7 +146,7 @@ class TestTableAdmin < TestHBaseJRubyBase
       :blockcache          => true,
       :blocksize           => 128 * 1024,
       :bloomfilter         => :row,
-      :compression         => :snappy,
+      :compression         => :gzip,
     # :data_block_encoding => org.apache.hadoop.hbase.io.encoding.DataBlockEncoding::DIFF,
     # :encode_on_disk      => true,
     # :keep_deleted_cells  => true,
@@ -163,7 +163,7 @@ class TestTableAdmin < TestHBaseJRubyBase
     assert_equal 'ROW', cf[:bloomfilter]
     assert_equal '0', cf[:replication_scope]
     assert_equal '10', cf[:versions]
-    assert_equal 'SNAPPY', cf[:compression]
+    assert_equal 'GZIP', cf[:compression]
     assert_equal '5', cf[:min_versions]
     assert_equal '100', cf[:ttl]
     assert_equal '131072', cf[:blocksize]
@@ -172,5 +172,5 @@ class TestTableAdmin < TestHBaseJRubyBase
 
     @table.drop!
   end
-end
+end unless ENV['HBASE_JRUBY_TEST_SKIP_ADMIN']
 
