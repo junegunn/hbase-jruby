@@ -187,6 +187,15 @@
         </repository>
       </repositories>
 
+      <dependencies>
+        <dependency>
+          <groupId>org.apache.hbase</groupId>
+          <artifactId>hbase</artifactId>
+          <version>${hbase.version}</version>
+          <scope>compile</scope>
+        </dependency>
+      </dependencies>
+    </profile>
   </profiles>
 </project>
 
