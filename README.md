@@ -56,7 +56,7 @@ table.delete(:rowkey9)
     git clone -b devel https://github.com/junegunn/hbase-jruby.git
     cd hbase-jruby
     rake build
-    gem install pkg/hbase-jruby-0.1.6-java.gem
+    gem install pkg/hbase-jruby-0.2.0-java.gem
 
 ## Setting up
 
