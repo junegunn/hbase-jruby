@@ -68,7 +68,7 @@ class HBase
           base.class_eval do
             classes.map { |klass|
               begin
-                import klass
+                java_import klass
                 nil
               rescue NameError => e
                 klass

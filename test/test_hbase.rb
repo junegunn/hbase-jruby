@@ -6,15 +6,22 @@ require 'helper'
 class TestHBase < TestHBaseJRubyBase
   def test_tables
     assert @hbase.table_names.include?(TABLE)
+    assert @hbase.list.include?(TABLE)
     assert @hbase.tables.map(&:name).include?(TABLE)
   end
 
   def test_close
-    @hbase.close
+    table = @hbase[TABLE]
+    table.exists?
+    assert @hbase.list.is_a?(Array)
 
-    # TODO: Still usable after close?
-    assert @hbase.table_names.include?(TABLE)
-    assert_equal 1, @table.put('rowkey' => { 'cf1:a' => 1 })
+    assert !@hbase.closed?
+    @hbase.close
+    assert @hbase.closed?
+
+    assert_raise(RuntimeError) { @hbase.list }
+    assert_raise(RuntimeError) { table.exists? }
+    assert_raise(RuntimeError) { table.drop! }
   end
 
   def test_admin

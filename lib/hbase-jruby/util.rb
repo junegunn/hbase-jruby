@@ -15,6 +15,8 @@ module Util
     # @return [byte[]]
     def to_bytes v
       case v
+      when Array
+        v.to_java(Java::byte)
       when String, ByteArray
         v.to_java_bytes
       when Fixnum
@@ -47,7 +49,7 @@ module Util
           Bytes.java_send :toBytes, [Java::int], val
         when :short
           Bytes.java_send :toBytes, [Java::short], val
-        when :long, :fixnum 
+        when :long, :fixnum
           Bytes.java_send :toBytes, [Java::long], val
         else
           raise ArgumentError, "Invalid value format"

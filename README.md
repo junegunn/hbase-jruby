@@ -20,7 +20,7 @@ require 'hbase-jruby'
 HBase.resolve_dependency! 'cdh4.1'
 
 hbase = HBase.new
-table = hbase.table(:test_table)
+table = hbase[:test_table]
 
 # PUT
 table.put :rowkey1 => { 'cf1:a' => 100, 'cf2:b' => "Hello" }
@@ -127,24 +127,28 @@ hbase = HBase.new 'hbase.zookeeper.quorum' => 'remote-server.mydomain.net',
 hbase.close
 ```
 
+### Log4j logs from HBase
+
+You may want to suppress (or customize) log messages from HBase.
+
+```ruby
+# With an external log4j.properties file
+HBase.log4j = '/your/log4j.properties'
+
+# With a Hash
+HBase.log4j = { 'log4j.threshold' => 'ERROR' }
+```
+
 ## Accessing data with HBase::Table instance
 
-`HBase#table` method creates an `HBase::Table` instance which represents a table on HBase.
+`HBase#[]` method (or `HBase#table`) returns an `HBase::Table` instance
+which represents the table of the given name.
 
 ```ruby
 table = hbase.table(:test_table)
-```
 
-`HBase::Table` instance must be closed after use.
-
-```ruby
-# Always close table instance after use
-table.close
-
-# If block is given, table is automatically closed at the end of the block
-hbase.table(:test_table) do |table|
-  # ...
-end
+# Or simply,
+table = hbase[:test_table]
 ```
 
 ## Basic table administration
@@ -152,7 +156,7 @@ end
 ### Creating tables
 
 ```ruby
-table = hbase.table(:my_table)
+table = hbase[:my_table]
 
 # Drop table if exists
 table.drop! if table.exists?
@@ -165,7 +169,14 @@ table.create! :cf1 => {},
 ### Table inspection
 
 ```ruby
-puts table.inspect
+# Table properties
+table.properties
+
+# Properties of the column families
+table.families
+
+# Region information
+table.regions
 ```
 
 ## Basic operations
@@ -733,15 +744,21 @@ asynchronous (`HTable#method_name`) table administration methods.
 Synchronous *bang* methods for table alteration take an optional block and pass the progress of the operation to it
 as a pair of parameters, the number of regions processed and total number of regions to process.
 
+#### Creation and alteration
+
 ```ruby
 # Create a table with configurable table-level properties
 table.create!(
     # 1st Hash: Column family specification
-    { :cf1 => { :compression => :snappy }, :cf2 => {} },
+    {
+      :cf1 => { :compression => :snappy },
+      :cf2 => { :bloomfilter => :row }
+    },
 
     # 2nd Hash: Table properties
     :max_filesize       => 256 * 1024 ** 2,
-    :deferred_log_flush => false)
+    :deferred_log_flush => false,
+    :splits             => [1000, 2000, 3000])
 
 # Alter table properties (asynchronous)
 table.alter(
@@ -761,7 +778,11 @@ table.alter!(
   # Progress report with an optional block
   puts [progress, total].join('/')
 }
+```
 
+#### Managing column families
+
+```ruby
 # Add column family
 table.add_family! :cf3, :compression => :snappy,
                         :bloomfilter => :row
@@ -771,7 +792,11 @@ table.alter_family! :cf2, :bloomfilter => :rowcol
 
 # Remove column family
 table.delete_family! :cf1
+```
 
+#### Coprocessors
+
+```ruby
 # Add Coprocessor
 unless table.has_coprocessor?(cp_class_name1)
   table.add_coprocessor! cp_class_name1
@@ -783,14 +808,32 @@ table.add_coprocessor! cp_class_name2,
 table.remove_coprocessor! cp_class_name1
 ```
 
+#### Region splits
+
+```ruby
+table.split!(1000)
+table.split!(2000, 3000) do |progress, total|
+  puts [progress, total].join('/')
+end
+
+
+# Asynchronous
+table.split(4000)
+
+# Wait for asynchronus operation to finish
+table.wait_async do |progress, total|
+  puts [progress, total].join('/')
+end
+```
+
+#### Advanced table administration
+
 You can perform other types of administrative tasks
 with native Java [HBaseAdmin object](http://hbase.apache.org/apidocs/org/apache/hadoop/hbase/client/HBaseAdmin.html),
 which can be obtained by `HBase#admin` method. Optionally, a block can be given
 so that the HBaseAdmin object is automatically closed at the end of the given block.
 
 ```ruby
-# Advanced table administration with HBaseAdmin object
-#   http://hbase.apache.org/apidocs/org/apache/hadoop/hbase/client/HBaseAdmin.html
 admin = hbase.admin
 # ...
 admin.close
@@ -804,8 +847,10 @@ end
 ## Test
 
 ```bash
-# Bash script
-export HBASE_JRUBY_TEST_ZK='your-hbaase.domain.net'
+#!/bin/bash
+
+# Test HBase 0.94 on localhost
+export HBASE_JRUBY_TEST_ZK='127.0.0.1'
 export HBASE_JRUBY_TEST_DIST='0.94'
 
 # Test both for 1.8 and 1.9

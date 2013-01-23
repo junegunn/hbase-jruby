@@ -8,13 +8,10 @@ SimpleCov.start
 RECREATE = false
 
 $LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
-require "hbase-jruby"
 
-# Required
-unless HBase.resolve_dependency!(ENV.fetch 'HBASE_JRUBY_TEST_DIST').all? { |f| File.exists? f }
-  puts "Invalid return value from HBase.resolve_dependency!"
-  exit 1
-end
+require "hbase-jruby"
+HBase.resolve_dependency!(ENV.fetch 'HBASE_JRUBY_TEST_DIST')
+HBase.log4j = { 'log4j.threshold' => 'ERROR' }
 
 class TestHBaseJRubyBase < Test::Unit::TestCase
   TABLE = 'test_hbase_jruby'
@@ -36,7 +33,7 @@ class TestHBaseJRubyBase < Test::Unit::TestCase
     @table.create!(
       :cf1 => { :compression => :none, :bloomfilter => :row },
       :cf2 => { :bloomfilter => :rowcol },
-      :cf3 => { :versions    => 1, :bloomfilter => org.apache.hadoop.hbase.regionserver.StoreFile::BloomType::ROWCOL }
+      :cf3 => { :versions => 1, :bloomfilter => :rowcol }
     ) unless @table.exists?
     @table.enable! if @table.disabled?
 

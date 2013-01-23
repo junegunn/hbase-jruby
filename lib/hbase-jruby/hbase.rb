@@ -8,6 +8,26 @@ class HBase
 
   include Admin
 
+  # @overload HBase.log4j=(filename)
+  #   Configure Log4j logging with the given file
+  #   @param [String] filename Path to log4j.properties file
+  #   @return [nil]
+  # @overload HBase.log4j=(hash)
+  #   Configure Log4j logging with the given Hash
+  #   @param [Hash] hash Log4j properties in Ruby Hash
+  #   @return [nil]
+  def self.log4j= arg
+    if arg.is_a?(Hash)
+      props = java.util.Properties.new
+      arg.each do |k, v|
+        props.setProperty k.to_s, v.to_s
+      end
+      arg = props
+    end
+
+    org.apache.log4j.PropertyConfigurator.configure arg
+  end
+
   # Connects to HBase
   # @param [Hash] config A key-value pairs to build HBaseConfiguration from
   def initialize config = {}
@@ -30,12 +50,15 @@ class HBase
         end
       end
     @htable_pool = HTablePool.new @config, java.lang.Integer::MAX_VALUE
+    @closed = false
   end
 
   # Returns an HBaseAdmin object for administration
-  # @yield [org.apache.hadoop.hbase.client.HBaseAdmin]
+  # @yield [admin] An HBaseAdmin object
+  # @yieldparam [org.apache.hadoop.hbase.client.HBaseAdmin] admin
   # @return [org.apache.hadoop.hbase.client.HBaseAdmin]
   def admin
+    check_closed
     if block_given?
       with_admin { |admin| yield admin }
     else
@@ -46,37 +69,53 @@ class HBase
   # Closes HTablePool and connection
   # @return [nil]
   def close
-    @htable_pool.close
-    HConnectionManager.deleteConnection(@config, true)
+    unless @closed
+      @htable_pool.close
+      HConnectionManager.deleteConnection(@config, true)
+      @closed = true
+    end
+  end
+
+  # Returns whether if the connection is closed
+  # @return [Boolean]
+  def closed?
+    @closed
   end
 
   # Returns the list of HBase::Table instances
   # @return [Array<HBase::Table>]
   def tables
+    check_closed
     table_names.map { |tn| table(tn) }
   end
 
   # Returns the list of table names
   # @return [Array<String>]
   def table_names
+    check_closed
     with_admin { |admin| admin.list_tables.map(&:name_as_string) }
   end
+  alias list table_names
 
-  # Creates HBase::Table instance for the specified name
+  # Creates an HBase::Table instance for the specified name
   # @param [#to_s] table_name The name of the table
   # @return [HBase::Table]
   def table table_name
-    ht = HBase::Table.send :new, @config, @htable_pool, table_name
+    check_closed
+
+    ht = HBase::Table.send :new, self, @config, @htable_pool, table_name
 
     if block_given?
-      begin
-        yield ht
-      ensure
-        ht.close
-      end
+      yield ht
     else
       ht
     end
+  end
+  alias [] table
+
+private
+  def check_closed
+    raise RuntimeError, "Connection already closed" if closed?
   end
 end
 

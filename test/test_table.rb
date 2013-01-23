@@ -4,23 +4,33 @@ $LOAD_PATH.unshift File.expand_path('..', __FILE__)
 require 'helper'
 require 'bigdecimal'
 
-class TestScoped < TestHBaseJRubyBase
-  def test_table
+class TestTable < TestHBaseJRubyBase
+  def test_table_block
     @hbase.table(TABLE) do |table|
       assert_equal TABLE, table.name
       assert table.exists?
     end
+  end
 
+  def test_table_htable
+    htables = []
     table = @hbase.table(TABLE)
-    2.times do
-      assert_equal TABLE, table.name
-      assert table.exists?
-      table.close
-      table.close
-
-      # Gets another HTable instance from HTablePool
-      table.put('rowkey' => { 'cf1:a' => 1 })
+    4.times do
+      htables << table.htable
     end
+    assert_equal 1, htables.uniq.length
+
+    # Multi-threaded
+    htables = []
+    table = @hbase.table(TABLE)
+    4.times do
+      Thread.new {
+        htables << table.htable
+      }.join
+    end
+    assert_equal 4, htables.uniq.length
+
+    assert_equal @hbase.table(TABLE).htable, @hbase[TABLE].htable
   end
 
   def test_put_then_get
@@ -75,18 +85,18 @@ class TestScoped < TestHBaseJRubyBase
     assert_equal [301, 401], @table.get('row1').int(['cf1:int', 'cf1:int2'])
 
     # single-get-multi-ver
-    assert_equal [1, 2],               @table.get('row1').fixnums('cf1:a').values
-    assert_equal %w[a b],              @table.get('row1').strings('cf1:b').values
-    assert_equal %w[a b],              @table.get('row1').raws('cf1:b').values.map { |v| String.from_java_bytes v }
-    assert_equal [3.14, 6.28],         @table.get('row1').floats('cf1:c').values
-    assert_equal [true, false],        @table.get('row1').booleans('cf1:d').values
-    assert_equal [:sym, :bol],         @table.get('row1').symbols('cf1:f').values
+    assert_equal [1, 2],        @table.get('row1').fixnums('cf1:a').values
+    assert_equal %w[a b],       @table.get('row1').strings('cf1:b').values
+    assert_equal %w[a b],       @table.get('row1').raws('cf1:b').values.map { |v| String.from_java_bytes v }
+    assert_equal [3.14, 6.28],  @table.get('row1').floats('cf1:c').values
+    assert_equal [true, false], @table.get('row1').booleans('cf1:d').values
+    assert_equal [:sym, :bol],  @table.get('row1').symbols('cf1:f').values
     assert_equal [
       BigDecimal.new("123.456"),
       BigDecimal.new("456.123")], @table.get('row1').bigdecimals('cf1:g').values
-    assert_equal [101, 100],   @table.get('row1').bytes('cf1:byte').values
-    assert_equal [201, 200],   @table.get('row1').shorts('cf1:short').values
-    assert_equal [301, 300],   @table.get('row1').ints('cf1:int').values
+    assert_equal [101, 100], @table.get('row1').bytes('cf1:byte').values
+    assert_equal [201, 200], @table.get('row1').shorts('cf1:short').values
+    assert_equal [301, 300], @table.get('row1').ints('cf1:int').values
 
     assert @table.get('row1').fixnums('cf1:a').keys.all? { |k| k.instance_of? Fixnum }
 
@@ -102,15 +112,15 @@ class TestScoped < TestHBaseJRubyBase
     assert_equal [nil, nil        ], @table.get(['xxx', 'yyy'])
 
     # Unavailable columns
-    assert_equal nil,    @table.get('row1').symbol('cf1:xxx')
-    assert_equal nil,    @table.get('row1').fixnum('cf1:xxx')
+    assert_equal nil, @table.get('row1').symbol('cf1:xxx')
+    assert_equal nil, @table.get('row1').fixnum('cf1:xxx')
 
     # Unavailable columns (plural form)
-    assert_equal({},    @table.get('row1').strings('cf1:xxx'))
-    assert_equal({},    @table.get('row1').strings('cfx:xxx'))
+    assert_equal({}, @table.get('row1').strings('cf1:xxx'))
+    assert_equal({}, @table.get('row1').strings('cfx:xxx'))
 
     # Row not found
-    assert_equal nil,    @table.get('xxx')
+    assert_equal nil, @table.get('xxx')
   end
 
   # Put added after a delete is overshadowed if its timestamp is older than than that of the tombstone
@@ -134,7 +144,7 @@ class TestScoped < TestHBaseJRubyBase
       'cf1:a' => {
         1250000000000 => 'A1',
         1260000000000 => 'A2',
-        1270000000000 => 'A3',
+        Time.at(1270000000) => 'A3', # Ruby Time support
       },
     }
 
@@ -218,8 +228,8 @@ class TestScoped < TestHBaseJRubyBase
     assert versions[0] > versions[1]
     assert versions[1] > versions[2]
 
-    # Deletes a version
-    @table.delete('row1', 'cf2:d', versions[0], versions[2])
+    # Deletes a version (Fixnum and Time as timestamps)
+    @table.delete('row1', 'cf2:d', versions[0], Time.at(versions[2] / 1000.0))
     new_versions = @table.get('row1').to_hash_with_versions['cf2:d'].keys
     assert_equal new_versions, [versions[1]]
 

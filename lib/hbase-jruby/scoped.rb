@@ -59,7 +59,8 @@ class Scoped
   end
 
   # Iterate through the scope.
-  # @yield [HBase::Result] Yields each row in the scope
+  # @yield [row] Yields each row in the scope
+  # @yieldparam [HBase::Result] row
   def each
     if block_given?
       begin
