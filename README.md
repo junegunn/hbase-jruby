@@ -108,6 +108,18 @@ You can tell `resolve_dependency!` method to do so by passing it special `:hbase
 HBase.resolve_dependency! :hbase
 ```
 
+### Log4j logs from HBase
+
+You may want to suppress (or customize) log messages from HBase.
+
+```ruby
+# With an external log4j.properties file
+HBase.log4j = '/your/log4j.properties'
+
+# With a Hash
+HBase.log4j = { 'log4j.threshold' => 'ERROR' }
+```
+
 ### Connecting to HBase
 
 ```ruby
@@ -127,33 +139,9 @@ hbase = HBase.new 'hbase.zookeeper.quorum' => 'remote-server.mydomain.net',
 hbase.close
 ```
 
-### Log4j logs from HBase
-
-You may want to suppress (or customize) log messages from HBase.
-
-```ruby
-# With an external log4j.properties file
-HBase.log4j = '/your/log4j.properties'
-
-# With a Hash
-HBase.log4j = { 'log4j.threshold' => 'ERROR' }
-```
-
-## Accessing data with HBase::Table instance
-
-`HBase#[]` method (or `HBase#table`) returns an `HBase::Table` instance
-which represents the table of the given name.
-
-```ruby
-table = hbase.table(:test_table)
-
-# Or simply,
-table = hbase[:test_table]
-```
-
 ## Basic table administration
 
-### Creating tables
+### Creating a table
 
 ```ruby
 table = hbase[:my_table]
