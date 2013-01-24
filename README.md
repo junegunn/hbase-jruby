@@ -196,10 +196,6 @@ table.families
   #    :replication_scope     => 0,
   #    :ttl                   => 2147483647,
   #    :versions              => 3}}
-
-# Region information
-table.regions
-  # ...
 ```
 
 There are also `raw_` variants of `properties` and `families`.
@@ -210,8 +206,8 @@ They return properties in their internal String format (mainly used in HBase she
 ```ruby
 table.raw_properties
   # {"IS_ROOT"      => "false",
-     "IS_META"      => "false",
-     "MAX_FILESIZE" => "2147483648"}
+  #  "IS_META"      => "false",
+  #  "MAX_FILESIZE" => "2147483648"}
 
 table.raw_families
   # {"cf" =>
