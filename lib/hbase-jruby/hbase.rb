@@ -16,6 +16,10 @@ class HBase
   #   Configure Log4j logging with the given Hash
   #   @param [Hash] hash Log4j properties in Ruby Hash
   #   @return [nil]
+  # @overload HBase.log4j=(props)
+  #   Configure Log4j logging with the given Properties
+  #   @param [java.util.Properties] props Properties object
+  #   @return [nil]
   def self.log4j= arg
     if arg.is_a?(Hash)
       props = java.util.Properties.new

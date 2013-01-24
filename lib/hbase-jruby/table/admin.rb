@@ -309,10 +309,15 @@ private
               :compression => proc { |v|
                 const_shortcut Compression::Algorithm, v, "Invalid compression algorithm"
               },
+              :compression_compact => proc { |v|
+                const_shortcut Compression::Algorithm, v, "Invalid compression algorithm"
+              },
               :data_block_encoding => proc { |v|
                 const_shortcut org.apache.hadoop.hbase.io.encoding.DataBlockEncoding, v, "Invalid data block encoding algorithm"
               }
             }[key] || proc { |a| a }).call(val)
+        elsif key.is_a?(String)
+          hcd.setValue key, val.to_s
         else
           raise ArgumentError, "Invalid property: #{key}"
         end
@@ -337,10 +342,13 @@ private
     props.each do |key, value|
       next if key == :splits
 
-      method = TABLE_PROPERTIES[key] && TABLE_PROPERTIES[key][:set]
-      raise ArgumentError, "Invalid table property: #{key}" unless method
-
-      htd.send method, value
+      if method = TABLE_PROPERTIES[key] && TABLE_PROPERTIES[key][:set]
+        htd.send method, value
+      elsif key.is_a?(String)
+        htd.setValue key, value.to_s
+      else
+        raise ArgumentError, "Invalid table property: #{key}" unless method
+      end
     end
     htd
   end

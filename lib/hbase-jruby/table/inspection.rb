@@ -9,8 +9,8 @@ class Table
   # Returns table properties
   # @return [Hash]
   def properties
+    desc = descriptor
     {}.tap { |props|
-      desc = descriptor
       TABLE_PROPERTIES.each do |prop, gs|
         get = gs[:get]
         if get && desc.respond_to?(get)
@@ -20,20 +20,38 @@ class Table
     }
   end
 
-  # Returns properties of column families
+  # Returns raw String-to-String map of table properties
+  # @return [Hash]
+  def raw_properties
+    parse_raw_map descriptor.values
+  end
+
+  # Returns properties of column families indexed by family name
   # @return [Hash]
   def families
     {}.tap { |ret|
       descriptor.families.each do |family|
         name = family.name_as_string
-        ret[name] = {}.tap { |props|
-          COLUMN_PROPERTIES.each do |prop, gs|
-            get = gs[:get]
-            if get && family.respond_to?(get)
-              props[prop] = parse_property family.send get
+        ret[name] =
+          {}.tap { |props|
+            COLUMN_PROPERTIES.each do |prop, gs|
+              get = gs[:get]
+              if get && family.respond_to?(get)
+                props[prop] = parse_property family.send get
+              end
             end
-          end
-        }
+          }
+      end
+    }
+  end
+
+  # Returns raw String-to-String map of column family properties indexed by name
+  # @return [Hash]
+  def raw_families
+    {}.tap { |ret|
+      descriptor.families.each do |family|
+        name = family.name_as_string
+        ret[name] = parse_raw_map family.values
       end
     }
   end
@@ -50,9 +68,10 @@ class Table
   # @return [String] Table description
   def inspect
     if exists?
-      properties.to_s
+      descriptor.toStringCustomizedValues
     else
-      {}.to_s
+      # FIXME
+      "{NAME => '#{@name}'}"
     end
   end
 
@@ -81,6 +100,10 @@ private
     else
       v
     end
+  end
+
+  def parse_raw_map m
+    Hash[ m.keys.map { |e| e.get.to_s }.zip m.values.map { |e| e.get.to_s } ]
   end
 end#Table
 end#HBase
