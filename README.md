@@ -65,20 +65,23 @@ table.delete(:rowkey9)
 To be able to access HBase from JRuby, Hadoop/HBase dependency must be satisfied.
 This can be done by either setting up CLASSPATH variable beforehand
 or by `require`ing relevant JAR files after launching JRuby.
-However, that's a lot of hassle, so *hbase-jruby* provides `HBase.resolve_dependency!` helper method,
-which automatically resolves Hadoop/HBase dependency.
+
+### `HBase.resolve_dependency!`
+
+Well, there's an easier way.
+You can call `HBase.resolve_dependency!` helper method passing one of the arguments listed below.
 
 | Argument   | Description                                              | Required executable |
 |------------|----------------------------------------------------------|---------------------|
-| 'cdh4.1'   | Profile for Cloudera CDH4.1                              | mvn                 |
-| 'cdh3'     | Profile for Cloudera CDH3                                | mvn                 |
-| '0.94'     | Profile for Apache HBase 0.94                            | mvn                 |
-| '0.92'     | Profile for Apache HBase 0.92                            | mvn                 |
+| 'cdh4.1'   | Predefined Maven profile for Cloudera CDH4.1             | mvn                 |
+| 'cdh3'     | Predefined Maven profile for Cloudera CDH3               | mvn                 |
+| '0.94'     | Predefined Maven profile for Apache HBase 0.94           | mvn                 |
+| '0.92'     | Predefined Maven profile for Apache HBase 0.92           | mvn                 |
 | *POM PATH* | Follow dependency described in the given POM file        | mvn                 |
 | *:local*   | Resolve HBase dependency using `hbase classpath` command | hbase               |
 
 ```ruby
-require 'hbase-jruby'
+# Examples
 
 # Load JAR files from CDH4.1 distribution of HBase using Maven
 HBase.resolve_dependency! 'cdh4.1'
@@ -221,7 +224,7 @@ However, they are most useful when you need to create a table with the same prop
 hbase[:dupe_table].create!(table.raw_families, table.raw_properties)
 ```
 
-With `regions` method, you can even presplit the regions of the new table just like the old one.
+With `regions` method, you can even presplit the new table just like the old one.
 
 ```ruby
 hbase[:dupe_table].create!(
