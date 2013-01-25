@@ -197,20 +197,10 @@ class Table
     descriptor.hasCoprocessor(class_name)
   end
 
-  # Splits the table region on the given split point
-  # @param [*Object] split_keys
-  # @return [nil]
-  # @yield [progress, total]
-  # @yieldparam [Fixnum] progress Number of regions updated
-  # @yieldparam [Fixnum] total Total number of regions
-  def split! *split_keys, &block
-    _split split_keys, true, &block
-  end
-
   # Splits the table region on the given split point (asynchronous)
   # @param [*Object] split_keys
   # @return [nil]
-  def split *split_keys
+  def split! *split_keys
     _split split_keys, false
   end
 

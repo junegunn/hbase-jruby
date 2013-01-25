@@ -191,6 +191,10 @@ class TestTableAdmin < TestHBaseJRubyBase
         :splits             => [10, 20, 30, 40]
       )
 
+      # Initial region count
+      regions = @table.regions
+      assert_equal 5, regions.count
+
       # Table properties
       props = @table.properties
       assert_equal true,            props[:deferred_log_flush]
@@ -229,19 +233,26 @@ class TestTableAdmin < TestHBaseJRubyBase
 
       @table.put 31, 'cf:a' => 100
       @table.put 37, 'cf:a' => 100
-      @table.split!(35) do |prog, total|
-        assert prog <= total && prog >= 0
+      @table.split!(35)
+
+      # FIXME
+      10.times do |i|
+        break if @table.regions.count == 6
+        sleep 1
+        assert false, "Region not split" if i == 9
       end
 
       @table.put 39, 'cf:a' => 100
-      @table.split(38)
-      @table.wait_async do |prog, total|
-        assert prog <= total && prog >= 0
+      @table.split!(38)
+
+      # FIXME
+      10.times do |i|
+        break if @table.regions.count == 7
+        sleep 1
+        assert false, "Region not split" if i == 9
       end
 
-      # Regions
       regions = @table.regions
-      assert_equal 7, regions.count
       assert_equal [10, 20, 30, 35, 38, 40], regions.map { |r| HBase::Util.from_bytes :fixnum, r[:start_key] }.compact.sort
       assert_equal [10, 20, 30, 35, 38, 40], regions.map { |r| HBase::Util.from_bytes :fixnum, r[:end_key] }.compact.sort
 
