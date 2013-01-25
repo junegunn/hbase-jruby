@@ -417,16 +417,18 @@ end
 You can control how you retrieve data by chaining
 the following methods of `HBase::Table` (or `HBase::Scoped`).
 
-| Method     | Description                                                     |
-|------------|-----------------------------------------------------------------|
-| `range`    | Specifies the rowkey range of scan                              |
-| `project`  | To retrieve only a subset of columns                            |
-| `filter`   | Filtering conditions of scan                                    |
-| `while`    | Allows early termination of scan (server-side)                  |
-| `limit`    | Limits the number of rows                                       |
-| `versions` | Limits the number of versions of each column                    |
-| `caching`  | Sets the number of rows for caching during scan                 |
-| `batch`    | Limits the maximum number of values returned for each iteration |
+| Method       | Description                                                     |
+|--------------|-----------------------------------------------------------------|
+| `range`      | Specifies the rowkey range of scan                              |
+| `project`    | To retrieve only a subset of columns                            |
+| `filter`     | Filtering conditions of scan                                    |
+| `while`      | Allows early termination of scan (server-side)                  |
+| `at`         | Only retrieve data with the specified timestamp                 |
+| `time_range` | Only retrieve data within the specified time range              |
+| `limit`      | Limits the number of rows                                       |
+| `versions`   | Limits the number of versions of each column                    |
+| `caching`    | Sets the number of rows for caching during scan                 |
+| `batch`      | Limits the maximum number of values returned for each iteration |
 
 Each invocation to these methods returns an `HBase::Scoped` instance with which
 you can retrieve data with the following methods.
@@ -443,19 +445,20 @@ you can retrieve data with the following methods.
 ```ruby
 import org.apache.hadoop.hbase.filter.RandomRowFilter
 
-table.range('A'..'Z').                   # Row key range,
-      project('cf1:a').                  # Select cf1:a column
-      project('cf2').                    # Select cf2 family as well
-      filter('cf1:a' => 'Hello').        # Filter by cf1:a value
-      filter('cf2:d' => 100..200).       # Range filter on cf2:d
-      filter('cf2:e' => [10, 20..30]).   # Set-inclusion condition on cf2:e
-      filter(RandomRowFilter.new(0.5)).  # Any Java HBase filter
-      while('cf2:f' => { ne: 'OPEN' }).  # Early termination of scan
-      limit(10).                         # Limits the size of the result set
-      versions(2).                       # Only fetches 2 versions for each value
-      batch(100).                        # Batch size for scan set to 100
-      caching(1000).                     # Caching 1000 rows
-      to_a                               # To Array
+table.range('A'..'Z').                      # Row key range,
+      project('cf1:a').                     # Select cf1:a column
+      project('cf2').                       # Select cf2 family as well
+      filter('cf1:a' => 'Hello').           # Filter by cf1:a value
+      filter('cf2:d' => 100..200).          # Range filter on cf2:d
+      filter('cf2:e' => [10, 20..30]).      # Set-inclusion condition on cf2:e
+      filter(RandomRowFilter.new(0.5)).     # Any Java HBase filter
+      while('cf2:f' => { ne: 'OPEN' }).     # Early termination of scan
+      time_range(Time.now - 600, Time.now). # Scan data of the last 10 minutes
+      limit(10).                            # Limits the size of the result set
+      versions(2).                          # Only fetches 2 versions for each value
+      batch(100).                           # Batch size for scan set to 100
+      caching(1000).                        # Caching 1000 rows
+      to_a                                  # To Array
 ```
 
 ### *range*
@@ -805,10 +808,10 @@ ba.java  # Returns the native Java byte array (byte[])
 
 ### Table administration
 
-`HBase#Table` provides a few synchronous (`HTable#method_name!`) and
-asynchronous (`HTable#method_name`) table administration methods.
-Synchronous *bang* methods for table alteration take an optional block and pass the progress of the operation to it
-as a pair of parameters, the number of regions processed and total number of regions to process.
+`HBase#Table` provides a number of *bang_methods!* for table administration tasks.
+They run synchronously, except when mentioned otherwise (e.g. `HTable#split!`).
+Some of them take an optional block to allow progress monitoring
+and come with non-bang, asynchronous counterparts.
 
 #### Creation and alteration
 
@@ -826,15 +829,7 @@ table.create!(
     :deferred_log_flush => false,
     :splits             => [1000, 2000, 3000])
 
-# Alter table properties (asynchronous)
-table.alter(
-  :max_filesize       => 512 * 1024 ** 2,
-  :memstore_flushsize =>  64 * 1024 ** 2,
-  :readonly           => false,
-  :deferred_log_flush => true
-)
-
-# Alter table properties (synchronous)
+# Alter table properties (synchronous with optional block)
 table.alter!(
   :max_filesize       => 512 * 1024 ** 2,
   :memstore_flushsize =>  64 * 1024 ** 2,
@@ -844,6 +839,14 @@ table.alter!(
   # Progress report with an optional block
   puts [progress, total].join('/')
 }
+
+# Alter table properties (asynchronous)
+table.alter(
+  :max_filesize       => 512 * 1024 ** 2,
+  :memstore_flushsize =>  64 * 1024 ** 2,
+  :readonly           => false,
+  :deferred_log_flush => true
+)
 ```
 
 ##### List of column family properties
@@ -870,7 +873,7 @@ Some of the properties are only available on recent versions of HBase.
 | `:min_versions`          | Fixnum        | The minimum number of versions to keep (used when timeToLive is set)                                               |
 | `:replication_scope`     | Fixnum        | Replication scope                                                                                                  |
 | `:ttl`                   | Fixnum        | Time-to-live of cell contents, in seconds                                                                          |
-| `:versions`              | Fixnum        | The maximum number of versions                                                                                     |
+| `:versions`              | Fixnum        | The maximum number of versions. (By default, all available versions are retrieved.)                                |
 
 ##### List of table properties
 
@@ -912,22 +915,11 @@ table.add_coprocessor! cp_class_name2,
 table.remove_coprocessor! cp_class_name1
 ```
 
-#### Region splits
+#### Region splits (asynchronous)
 
 ```ruby
 table.split!(1000)
-table.split!(2000, 3000) do |progress, total|
-  puts [progress, total].join('/')
-end
-
-
-# Asynchronous
-table.split(4000)
-
-# Wait for asynchronus operation to finish
-table.wait_async do |progress, total|
-  puts [progress, total].join('/')
-end
+table.split!(2000, 3000)
 ```
 
 #### Advanced table administration

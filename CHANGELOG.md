@@ -3,15 +3,15 @@ Changelog
 
 0.2.0
 -----
-- Removed possible HTable leak on multi-threaded environment
-- Ruby Time object as timestamp in put and delete methods
-- Added table inspection methods: `properties`, `families`, and `regions`
-- Added `HBase::Table#split` and `HBase::Table#split!` method
-- Added `HBase#wait_async` method for synchronizing asynchronous table operations
-- Added `HBase.log4j=` method
-- Disallowed using closed HBase connection.
 - Deprecated `HBase::Table#close`. You don't need to close Table instances.
-- Can create pre-split table with `:splits` property
+- Added `HBase::Table#split` and `HBase::Table#split!` method
+- Added `:splits` option to `HTable#create!` method to pre-split the table
+- Added table inspection methods: `properties`, `families`, and `regions`
+- Added raw inspection methods: `raw_properties` and `raw_families`
+- Added `HBase.log4j=` method
+- Added `HBase::Scoped#at`, `HBase::Scoped#time_range` method
+- Ruby Time object can be used as timestamp in put and delete methods
+- Using closed HBase connection is disallowed
 - Ruby 1.8 compatibility mode (Oops!)
 
 0.1.6
