@@ -55,8 +55,15 @@ class HBase
 
           raise RuntimeError.new("Error occurred. Set verbose option to see the log.") unless $?.exitstatus == 0
 
-          output = File.read(tf.path)
-          raise ArgumentError.new("Invalid profile: #{[dist, options[:profile]].compact.join(', ')}") if output.empty?
+          if File.read(tf.path).empty?
+            desc =
+              if options[:profile]
+                "#{dist} (#{options[:profile]})"
+              else
+                dist
+              end
+            raise ArgumentError.new("Invalid profile: #{desc}")
+          end
           File.read(tf.path).split(':')
         end
 
