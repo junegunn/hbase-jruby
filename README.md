@@ -65,48 +65,37 @@ table.delete(:rowkey9)
 To be able to access HBase from JRuby, Hadoop/HBase dependency must be satisfied.
 This can be done by either setting up CLASSPATH variable beforehand
 or by `require`ing relevant JAR files after launching JRuby.
-However, that's a lot of work, so *hbase-jruby* provides `HBase.resolve_dependency!` helper method,
+However, that's a lot of hassle, so *hbase-jruby* provides `HBase.resolve_dependency!` helper method,
 which automatically resolves Hadoop/HBase dependency.
 
-#### Preconfigured dependencies
-
-Apache Maven is the de facto standard dependency management mechanism for Java projects.
-Current version of *hbase-jruby* is shipped with
-[Maven dependency specifications](https://github.com/junegunn/hbase-jruby/blob/master/lib/hbase-jruby/pom/pom.xml)
-for the following Hadoop/HBase distributions.
-
-* cdh4.1
-* cdh3
-* 0.94
-* 0.92
+| Argument   | Description                                              | Required executable |
+|------------|----------------------------------------------------------|---------------------|
+| 'cdh4.1'   | Profile for Cloudera CDH4.1                              | mvn                 |
+| 'cdh3'     | Profile for Cloudera CDH3                                | mvn                 |
+| '0.94'     | Profile for Apache HBase 0.94                            | mvn                 |
+| '0.92'     | Profile for Apache HBase 0.92                            | mvn                 |
+| *POM PATH* | Follow dependency described in the given POM file        | mvn                 |
+| *:local*   | Resolve HBase dependency using `hbase classpath` command | hbase               |
 
 ```ruby
 require 'hbase-jruby'
 
+# Load JAR files from CDH4.1 distribution of HBase using Maven
 HBase.resolve_dependency! 'cdh4.1'
+
+# Load JAR files for HBase 0.94 using Maven
+HBase.resolve_dependency! '0.94', :verbose => true
+
+# Dependency resolution with your own POM file
+HBase.resolve_dependency! '/path/to/my/pom.xml'
+HBase.resolve_dependency! '/path/to/my/pom.xml', :profile => 'trunk'
+
+# Resolve JAR files from local HBase installation
+HBase.resolve_dependency! :local
 ```
 
 (If you're behind an http proxy, set up your ~/.m2/settings.xml file
 as described in [this page](http://maven.apache.org/guides/mini/guide-proxies.html))
-
-#### Custom dependency
-
-If you use other versions of HBase and Hadoop,
-you can use your own Maven pom.xml file with its Hadoop/HBase dependency.
-
-```ruby
-HBase.resolve_dependency! '/project/my-hbase/pom.xml'
-```
-
-#### Using `hbase classpath` command
-
-If you have HBase installed on your system, it's possible to locate the JAR files
-for that local installation with `hbase classpath` command.
-You can tell `resolve_dependency!` method to do so by passing it special `:hbase` parameter.
-
-```ruby
-HBase.resolve_dependency! :hbase
-```
 
 ### Log4j logs from HBase
 

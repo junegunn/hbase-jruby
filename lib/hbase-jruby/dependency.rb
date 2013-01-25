@@ -5,26 +5,44 @@ require 'tempfile'
 # HBase connection
 class HBase
   class << self
-    # Resolve Hadoop and HBase dependency with Maven or hbase command (Experimental)
-    # @param [String] dist Distribution version or path to pom.xml file
-    # @param [true, false] verbose Verbose output
-    # @return [Array<String>] Loaded JAR files
-    def resolve_dependency! dist, verbose = false
+    # @overload resolve_dependency!(dist, options)
+    #   Resolve Hadoop and HBase dependency with a predefined Maven profile
+    #   @param [String] dist HBase distribution: cdh4.1, cdh3, 0.94, 0.92, local
+    #   @param [Hash] options Options
+    #   @option options [Boolean] :verbose Enable verbose output
+    #   @return [Array<String>] Loaded JAR files
+    # @overload resolve_dependency!(pom_path, options)
+    #   Resolve Hadoop and HBase dependency with the given Maven POM file
+    #   @param [String] pom_path Path to POM file
+    #   @param [Hash] options Options
+    #   @option options [Boolean] :verbose Enable verbose output
+    #   @option options [String] :profile Maven profile
+    #   @return [Array<String>] Loaded JAR files
+    def resolve_dependency! dist, options = {}
+      # Backward-compatibility
+      options = { :verbose => options } if [true, false].include?(options)
+      options = { :verbose => false }.merge(options)
+
+      dist    = dist.to_s
+      verbose = options[:verbose]
+
       silencer = verbose ? '' : '> /dev/null'
       tempfiles = []
+
       jars =
-        if dist == :hbase
+        if %w[hbase local].include?(dist)
           # Check for hbase executable
           hbase = `which hbase`
-          raise RuntimeError, "Cannot find executable `hbase`" if hbase.empty?
+          raise RuntimeError, "Cannot find `hbase` executable" if hbase.empty?
           `hbase classpath`.split(':')
         else
           # Check for Maven executable
           mvn = `which mvn`
-          raise RuntimeError, "Cannot find executable `mvn`" if mvn.empty?
+          raise RuntimeError, "Cannot find `mvn` executable" if mvn.empty?
 
           if File.exists?(dist)
             path = dist
+            profile = options[:profile] && "-P #{options[:profile]}"
           else
             path = File.expand_path("../pom/pom.xml", __FILE__)
             profile = "-P #{dist}"
@@ -35,10 +53,10 @@ class HBase
           tf.close(false)
           system "mvn org.apache.maven.plugins:maven-dependency-plugin:2.5.1:resolve org.apache.maven.plugins:maven-dependency-plugin:2.5.1:build-classpath -Dsilent=true -Dmdep.outputFile=#{tf.path} #{profile} -f #{path} #{silencer}"
 
-          raise RuntimeError.new("Error occurred. Set verbose parameter to see the log.") unless $?.exitstatus == 0
+          raise RuntimeError.new("Error occurred. Set verbose option to see the log.") unless $?.exitstatus == 0
 
           output = File.read(tf.path)
-          raise ArgumentError.new("Invalid profile: #{dist}") if output.empty?
+          raise ArgumentError.new("Invalid profile: #{[dist, options[:profile]].compact.join(', ')}") if output.empty?
           File.read(tf.path).split(':')
         end
 

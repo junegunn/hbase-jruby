@@ -10,7 +10,7 @@ RECREATE = false
 $LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
 
 require "hbase-jruby"
-HBase.resolve_dependency!(ENV.fetch 'HBASE_JRUBY_TEST_DIST')
+HBase.resolve_dependency!(ENV.fetch('HBASE_JRUBY_TEST_DIST'), :verbose => true)
 HBase.log4j = { 'log4j.threshold' => 'ERROR' }
 
 class TestHBaseJRubyBase < Test::Unit::TestCase
