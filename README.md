@@ -20,7 +20,7 @@ require 'hbase-jruby'
 HBase.resolve_dependency! 'cdh4.1'
 
 hbase = HBase.new
-table = hbase.table(:test_table)
+table = hbase[:test_table]
 
 # PUT
 table.put :rowkey1 => { 'cf1:a' => 100, 'cf2:b' => "Hello" }
@@ -56,7 +56,7 @@ table.delete(:rowkey9)
     git clone -b devel https://github.com/junegunn/hbase-jruby.git
     cd hbase-jruby
     rake build
-    gem install pkg/hbase-jruby-0.1.6-java.gem
+    gem install pkg/hbase-jruby-0.2.0-java.gem
 
 ## Setting up
 
@@ -65,47 +65,51 @@ table.delete(:rowkey9)
 To be able to access HBase from JRuby, Hadoop/HBase dependency must be satisfied.
 This can be done by either setting up CLASSPATH variable beforehand
 or by `require`ing relevant JAR files after launching JRuby.
-However, that's a lot of work, so *hbase-jruby* provides `HBase.resolve_dependency!` helper method,
-which automatically resolves Hadoop/HBase dependency.
 
-#### Preconfigured dependencies
+### `HBase.resolve_dependency!`
 
-Apache Maven is the de facto standard dependency management mechanism for Java projects.
-Current version of *hbase-jruby* is shipped with
-[Maven dependency specifications](https://github.com/junegunn/hbase-jruby/blob/master/lib/hbase-jruby/pom/pom.xml)
-for the following Hadoop/HBase distributions.
+Well, there's an easier way.
+You can call `HBase.resolve_dependency!` helper method passing one of the arguments listed below.
 
-* cdh4.1
-* cdh3
-* 0.94
-* 0.92
+| Argument   | Description                                              | Required executable |
+|------------|----------------------------------------------------------|---------------------|
+| 'cdh4.1'   | Predefined Maven profile for Cloudera CDH4.1             | mvn                 |
+| 'cdh3'     | Predefined Maven profile for Cloudera CDH3               | mvn                 |
+| '0.94'     | Predefined Maven profile for Apache HBase 0.94           | mvn                 |
+| '0.92'     | Predefined Maven profile for Apache HBase 0.92           | mvn                 |
+| *POM PATH* | Follow dependency described in the given POM file        | mvn                 |
+| *:local*   | Resolve HBase dependency using `hbase classpath` command | hbase               |
 
 ```ruby
-require 'hbase-jruby'
+# Examples
 
+# Load JAR files from CDH4.1 distribution of HBase using Maven
 HBase.resolve_dependency! 'cdh4.1'
+
+# Load JAR files for HBase 0.94 using Maven
+HBase.resolve_dependency! '0.94', :verbose => true
+
+# Dependency resolution with your own POM file
+HBase.resolve_dependency! '/path/to/my/pom.xml'
+HBase.resolve_dependency! '/path/to/my/pom.xml', :profile => 'trunk'
+
+# Resolve JAR files from local HBase installation
+HBase.resolve_dependency! :local
 ```
 
 (If you're behind an http proxy, set up your ~/.m2/settings.xml file
 as described in [this page](http://maven.apache.org/guides/mini/guide-proxies.html))
 
-#### Custom dependency
+### Log4j logs from HBase
 
-If you use other versions of HBase and Hadoop,
-you can use your own Maven pom.xml file with its Hadoop/HBase dependency.
-
-```ruby
-HBase.resolve_dependency! '/project/my-hbase/pom.xml'
-```
-
-#### Using `hbase classpath` command
-
-If you have HBase installed on your system, it's possible to locate the JAR files
-for that local installation with `hbase classpath` command.
-You can tell `resolve_dependency!` method to do so by passing it special `:hbase` parameter.
+You may want to suppress (or customize) log messages from HBase.
 
 ```ruby
-HBase.resolve_dependency! :hbase
+# With an external log4j.properties file
+HBase.log4j = '/your/log4j.properties'
+
+# With a Hash
+HBase.log4j = { 'log4j.threshold' => 'ERROR' }
 ```
 
 ### Connecting to HBase
@@ -129,30 +133,23 @@ hbase.close
 
 ## Accessing data with HBase::Table instance
 
-`HBase#table` method creates an `HBase::Table` instance which represents a table on HBase.
+`HBase#[]` method (or `HBase#table`) returns an `HBase::Table` instance
+which represents the table of the given name.
 
 ```ruby
 table = hbase.table(:test_table)
+
+# Or simply,
+table = hbase[:test_table]
 ```
 
-`HBase::Table` instance must be closed after use.
-
-```ruby
-# Always close table instance after use
-table.close
-
-# If block is given, table is automatically closed at the end of the block
-hbase.table(:test_table) do |table|
-  # ...
-end
-```
 
 ## Basic table administration
 
-### Creating tables
+### Creating a table
 
 ```ruby
-table = hbase.table(:my_table)
+table = hbase[:my_table]
 
 # Drop table if exists
 table.drop! if table.exists?
@@ -165,7 +162,75 @@ table.create! :cf1 => {},
 ### Table inspection
 
 ```ruby
-puts table.inspect
+# Table properties
+table.properties
+  # {:max_filesize       => 2147483648,
+  #  :readonly           => false,
+  #  :memstore_flushsize => 134217728,
+  #  :deferred_log_flush => false}
+
+# Properties of the column families
+table.families
+  # {"cf"=>
+  #   {:blockcache            => true,
+  #    :blocksize             => 65536,
+  #    :bloomfilter           => "NONE",
+  #    :cache_blooms_on_write => false,
+  #    :cache_data_on_write   => false,
+  #    :cache_index_on_write  => false,
+  #    :compression           => "NONE",
+  #    :compression_compact   => "NONE",
+  #    :data_block_encoding   => "NONE",
+  #    :evict_blocks_on_close => false,
+  #    :in_memory             => false,
+  #    :keep_deleted_cells    => false,
+  #    :min_versions          => 0,
+  #    :replication_scope     => 0,
+  #    :ttl                   => 2147483647,
+  #    :versions              => 3}}
+```
+
+There are also `raw_` variants of `properties` and `families`.
+They return properties in their internal String format (mainly used in HBase shell).
+(See [HTableDescriptor.values](http://hbase.apache.org/apidocs/org/apache/hadoop/hbase/HTableDescriptor.html#values) and
+[HColumnDescriptor.values](http://hbase.apache.org/apidocs/org/apache/hadoop/hbase/HColumnDescriptor.html#values))
+
+```ruby
+table.raw_properties
+  # {"IS_ROOT"      => "false",
+  #  "IS_META"      => "false",
+  #  "MAX_FILESIZE" => "2147483648"}
+
+table.raw_families
+  # {"cf" =>
+  #   {"DATA_BLOCK_ENCODING" => "NONE",
+  #    "BLOOMFILTER"         => "NONE",
+  #    "REPLICATION_SCOPE"   => "0",
+  #    "VERSIONS"            => "3",
+  #    "COMPRESSION"         => "NONE",
+  #    "MIN_VERSIONS"        => "0",
+  #    "TTL"                 => "2147483647",
+  #    "KEEP_DELETED_CELLS"  => "false",
+  #    "BLOCKSIZE"           => "65536",
+  #    "IN_MEMORY"           => "false",
+  #    "ENCODE_ON_DISK"      => "true",
+  #    "BLOCKCACHE"          => "true"}}
+```
+
+These String key-value pairs are not really a part of the public API of HBase, and thus might change over time.
+However, they are most useful when you need to create a table with the same properties as the existing one.
+
+```ruby
+hbase[:dupe_table].create!(table.raw_families, table.raw_properties)
+```
+
+With `regions` method, you can even presplit the new table just like the old one.
+
+```ruby
+hbase[:dupe_table].create!(
+  table.raw_families,
+  table.raw_properties.merge(
+    :splits => table.regions.map { |r| r[:start_key] }.compact))
 ```
 
 ## Basic operations
@@ -333,52 +398,59 @@ table.increment('rowkey1', 'cf1:counter' => 1, 'cf1:counter2' => 2)
 ```ruby
 # Full scan
 table.each do |row|
+  age  = row.fixnum('cf:age')
+  name = row.string('cf:name')
   # ...
 end
 ```
 
 ## Scoped access
 
-SCAN and GET operations are actually implemented in enumerable `HBase::Scoped` class,
-whose instance is created by `HBase::Table#each` call.
+You can control how you retrieve data by chaining
+the following methods of `HBase::Table` (or `HBase::Scoped`).
+
+| Method       | Description                                                     |
+|--------------|-----------------------------------------------------------------|
+| `range`      | Specifies the rowkey range of scan                              |
+| `project`    | To retrieve only a subset of columns                            |
+| `filter`     | Filtering conditions of scan                                    |
+| `while`      | Allows early termination of scan (server-side)                  |
+| `at`         | Only retrieve data with the specified timestamp                 |
+| `time_range` | Only retrieve data within the specified time range              |
+| `limit`      | Limits the number of rows                                       |
+| `versions`   | Limits the number of versions of each column                    |
+| `caching`    | Sets the number of rows for caching during scan                 |
+| `batch`      | Limits the maximum number of values returned for each iteration |
+
+Each invocation to these methods returns an `HBase::Scoped` instance with which
+you can retrieve data with the following methods.
+
+| Method      | Description                                                             |
+|-------------|-------------------------------------------------------------------------|
+| `get`       | Fetches rows by the given rowkeys                                       |
+| `each`      | Scans the scope of the table (`HBase::Scoped` instance is `Enumerable`) |
+| `count`     | Efficiently counts the number of rows in the scope                      |
+| `aggregate` | Performs aggregation using Coprocessor (To be described shortly)        |
+
+### Example of scoped access
 
 ```ruby
-scoped = table.each
-scoped.get(1)
-scoped.to_a
-```
-
-An `HBase::Scoped` object provides a set of methods for controlling data retrieval
-such as `range`, `filter`, `project`, `versions`, `caching`, et cetera.
-However, it doesn't respond to data manipulation methods (`put`, `delete` and `increment`),
-and methods for table administration.
-
-An `HBase::Table` object also responds to the data retrieval methods described above,
-but those calls are simply forwarded to a new `HBase::Scoped` object implicitly created.
-For example, `table.range(start, end)` is just a shorthand notation for
-`table.each.range(start, end)`.
-
-### Chaining methods
-
-Methods of `HBase::Scoped` can be chained as follows.
-
-```ruby
-# Chaining methods
 import org.apache.hadoop.hbase.filter.RandomRowFilter
 
-table.range('A'..'Z').                   # Row key range,
-      project('cf1:a').                  # Select cf1:a column
-      project('cf2').                    # Select cf2 family as well
-      filter('cf1:a' => 'Hello').        # Filter by cf1:a value
-      filter('cf2:d' => 100..200).       # Range filter on cf2:d
-      filter('cf2:e' => [10, 20..30]).   # Set-inclusion condition on cf2:e
-      filter(RandomRowFilter.new(0.5)).  # Any Java HBase filter
-      while('cf2:f' => { ne: 'OPEN' }).  # Early termination of scan
-      limit(10).                         # Limits the size of the result set
-      versions(2).                       # Only fetches 2 versions for each value
-      batch(100).                        # Batch size for scan set to 100
-      caching(100).                      # Caching 100 rows
-      to_a                               # To Array
+table.range('A'..'Z').                      # Row key range,
+      project('cf1:a').                     # Select cf1:a column
+      project('cf2').                       # Select cf2 family as well
+      filter('cf1:a' => 'Hello').           # Filter by cf1:a value
+      filter('cf2:d' => 100..200).          # Range filter on cf2:d
+      filter('cf2:e' => [10, 20..30]).      # Set-inclusion condition on cf2:e
+      filter(RandomRowFilter.new(0.5)).     # Any Java HBase filter
+      while('cf2:f' => { ne: 'OPEN' }).     # Early termination of scan
+      time_range(Time.now - 600, Time.now). # Scan data of the last 10 minutes
+      limit(10).                            # Limits the size of the result set
+      versions(2).                          # Only fetches 2 versions for each value
+      batch(100).                           # Batch size for scan set to 100
+      caching(1000).                        # Caching 1000 rows
+      to_a                                  # To Array
 ```
 
 ### *range*
@@ -570,7 +642,7 @@ end
 scoped.count
 
 # This should be even faster as it dramatically reduces the number of RPC calls
-scoped.caching(1000).count
+scoped.caching(5000).count
 ```
 
 ## Basic aggregation using coprocessor
@@ -728,30 +800,28 @@ ba.java  # Returns the native Java byte array (byte[])
 
 ### Table administration
 
-`HBase#Table` provides a few synchronous (`HTable#method_name!`) and
-asynchronous (`HTable#method_name`) table administration methods.
-Synchronous *bang* methods for table alteration take an optional block and pass the progress of the operation to it
-as a pair of parameters, the number of regions processed and total number of regions to process.
+`HBase#Table` provides a number of *bang_methods!* for table administration tasks.
+They run synchronously, except when mentioned otherwise (e.g. `HTable#split!`).
+Some of them take an optional block to allow progress monitoring
+and come with non-bang, asynchronous counterparts.
+
+#### Creation and alteration
 
 ```ruby
 # Create a table with configurable table-level properties
 table.create!(
     # 1st Hash: Column family specification
-    { :cf1 => { :compression => :snappy }, :cf2 => {} },
+    {
+      :cf1 => { :compression => :snappy },
+      :cf2 => { :bloomfilter => :row }
+    },
 
     # 2nd Hash: Table properties
     :max_filesize       => 256 * 1024 ** 2,
-    :deferred_log_flush => false)
+    :deferred_log_flush => false,
+    :splits             => [1000, 2000, 3000])
 
-# Alter table properties (asynchronous)
-table.alter(
-  :max_filesize       => 512 * 1024 ** 2,
-  :memstore_flushsize =>  64 * 1024 ** 2,
-  :readonly           => false,
-  :deferred_log_flush => true
-)
-
-# Alter table properties (synchronous)
+# Alter table properties (synchronous with optional block)
 table.alter!(
   :max_filesize       => 512 * 1024 ** 2,
   :memstore_flushsize =>  64 * 1024 ** 2,
@@ -762,6 +832,56 @@ table.alter!(
   puts [progress, total].join('/')
 }
 
+# Alter table properties (asynchronous)
+table.alter(
+  :max_filesize       => 512 * 1024 ** 2,
+  :memstore_flushsize =>  64 * 1024 ** 2,
+  :readonly           => false,
+  :deferred_log_flush => true
+)
+```
+
+##### List of column family properties
+
+http://hbase.apache.org/apidocs/org/apache/hadoop/hbase/HColumnDescriptor.html
+
+Some of the properties are only available on recent versions of HBase.
+
+| Property                 | Type          | Description                                                                                                        |
+|--------------------------|---------------|--------------------------------------------------------------------------------------------------------------------|
+| `:blockcache`            | Boolean       | If MapFile blocks should be cached                                                                                 |
+| `:blocksize`             | Fixnum        | Blocksize to use when writing out storefiles/hfiles on this column family                                          |
+| `:bloomfilter`           | Symbol/String | Bloom filter type: `:none`, `:row`, `:rowcol`, or uppercase Strings                                                |
+| `:cache_blooms_on_write` | Boolean       | If we should cache bloomfilter blocks on write                                                                     |
+| `:cache_data_on_write`   | Boolean       | If we should cache data blocks on write                                                                            |
+| `:cache_index_on_write`  | Boolean       | If we should cache index blocks on write                                                                           |
+| `:compression`           | Symbol/String | Compression type: `:none`, `:gz`, `:lzo`, `:lz4`, `:snappy`, or uppercase Strings                                  |
+| `:compression_compact`   | Symbol/String | Compression type: `:none`, `:gz`, `:lzo`, `:lz4`, `:snappy`, or uppercase Strings                                  |
+| `:data_block_encoding`   | Symbol/String | Data block encoding algorithm used in block cache: `:none`, `:diff`, `:fast_diff`, `:prefix`, or uppercase Strings |
+| `:encode_on_disk`        | Boolean       | If we want to encode data block in cache and on disk                                                               |
+| `:evict_blocks_on_close` | Boolean       | If we should evict cached blocks from the blockcache on close                                                      |
+| `:in_memory`             | Boolean       | If we are to keep all values in the HRegionServer cache                                                            |
+| `:keep_deleted_cells`    | Boolean       | If deleted rows should not be collected immediately                                                                |
+| `:min_versions`          | Fixnum        | The minimum number of versions to keep (used when timeToLive is set)                                               |
+| `:replication_scope`     | Fixnum        | Replication scope                                                                                                  |
+| `:ttl`                   | Fixnum        | Time-to-live of cell contents, in seconds                                                                          |
+| `:versions`              | Fixnum        | The maximum number of versions. (By default, all available versions are retrieved.)                                |
+
+##### List of table properties
+
+http://hbase.apache.org/apidocs/org/apache/hadoop/hbase/HTableDescriptor.html
+
+| Property              | Type    | Description                                                                                             |
+|-----------------------|---------|---------------------------------------------------------------------------------------------------------|
+| `:max_filesize`       | Fixnum  | The maximum size upto which a region can grow to after which a region split is triggered                |
+| `:readonly`           | Boolean | If the table is read-only                                                                               |
+| `:memstore_flushsize` | Fixnum  | The maximum size of the memstore after which the contents of the memstore are flushed to the filesystem |
+| `:deferred_log_flush` | Boolean | Defer the log edits syncing to the file system                                                          |
+| `:splits`             | Array   | Region split points                                                                                     |
+
+#### Managing column families
+
+```ruby
 # Add column family
 table.add_family! :cf3, :compression => :snappy,
                         :bloomfilter => :row
@@ -771,7 +891,11 @@ table.alter_family! :cf2, :bloomfilter => :rowcol
 
 # Remove column family
 table.delete_family! :cf1
+```
 
+#### Coprocessors
+
+```ruby
 # Add Coprocessor
 unless table.has_coprocessor?(cp_class_name1)
   table.add_coprocessor! cp_class_name1
@@ -783,14 +907,21 @@ table.add_coprocessor! cp_class_name2,
 table.remove_coprocessor! cp_class_name1
 ```
 
+#### Region splits (asynchronous)
+
+```ruby
+table.split!(1000)
+table.split!(2000, 3000)
+```
+
+#### Advanced table administration
+
 You can perform other types of administrative tasks
 with native Java [HBaseAdmin object](http://hbase.apache.org/apidocs/org/apache/hadoop/hbase/client/HBaseAdmin.html),
 which can be obtained by `HBase#admin` method. Optionally, a block can be given
 so that the HBaseAdmin object is automatically closed at the end of the given block.
 
 ```ruby
-# Advanced table administration with HBaseAdmin object
-#   http://hbase.apache.org/apidocs/org/apache/hadoop/hbase/client/HBaseAdmin.html
 admin = hbase.admin
 # ...
 admin.close
@@ -804,8 +935,10 @@ end
 ## Test
 
 ```bash
-# Bash script
-export HBASE_JRUBY_TEST_ZK='your-hbaase.domain.net'
+#!/bin/bash
+
+# Test HBase 0.94 on localhost
+export HBASE_JRUBY_TEST_ZK='127.0.0.1'
 export HBASE_JRUBY_TEST_DIST='0.94'
 
 # Test both for 1.8 and 1.9

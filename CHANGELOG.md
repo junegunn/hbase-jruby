@@ -1,6 +1,20 @@
 Changelog
 =========
 
+0.2.0
+-----
+- Deprecated `HBase::Table#close`. You don't need to close Table instances.
+- Added `HBase::Table#split` and `HBase::Table#split!` method
+- Added `:splits` option to `HTable#create!` method to pre-split the table
+- Added table inspection methods: `properties`, `families`, and `regions`
+- Added raw inspection methods: `raw_properties` and `raw_families`
+- Added `HBase.log4j=` method
+- Added `HBase::Scoped#at`, `HBase::Scoped#time_range` method
+- Changed parameters to `HBase.resolve_dependency!` method
+- Ruby Time object can be used as timestamp in put and delete methods
+- Using closed HBase connection is disallowed
+- Ruby 1.8 compatibility mode (Oops!)
+
 0.1.6
 -----
 - Maven dependencies for 0.94 and 0.92

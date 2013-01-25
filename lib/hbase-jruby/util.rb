@@ -15,6 +15,8 @@ module Util
     # @return [byte[]]
     def to_bytes v
       case v
+      when Array
+        v.to_java(Java::byte)
       when String, ByteArray
         v.to_java_bytes
       when Fixnum
@@ -47,7 +49,7 @@ module Util
           Bytes.java_send :toBytes, [Java::int], val
         when :short
           Bytes.java_send :toBytes, [Java::short], val
-        when :long, :fixnum 
+        when :long, :fixnum
           Bytes.java_send :toBytes, [Java::long], val
         else
           raise ArgumentError, "Invalid value format"
@@ -121,6 +123,19 @@ module Util
         cq = JAVA_BYTE_ARRAY_EMPTY if cq.nil? && col.to_s[-1, 1] == ':'
         return cf, cq
       end
+    end
+  end
+
+private
+  # @private
+  def time_to_long ts
+    case ts
+    when Fixnum
+      ts
+    when Time
+      (ts.to_f * 1000).to_i
+    else
+      raise ArgumentError, "Invalid time format"
     end
   end
 end#Util

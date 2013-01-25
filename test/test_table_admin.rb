@@ -11,11 +11,25 @@ class TestTableAdmin < TestHBaseJRubyBase
   def test_create_table_symbol_string
     t = @hbase.table(:test_hbase_jruby_create_table)
     t.drop! if t.exists?
+
+    assert_raise(ArgumentError) do
+      t.create! :cf, :splits => :xxx
+    end
+
+    assert_raise(ArgumentError) do
+      t.create! :cf => { 1 => 2 }
+    end
+
+    assert_raise(ArgumentError) do
+      t.create! :cf, { 1 => 2 }
+    end
+
     [ :cf, 'cf', {:cf => {}} ].each do |cf|
       assert_false t.exists?
       t.create! cf
       assert t.exists?
       t.drop!
+
     end
   end
 
@@ -78,6 +92,10 @@ class TestTableAdmin < TestHBaseJRubyBase
     assert_raise(ArgumentError) do
       @table.alter! :hello => :world
     end
+    assert_raise(ArgumentError) do
+      # Splits not allowed
+      @table.alter! :readonly => :true, :splits => [1, 2, 3]
+    end
 
     max_fs = 512 * 1024 ** 2
     mem_fs =  64 * 1024 ** 2
@@ -138,39 +156,108 @@ class TestTableAdmin < TestHBaseJRubyBase
     @table.drop!
   end
 
-  def test_inspect
+  def test_inspection
+    assert @table.inspect.is_a?(String)
     @table.drop!
-    assert "{NAME => '#{TABLE}'}", @table.inspect # FIXME
+    assert @table.inspect.is_a?(String)
 
-    @table.create! :cf => {
-      :blockcache          => true,
-      :blocksize           => 128 * 1024,
-      :bloomfilter         => :row,
-      :compression         => :gzip,
-    # :data_block_encoding => org.apache.hadoop.hbase.io.encoding.DataBlockEncoding::DIFF,
-    # :encode_on_disk      => true,
-    # :keep_deleted_cells  => true,
-      :in_memory           => true,
-      :min_versions        => 5,
-      :replication_scope   => 0,
-      :ttl                 => 100,
-      :versions            => 10,
-    }
-    props = eval @table.inspect.gsub(/([A-Z_]+) =>/) { ":#{$1.downcase} =>" }
-    assert_equal TABLE, props[:name]
-    cf = props[:families].first
-    assert_equal 'cf', cf[:name]
-    assert_equal 'ROW', cf[:bloomfilter]
-    assert_equal '0', cf[:replication_scope]
-    assert_equal '10', cf[:versions]
-    assert_equal 'GZIP', cf[:compression]
-    assert_equal '5', cf[:min_versions]
-    assert_equal '100', cf[:ttl]
-    assert_equal '131072', cf[:blocksize]
-    assert_equal 'true', cf[:in_memory]
-    assert_equal 'true', cf[:blockcache]
+    [
+      'GZ',
+      :gz,
+      org.apache.hadoop.hbase.io.hfile.Compression::Algorithm::GZ
+    ].each do |cmp|
+      @table.create!({
+          :cf => {
+            :blockcache          => true,
+            :blocksize           => 128 * 1024,
+            :bloomfilter         => :row, # as Symbol
+            :compression         => cmp,  # as String, Symbol, java.lang.Enum
+            :compression_compact => cmp,  # as String, Symbol, java.lang.Enum
+          # TODO
+          # :data_block_encoding => :diff,
+          # :encode_on_disk      => true,
+          # :keep_deleted_cells  => true,
+            :in_memory           => true,
+            :min_versions        => 5,
+            :replication_scope   => 0,
+            :ttl                 => 100,
+            :versions            => 10,
+          }
+        },
+        :max_filesize       => 512 * 1024 ** 2,
+        :memstore_flushsize => 64 * 1024 ** 2,
+        :readonly           => false,
+        :deferred_log_flush => true,
+        :splits             => [10, 20, 30, 40]
+      )
 
-    @table.drop!
+      # Initial region count
+      regions = @table.regions
+      assert_equal 5, regions.count
+
+      # Table properties
+      props = @table.properties
+      assert_equal true,            props[:deferred_log_flush]
+      assert_equal false,           props[:readonly]
+      assert_equal 64 * 1024 ** 2,  props[:memstore_flushsize]
+      assert_equal 512 * 1024 ** 2, props[:max_filesize]
+
+      rprops = @table.raw_properties
+      assert_equal true.to_s,              rprops['DEFERRED_LOG_FLUSH']
+      assert_equal false.to_s,             rprops['READONLY']
+      assert_equal (64 * 1024 ** 2).to_s,  rprops['MEMSTORE_FLUSHSIZE']
+      assert_equal (512 * 1024 ** 2).to_s, rprops['MAX_FILESIZE']
+
+      # Column family properties
+      cf = @table.families['cf']
+      assert_equal 'ROW',  cf[:bloomfilter]
+      assert_equal 0,      cf[:replication_scope]
+      assert_equal 10,     cf[:versions]
+      assert_equal 'GZ',   cf[:compression]
+      assert_equal 5,      cf[:min_versions]
+      assert_equal 100,    cf[:ttl]
+      assert_equal 131072, cf[:blocksize]
+      assert_equal true,   cf[:in_memory]
+      assert_equal true,   cf[:blockcache]
+
+      rcf = @table.raw_families['cf']
+      assert_equal 'ROW',       rcf['BLOOMFILTER']
+      assert_equal 0.to_s,      rcf['REPLICATION_SCOPE']
+      assert_equal 10.to_s,     rcf['VERSIONS']
+      assert_equal 'GZ',        rcf['COMPRESSION']
+      assert_equal 5.to_s,      rcf['MIN_VERSIONS']
+      assert_equal 100.to_s,    rcf['TTL']
+      assert_equal 131072.to_s, rcf['BLOCKSIZE']
+      assert_equal true.to_s,   rcf['IN_MEMORY']
+      assert_equal true.to_s,   rcf['BLOCKCACHE']
+
+      @table.put 31, 'cf:a' => 100
+      @table.put 37, 'cf:a' => 100
+      @table.split!(35)
+
+      # FIXME
+      10.times do |i|
+        break if @table.regions.count == 6
+        sleep 1
+        assert false, "Region not split" if i == 9
+      end
+
+      @table.put 39, 'cf:a' => 100
+      @table.split!(38)
+
+      # FIXME
+      10.times do |i|
+        break if @table.regions.count == 7
+        sleep 1
+        assert false, "Region not split" if i == 9
+      end
+
+      regions = @table.regions
+      assert_equal [10, 20, 30, 35, 38, 40], regions.map { |r| HBase::Util.from_bytes :fixnum, r[:start_key] }.compact.sort
+      assert_equal [10, 20, 30, 35, 38, 40], regions.map { |r| HBase::Util.from_bytes :fixnum, r[:end_key] }.compact.sort
+
+      @table.drop!
+    end
   end
 end unless ENV['HBASE_JRUBY_TEST_SKIP_ADMIN']
 

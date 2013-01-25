@@ -4,7 +4,7 @@
 
   <groupId>hbase-jruby</groupId>
   <artifactId>hbase-project</artifactId>
-  <version>0.1.6</version>
+  <version>0.2</version>
   <packaging>jar</packaging>
 
   <name>hbase-jruby</name>

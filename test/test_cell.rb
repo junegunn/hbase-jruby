@@ -31,12 +31,12 @@ class TestCell < Test::Unit::TestCase
       assert_instance_of String, cell.inspect
     end
   end
-  
+
   def test_order
     ts = Time.now.to_i * 1000
 
     val = "val".to_java_bytes
-    cells = 
+    cells =
       [
         KeyValue.new("rowkey".to_java_bytes, "apple".to_java_bytes,  "alpha".to_java_bytes, ts, val),
         KeyValue.new("rowkey".to_java_bytes, "apple".to_java_bytes,  "alpha".to_java_bytes, ts - 1000, val),

@@ -3,6 +3,8 @@ class HBase
 module Admin
 private
   def with_admin
+    check_closed
+
     begin
       admin = HBaseAdmin.new(@config)
       yield admin
@@ -19,7 +21,7 @@ private
       total = pair.getSecond
 
       if block && yet != prev_yet
-        block.call (total - yet), total
+        block.call(total - yet, total)
         prev_yet = yet
       end
 
