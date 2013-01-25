@@ -10,6 +10,7 @@ Changelog
 - Added raw inspection methods: `raw_properties` and `raw_families`
 - Added `HBase.log4j=` method
 - Added `HBase::Scoped#at`, `HBase::Scoped#time_range` method
+- Changed parameters to `HBase.resolve_dependency!` method
 - Ruby Time object can be used as timestamp in put and delete methods
 - Using closed HBase connection is disallowed
 - Ruby 1.8 compatibility mode (Oops!)
