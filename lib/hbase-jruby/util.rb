@@ -125,6 +125,19 @@ module Util
       end
     end
   end
+
+private
+  # @private
+  def time_to_long ts
+    case ts
+    when Fixnum
+      ts
+    when Time
+      (ts.to_f * 1000).to_i
+    else
+      raise ArgumentError, "Invalid time format"
+    end
+  end
 end#Util
 end#HBase
 

@@ -378,5 +378,40 @@ class TestScoped < TestHBaseJRubyBase
     # Fails on 0.1.3
     assert_equal 1,   @table.range(:prefix => (HBase::ByteArray(50) + HBase::ByteArray(50)).java).count
   end
+
+  def test_time_range_at
+    t1, t2, t3, t4 =
+      Time.now - 4000,
+      Time.now - 3000,
+      Time.now - 2000,
+      Time.now - 1000
+    @table.put :rowkey1 => { 'cf1:a' => { t1 => 1 } }
+    @table.put :rowkey2 => { 'cf1:a' => { t2 => 2 } }
+    @table.put :rowkey3 => { 'cf1:a' => { t3 => 3 } }
+    @table.put :rowkey4 => { 'cf1:a' => { t4 => 4 } }
+
+    assert_equal 1, @table.time_range(t2, t3).count
+    assert_equal 2, @table.time_range(t2, t3 + 1).count
+    assert_equal 2, @table.time_range(t2, t4).count
+    assert_equal 4, @table.time_range(0, t4 + 1).count
+
+    assert_equal [2, 3], @table.time_range(t2, t4).map { |r| r.fixnum 'cf1:a' }.sort
+    assert_equal %w[rowkey2 rowkey3], @table.time_range(t2, t4).map { |r| r.rowkey :string }.sort
+
+    assert_equal 1,   @table.at(t2).count
+    assert_equal 0,   @table.at(t2 - 1).count
+    assert_equal 0,   @table.at(t2 + 1).count
+    assert_equal [2], @table.at(t2).map { |r| r.fixnum 'cf1:a' }
+
+    @table.put :rowkey5 => { 'cf1:a' => { t1 => 'a', t4 => 'A' }, 'cf1:b' => { t4 => 'B' }}
+    assert_equal 'A', @table.get(:rowkey5).string('cf1:a')
+    assert_equal 'B', @table.get(:rowkey5).string('cf1:b')
+
+    assert_equal 'a', @table.time_range(t1, t3).get(:rowkey5).string('cf1:a')
+    assert_equal nil, @table.time_range(t1, t3).get(:rowkey5).string('cf1:b')
+
+    # according to current hbase impl, later call overrides the previous time ranges. but, why do this?
+    assert_equal 2, @table.time_range(t2, t3).at(t1).count
+  end
 end
 

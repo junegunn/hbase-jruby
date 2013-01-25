@@ -13,6 +13,7 @@ class Table
   include Enumerable
   include Admin
   include Scoped::Aggregation::Admin
+  include HBase::Util
 
   # (INTERNAL) Returns the underlying org.apache.hadoop.hbase.client.HTable object (local to current thread)
   # @return [org.apache.hadoop.hbase.client.HTable]
@@ -31,7 +32,8 @@ class Table
 
   [:get, :count, :aggregate,
    :range, :project, :filter, :while,
-   :limit, :versions, :caching, :batch
+   :limit, :versions, :caching, :batch,
+   :time_range, :at
   ].each do |method|
     define_method(method) do |*args|
       self.each.send(method, *args)
@@ -105,12 +107,7 @@ class Table
       Delete.new(Util.to_bytes rowkey).tap { |del|
         if !ts.empty?
           ts.each do |t|
-            case t
-            when Fixnum
-              del.deleteColumn cf, cq, t
-            when Time
-              del.deleteColumn cf, cq, t.to_f * 1000
-            end
+            del.deleteColumn cf, cq, time_to_long(t)
           end
         elsif cq
           # Delete all versions
@@ -187,12 +184,9 @@ private
         when Hash
           val.each do |t, v|
             case t
-            # Timestamp
-            when Fixnum
-              put.add cf, cq, t, Util.to_bytes(v)
-            # Ruby Time
-            when Time
-              put.add cf, cq, t.to_f * 1000, Util.to_bytes(v)
+            # Timestamp / Ruby Time
+            when Time, Fixnum
+              put.add cf, cq, time_to_long(t), Util.to_bytes(v)
             # Types: :byte, :short, :int, ...
             else
               put.add cf, cq, Util.to_bytes(t => v)

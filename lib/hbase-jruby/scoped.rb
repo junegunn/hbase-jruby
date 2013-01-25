@@ -6,6 +6,7 @@ class HBase
 class Scoped
   include Enumerable
   include Scoped::Aggregation
+  include HBase::Util
 
   attr_reader :table
 
@@ -159,6 +160,21 @@ class Scoped
     spawn :@limit, rows
   end
 
+  # Returns an HBase::Scoped object with the specified time range
+  # @param [Fixnum|Time] min Minimum timestamp (inclusive)
+  # @param [Fixnum|Time] max Maximum timestamp (exclusive)
+  # @return [HBase::Scoped] HBase::Scoped object with the specified time range
+  def time_range min, max
+    spawn :@trange, [min, max].map { |e| time_to_long e }
+  end
+
+  # Returns an HBase::Scoped object with the specified timestamp
+  # @param [Fixnum|Time] ts Timestamp
+  # @return [HBase::Scoped] HBase::Scoped object with the specified timestamp
+  def at ts
+    spawn :@trange, time_to_long(ts)
+  end
+
   # Returns an HBase::Scoped object with the specified projection
   # @param [Array<String>] columns Array of column expressions
   # @return [HBase::Scoped] HBase::Scoped object with the specified projection
@@ -213,6 +229,7 @@ private
     @batch    = nil
     @caching  = nil
     @limit    = nil
+    @trange   = nil
   end
 
   def spawn *args
@@ -340,6 +357,14 @@ private
       filters += @filters
 
       get.setFilter FilterList.new(filters) unless filters.empty?
+
+      # Timerange / Timestamp
+      case @trange
+      when Array
+        get.setTimeRange *@trange
+      when Time, Fixnum
+        get.setTimeStamp @trange
+      end
     }
   end
 
@@ -413,6 +438,7 @@ private
 
   def filtered_scan
     Scan.new.tap { |scan|
+      # Range
       range = @range || range_for_prefix
       case range
       when Range
@@ -431,15 +457,17 @@ private
         raise ArgumentError, "Invalid range"
       end if range
 
+      # Caching
       scan.caching = @caching if @caching
 
-      # Filters
+      # Filters (with projection)
       prefix_filter = [*build_prefix_filter].compact
       filters = prefix_filter + @filters
       filters += process_projection!(scan)
 
       scan.setFilter FilterList.new(filters) unless filters.empty?
 
+      # Limit
       if @limit
         # setMaxResultSize not implemented in 0.92
         if scan.respond_to?(:setMaxResultSize)
@@ -449,10 +477,19 @@ private
         end
       end
 
+      # Versions
       if @versions
         scan.setMaxVersions @versions
       else
         scan.setMaxVersions
+      end
+
+      # Timerange / Timestamp
+      case @trange
+      when Array
+        scan.setTimeRange *@trange
+      when Time, Fixnum
+        scan.setTimeStamp @trange
       end
 
       # Batch
