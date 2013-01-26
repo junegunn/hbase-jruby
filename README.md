@@ -93,7 +93,7 @@ HBase.resolve_dependency! '0.94', :verbose => true
 HBase.resolve_dependency! '/path/to/my/pom.xml'
 HBase.resolve_dependency! '/path/to/my/pom.xml', :profile => 'trunk'
 
-# Resolve JAR files from local HBase installation
+# Load JAR files from local HBase installation
 HBase.resolve_dependency! :local
 ```
 
