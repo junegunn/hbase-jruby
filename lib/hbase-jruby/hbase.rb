@@ -35,7 +35,9 @@ class HBase
   # Connects to HBase
   # @param [Hash] config A key-value pairs to build HBaseConfiguration from
   def initialize config = {}
-    unless defined?(Java::OrgApacheHadoopConf::Configuration)
+    begin
+      org.apache.hadoop.conf.Configuration
+    rescue NameError
       raise NameError.new(
         "Required Java classes not loaded. Set up CLASSPATH or try `HBase.resolve_dependency!`")
     end
