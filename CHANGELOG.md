@@ -1,6 +1,10 @@
 Changelog
 =========
 
+0.2.1
+-----
+- Fix: NameError even when appropriate CLASSPATH is set
+
 0.2.0
 -----
 - Deprecated `HBase::Table#close`. You don't need to close Table instances.
