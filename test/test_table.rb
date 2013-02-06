@@ -266,5 +266,21 @@ class TestTable < TestHBaseJRubyBase
     assert_nil @table.get('row3').to_hash['cf1:a']
     assert_equal 2, @table.get('row3').fixnum('cf1:b')
   end
+
+  def test_delete_row
+    @table.put(1 => { 'cf1:a' => 1 }, 's' => { 'cf1:a' => 2 }, { :short => 3 } => { 'cf1:a' => 3 })
+
+    assert_equal 1, @table.get(1).fixnum('cf1:a')
+    assert_equal 2, @table.get('s').fixnum('cf1:a')
+    assert_equal 3, @table.get({ :short => 3 }).fixnum('cf1:a')
+    assert_equal 3, @table.count
+
+    @table.delete_row 1, { :short => 3 }
+
+    assert_equal nil, @table.get(1)
+    assert_equal 2,   @table.get('s').fixnum('cf1:a')
+    assert_equal nil, @table.get({ :short => 3 })
+    assert_equal 1,   @table.count
+  end
 end
 

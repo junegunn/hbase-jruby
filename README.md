@@ -2,10 +2,9 @@
 
 *hbase-jruby* is a Ruby-esque interface for accessing HBase from JRuby.
 
-With JRuby, you can of course just use the native Java APIs of HBase,
+You can of course just use the native Java APIs of HBase,
 but doing so requires lots of keystrokes even for the most basic operations and
-can lead to having overly verbose code that will be frowned upon by Rubyists.
-Anyhow, JRuby is Ruby, not Java, right?
+can lead to having overly verbose code that will be frowned upon by Rubyists. :grin:
 
 *hbase-jruby* provides the followings:
 - Easy, Ruby-esque interface for the fundamental HBase operations
@@ -56,7 +55,7 @@ table.delete(:rowkey9)
     git clone -b devel https://github.com/junegunn/hbase-jruby.git
     cd hbase-jruby
     rake build
-    gem install pkg/hbase-jruby-0.2.1-java.gem
+    gem install pkg/hbase-jruby-0.2.2-java.gem
 
 ## Setting up
 
@@ -375,10 +374,16 @@ table.delete('rowkey1', 'cf1:col1', 1352978648642)
 table.delete('rowkey1', 'cf1:col1', 1352978648642, 1352978649642)
 
 # Batch delete
-table.delete(['rowkey1'], ['rowkey2'], ['rowkey3', 'cf1:col1'])
+table.delete(['rowkey1'], ['rowkey2'], ['rowkey3', 'cf1:col1', 1352978648642, 135297864964])
+```
 
-# Truncate table
-table.truncate!
+However, the last syntax seems a bit unwieldy when you just wish to delete a few rows.
+In that case, use simpler `delete_row` method.
+
+```ruby
+table.delete_row 'rowkey1'
+
+table.delete_row 'rowkey1', 'rowkey2', 'rowkey3'
 ```
 
 ### Atomic increment of column values

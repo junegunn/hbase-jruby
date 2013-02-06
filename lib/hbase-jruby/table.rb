@@ -119,6 +119,13 @@ class Table
     }
   end
 
+  # Delete rows.
+  # @param [*Object] rowkeys List of rowkeys of rows to delete
+  # @return [nil]
+  def delete_row *rowkeys
+    htable.delete rowkeys.map { |rk| Delete.new(Util.to_bytes rk) }
+  end
+
   # Atomically increase numeric values
   # @overload increment(rowkey, column, by)
   #   Atomically increase column value by the specified amount

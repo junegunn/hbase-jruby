@@ -1,6 +1,9 @@
 Changelog
 =========
 
+0.2.2
+- Added `HBase::Table#delete_row` method
+
 0.2.1
 -----
 - Fix: NameError even when appropriate CLASSPATH is set
