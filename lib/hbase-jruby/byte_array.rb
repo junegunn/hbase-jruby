@@ -3,7 +3,7 @@ class << self
   # Shortcut method to HBase::ByteArray.new
   # @param [*Object] values
   def ByteArray *values
-    ByteArray.new *values
+    ByteArray.new(*values)
   end
 end
 # Boxed class for Java byte arrays
