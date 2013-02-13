@@ -1,10 +1,6 @@
 # hbase-jruby
 
-*hbase-jruby* is a Ruby-esque interface for accessing HBase from JRuby.
-
-You can of course just use the native Java APIs of HBase,
-but doing so requires lots of keystrokes even for the most basic operations and
-can lead to having overly verbose code that will be frowned upon by Rubyists. :grin:
+*hbase-jruby* is a simple JRuby binding for HBase.
 
 *hbase-jruby* provides the followings:
 - Easy, Ruby-esque interface for the fundamental HBase operations
@@ -16,7 +12,7 @@ can lead to having overly verbose code that will be frowned upon by Rubyists. :g
 ```ruby
 require 'hbase-jruby'
 
-HBase.resolve_dependency! 'cdh4.1'
+HBase.resolve_dependency! 'cdh4.1.3'
 
 hbase = HBase.new
 table = hbase[:test_table]
@@ -68,31 +64,29 @@ or by `require`ing relevant JAR files after launching JRuby.
 ### `HBase.resolve_dependency!`
 
 Well, there's an easier way.
-You can call `HBase.resolve_dependency!` helper method passing one of the arguments listed below.
+Call `HBase.resolve_dependency!` helper method passing one of the arguments listed below.
 
-| Argument (prefix) | Description                                              | Required executable |
-|-------------------|----------------------------------------------------------|---------------------|
-| 'cdh4.1'          | Predefined Maven profile for Cloudera CDH4.1             | mvn                 |
-| 'cdh3'            | Predefined Maven profile for Cloudera CDH3               | mvn                 |
-| '0.94'            | Predefined Maven profile for Apache HBase 0.94           | mvn                 |
-| '0.92'            | Predefined Maven profile for Apache HBase 0.92           | mvn                 |
-| *POM PATH*        | Follow dependency described in the given POM file        | mvn                 |
-| *:local*          | Resolve HBase dependency using `hbase classpath` command | hbase               |
+| Argument   | Dependency               | Required executable |
+|------------|--------------------------|---------------------|
+| cdh4.1[.*] | Cloudera CDH4.1          | mvn                 |
+| cdh3[u*]   | Cloudera CDH3            | mvn                 |
+| 0.94[.*]   | Apache HBase 0.94        | mvn                 |
+| 0.92[.*]   | Apache HBase 0.92        | mvn                 |
+| *POM PATH* | Custom Maven POM file    | mvn                 |
+| `:local`   | Local HBase installation | hbase               |
+
+#### Examples
 
 ```ruby
-# Examples
-
-# Load JAR files from CDH4.1 distribution of HBase using Maven
-HBase.resolve_dependency! 'cdh4.1'
-HBase.resolve_dependency! 'cdh4.1.1'
+# Load JAR files from CDH4.1.x using Maven
 HBase.resolve_dependency! 'cdh4.1.3'
+HBase.resolve_dependency! 'cdh4.1.1'
 
-# Load JAR files for HBase 0.94 using Maven
-HBase.resolve_dependency! '0.94'
+# Load JAR files of HBase 0.94.x using Maven
 HBase.resolve_dependency! '0.94.1'
 HBase.resolve_dependency! '0.94.2', :verbose => true
 
-# Dependency resolution with your own POM file
+# Dependency resolution with custom POM file
 HBase.resolve_dependency! '/path/to/my/pom.xml'
 HBase.resolve_dependency! '/path/to/my/pom.xml', :profile => 'trunk'
 
@@ -418,18 +412,20 @@ end
 You can control how you retrieve data by chaining
 the following methods of `HBase::Table` (or `HBase::Scoped`).
 
-| Method       | Description                                                     |
-|--------------|-----------------------------------------------------------------|
-| `range`      | Specifies the rowkey range of scan                              |
-| `project`    | To retrieve only a subset of columns                            |
-| `filter`     | Filtering conditions of scan                                    |
-| `while`      | Allows early termination of scan (server-side)                  |
-| `at`         | Only retrieve data with the specified timestamp                 |
-| `time_range` | Only retrieve data within the specified time range              |
-| `limit`      | Limits the number of rows                                       |
-| `versions`   | Limits the number of versions of each column                    |
-| `caching`    | Sets the number of rows for caching during scan                 |
-| `batch`      | Limits the maximum number of values returned for each iteration |
+| Method           | Description                                                     |
+|------------------|-----------------------------------------------------------------|
+| `range`          | Specifies the rowkey range of scan                              |
+| `project`        | To retrieve only a subset of columns                            |
+| `filter`         | Filtering conditions of scan                                    |
+| `while`          | Allows early termination of scan (server-side)                  |
+| `at`             | Only retrieve data with the specified timestamp                 |
+| `time_range`     | Only retrieve data within the specified time range              |
+| `limit`          | Limits the number of rows                                       |
+| `versions`       | Limits the number of versions of each column                    |
+| `caching`        | Sets the number of rows for caching during scan                 |
+| `batch`          | Limits the maximum number of values returned for each iteration |
+| `with_java_scan` | *(ADVANCED)* Access Java Scan object in the given block         |
+| `with_java_get`  | *(ADVANCED)* Access Java Get object in the given block          |
 
 Each invocation to these methods returns an `HBase::Scoped` instance with which
 you can retrieve data with the following methods.
@@ -459,6 +455,9 @@ table.range('A'..'Z').                      # Row key range,
       versions(2).                          # Only fetches 2 versions for each value
       batch(100).                           # Batch size for scan set to 100
       caching(1000).                        # Caching 1000 rows
+      with_java_scan { |scan|               # Directly access Java Scan object
+        scan.setCacheBlocks false
+      }.
       to_a                                  # To Array
 ```
 

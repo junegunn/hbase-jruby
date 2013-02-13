@@ -8,8 +8,8 @@ Gem::Specification.new do |gem|
   gem.version       = HBase::JRuby::VERSION
   gem.authors       = ["Junegunn Choi"]
   gem.email         = ["junegunn.c@gmail.com"]
-  gem.description   = %q{Ruby-esque interface for accessing HBase from JRuby}
-  gem.summary       = %q{Ruby-esque interface for accessing HBase from JRuby}
+  gem.description   = %q{A JRuby binding for HBase}
+  gem.summary       = %q{A JRuby binding for HBase}
   gem.homepage      = "https://github.com/junegunn/hbase-jruby"
   gem.platform      = 'java'
   gem.license       = 'MIT'

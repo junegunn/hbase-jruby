@@ -40,6 +40,14 @@ class Table
     end
   end
 
+  def with_java_scan &block
+    self.each.with_java_scan(&block)
+  end
+
+  def with_java_get &block
+    self.each.with_java_get(&block)
+  end
+
   # Performs PUT operations
   # @overload put(rowkey, data)
   #   Put operation on a rowkey

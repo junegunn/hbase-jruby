@@ -2,7 +2,12 @@ Changelog
 =========
 
 0.2.2
+-----
 - Added `HBase::Table#delete_row` method
+- Dependency profiles as prefixes
+  - Supported prefixes: `cdh4.1`, `cdh3`, `0.94`, `0.92`
+  - e.g. `HBase.resolve_dependency! 'cdh4.1.3'`
+- Advanced data access with `Scoped#with_java_scan` and `Scoped#with_java_get`
 
 0.2.1
 -----
