@@ -390,6 +390,8 @@ class TestScoped < TestHBaseJRubyBase
     @table.put :rowkey3 => { 'cf1:a' => { t3 => 3 } }
     @table.put :rowkey4 => { 'cf1:a' => { t4 => 4 } }
 
+    assert_equal 4, @table.count
+
     assert_equal 1, @table.time_range(t2, t3).count
     assert_equal 2, @table.time_range(t2, t3 + 1).count
     assert_equal 2, @table.time_range(t2, t4).count
@@ -412,6 +414,44 @@ class TestScoped < TestHBaseJRubyBase
 
     # according to current hbase impl, later call overrides the previous time ranges. but, why do this?
     assert_equal 2, @table.time_range(t2, t3).at(t1).count
+  end
+
+  def test_with_java_scan
+    ('a'..'z').each do |rk|
+      @table.put rk, 'cf1:a' => 1
+    end
+
+    assert_equal 2, @table.with_java_scan { |scan|
+      scan.setStartRow HBase::Util.to_bytes 'a'
+      scan.setStopRow HBase::Util.to_bytes 'd'
+    }.with_java_scan { |scan|
+      scan.setStartRow HBase::Util.to_bytes 'b'
+    }.count
+  end
+
+  def test_with_java_get
+    t1, t2, t3, t4 =
+      Time.now - 4000,
+      Time.now - 3000,
+      Time.now - 2000,
+      Time.now - 1000
+    @table.put :r1 => { 'cf1:a' => { t1 => 1 } }
+    @table.put :r2 => { 'cf1:a' => { t2 => 2 } }
+    @table.put :r3 => { 'cf1:a' => { t3 => 3 } }
+    @table.put :r4 => { 'cf1:a' => { t4 => 4 } }
+
+    assert_equal 4, @table.count
+
+    rks = [:r1, :r2, :r3, :r4]
+    assert_equal 4, @table.get(rks).compact.count
+
+    scoped = @table.with_java_get { |get|
+      get.setTimeRange(t1.to_i * 1000, t4.to_i * 1000)
+    }
+    assert_equal 3, scoped.get(rks).compact.count
+    assert_equal 2, scoped.with_java_get { |get|
+      get.setTimeRange(t2.to_i * 1000, t4.to_i * 1000)
+    }.get(rks).compact.count
   end
 end
 

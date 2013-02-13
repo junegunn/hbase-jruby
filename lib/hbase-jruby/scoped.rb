@@ -217,6 +217,28 @@ class Scoped
     spawn :@batch, b
   end
 
+  # Returns an HBase::Scoped object with the Scan-customization block added.
+  # The given block will be evaluated just before an actual scan operation.
+  # With method-chaining, multiple blocks can be registered to be evaluated sequentially.
+  # @return [HBase::Scoped]
+  # @yield [org.apache.hadoop.hbase.client.Scan]
+  def with_java_scan &block
+    raise ArgumentError, "Block not given" if block.nil?
+    raise ArgumentError, "Invalid arity: should be 1" unless block.arity == 1
+    spawn :@scan_cbs, @scan_cbs + [block]
+  end
+
+  # Returns an HBase::Scoped object with the Get-customization block added
+  # The given block will be evaluated just before an actual get operation.
+  # With method-chaining, multiple blocks can be registered to be evaluated sequentially.
+  # @return [HBase::Scoped]
+  # @yield [org.apache.hadoop.hbase.client.Get]
+  def with_java_get &block
+    raise ArgumentError, "Block not given" if block.nil?
+    raise ArgumentError, "Invalid arity: should be 1" unless block.arity == 1
+    spawn :@get_cbs, @get_cbs + [block]
+  end
+
 private
   # @param [HBase::Table] table
   def initialize table
@@ -230,6 +252,8 @@ private
     @caching  = nil
     @limit    = nil
     @trange   = nil
+    @scan_cbs = []
+    @get_cbs  = []
   end
 
   def spawn *args
@@ -365,6 +389,11 @@ private
       when Time, Fixnum
         get.setTimeStamp @trange
       end
+
+      # Customization
+      @get_cbs.each do |prc|
+        prc.call get
+      end
     }
   end
 
@@ -494,6 +523,11 @@ private
 
       # Batch
       scan.setBatch @batch if @batch
+
+      # Customization
+      @scan_cbs.each do |prc|
+        prc.call scan
+      end
     }
   end
 

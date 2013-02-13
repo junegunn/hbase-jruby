@@ -40,6 +40,14 @@ class Table
     end
   end
 
+  def with_java_scan &block
+    self.each.with_java_scan(&block)
+  end
+
+  def with_java_get &block
+    self.each.with_java_get(&block)
+  end
+
   # Performs PUT operations
   # @overload put(rowkey, data)
   #   Put operation on a rowkey
@@ -117,6 +125,13 @@ class Table
         end
       }
     }
+  end
+
+  # Delete rows.
+  # @param [*Object] rowkeys List of rowkeys of rows to delete
+  # @return [nil]
+  def delete_row *rowkeys
+    htable.delete rowkeys.map { |rk| Delete.new(Util.to_bytes rk) }
   end
 
   # Atomically increase numeric values
