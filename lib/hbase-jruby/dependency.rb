@@ -1,9 +1,20 @@
 require 'java'
 require 'open-uri'
 require 'tempfile'
+require 'erb'
 
 # HBase connection
 class HBase
+
+  # @private
+  SUPPORTED_PROFILES = {
+    # Prefix => Latest version
+    'cdh4.1' => 'cdh4.1.3',
+    'cdh3'   => 'cdh3u5',
+    '0.94'   => '0.94.3',
+    '0.92'   => '0.92.1',
+  }
+
   class << self
     # @overload resolve_dependency!(dist, options)
     #   Resolve Hadoop and HBase dependency with a predefined Maven profile
@@ -40,12 +51,26 @@ class HBase
           mvn = `which mvn`
           raise RuntimeError, "Cannot find `mvn` executable" if mvn.empty?
 
+          # POM file path given (with optional profile)
           if File.exists?(dist)
             path = dist
             profile = options[:profile] && "-P #{options[:profile]}"
+          # Predefined dependencies
           else
-            path = File.expand_path("../pom/pom.xml", __FILE__)
-            profile = "-P #{dist}"
+            matched_profiles = SUPPORTED_PROFILES.keys.select { |pf| dist.start_with? pf }
+            if matched_profiles.length != 1
+              raise ArgumentError, "Invalid profile: #{dist}"
+            end
+            matched_profile = matched_profiles.first
+            profiles = SUPPORTED_PROFILES.dup
+            profiles[matched_profile] = dist if dist != matched_profile
+            tempfiles << tf = Tempfile.new('hbase-jruby-pom')
+            erb = ERB.new(File.read File.expand_path("../pom/pom.xml.erb", __FILE__))
+            tf << erb.result(binding)
+            tf.close(false)
+            puts File.read(tf.path)
+            path = tf.path
+            profile = "-P #{matched_profile}"
           end
 
           # Download dependent JAR files and build classpath string
