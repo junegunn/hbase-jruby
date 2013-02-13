@@ -70,23 +70,27 @@ or by `require`ing relevant JAR files after launching JRuby.
 Well, there's an easier way.
 You can call `HBase.resolve_dependency!` helper method passing one of the arguments listed below.
 
-| Argument   | Description                                              | Required executable |
-|------------|----------------------------------------------------------|---------------------|
-| 'cdh4.1'   | Predefined Maven profile for Cloudera CDH4.1             | mvn                 |
-| 'cdh3'     | Predefined Maven profile for Cloudera CDH3               | mvn                 |
-| '0.94'     | Predefined Maven profile for Apache HBase 0.94           | mvn                 |
-| '0.92'     | Predefined Maven profile for Apache HBase 0.92           | mvn                 |
-| *POM PATH* | Follow dependency described in the given POM file        | mvn                 |
-| *:local*   | Resolve HBase dependency using `hbase classpath` command | hbase               |
+| Argument (prefix) | Description                                              | Required executable |
+|-------------------|----------------------------------------------------------|---------------------|
+| 'cdh4.1'          | Predefined Maven profile for Cloudera CDH4.1             | mvn                 |
+| 'cdh3'            | Predefined Maven profile for Cloudera CDH3               | mvn                 |
+| '0.94'            | Predefined Maven profile for Apache HBase 0.94           | mvn                 |
+| '0.92'            | Predefined Maven profile for Apache HBase 0.92           | mvn                 |
+| *POM PATH*        | Follow dependency described in the given POM file        | mvn                 |
+| *:local*          | Resolve HBase dependency using `hbase classpath` command | hbase               |
 
 ```ruby
 # Examples
 
 # Load JAR files from CDH4.1 distribution of HBase using Maven
 HBase.resolve_dependency! 'cdh4.1'
+HBase.resolve_dependency! 'cdh4.1.1'
+HBase.resolve_dependency! 'cdh4.1.3'
 
 # Load JAR files for HBase 0.94 using Maven
-HBase.resolve_dependency! '0.94', :verbose => true
+HBase.resolve_dependency! '0.94'
+HBase.resolve_dependency! '0.94.1'
+HBase.resolve_dependency! '0.94.2', :verbose => true
 
 # Dependency resolution with your own POM file
 HBase.resolve_dependency! '/path/to/my/pom.xml'
