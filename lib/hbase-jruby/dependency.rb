@@ -68,7 +68,6 @@ class HBase
             erb = ERB.new(File.read File.expand_path("../pom/pom.xml.erb", __FILE__))
             tf << erb.result(binding)
             tf.close(false)
-            puts File.read(tf.path)
             path = tf.path
             profile = "-P #{matched_profile}"
           end
