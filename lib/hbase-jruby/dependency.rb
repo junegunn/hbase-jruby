@@ -9,6 +9,7 @@ class HBase
   # @private
   SUPPORTED_PROFILES = {
     # Prefix => Latest version
+    'cdh4.2' => 'cdh4.2.0',
     'cdh4.1' => 'cdh4.1.3',
     'cdh3'   => 'cdh3u5',
     '0.94'   => '0.94.3',
@@ -18,7 +19,7 @@ class HBase
   class << self
     # @overload resolve_dependency!(dist, options)
     #   Resolve Hadoop and HBase dependency with a predefined Maven profile
-    #   @param [String] dist HBase distribution: cdh4.1, cdh3, 0.94, 0.92, local
+    #   @param [String] dist HBase distribution: cdh4.2, cdh4.1, cdh3, 0.94, 0.92, local
     #   @param [Hash] options Options
     #   @option options [Boolean] :verbose Enable verbose output
     #   @return [Array<String>] Loaded JAR files

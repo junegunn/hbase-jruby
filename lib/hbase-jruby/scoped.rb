@@ -48,6 +48,8 @@ class Scoped
   #   @param [Array<Object>] *rowkeys Rowkeys
   #   @return [Array<HBase::Result>]
   def get rowkeys
+    check_closed
+
     case rowkeys
     when Array
       htable.get(rowkeys.map { |rk| getify rk }).map { |result|
@@ -63,6 +65,8 @@ class Scoped
   # @yield [row] Yields each row in the scope
   # @yieldparam [HBase::Result] row
   def each
+    check_closed
+
     if block_given?
       begin
         scanner = htable.getScanner(filtered_scan)
@@ -531,9 +535,12 @@ private
     }
   end
 
+  # Scanner for just counting records
+  # @private
   def filtered_scan_minimum
     filtered_scan.tap do |scan|
       scan.cache_blocks = false
+      scan.setMaxVersions 1
 
       # A filter that will only return the first KV from each row
       # A filter that will only return the key component of each KV
@@ -604,6 +611,10 @@ private
     else
       [val]
     end
+  end
+
+  def check_closed
+    raise RuntimeError, "HBase connection is already closed" if @table.closed?
   end
 end#Scoped
 end#HBase
