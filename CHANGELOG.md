@@ -1,6 +1,13 @@
 Changelog
 =========
 
+0.2.3
+-----
+- Fix: [Thread.current[:htable] must be local to each connection](https://github.com/junegunn/hbase-jruby/issues/4)
+- Fix: [`HBase.log4j=` to support XML based configuration](https://github.com/junegunn/hbase-jruby/issues/5)
+- Automatically set versions to 1 when counting records
+- New dependency profile: `cdh4.2`
+
 0.2.2
 -----
 - Added `HBase::Table#delete_row` method

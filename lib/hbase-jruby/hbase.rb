@@ -10,7 +10,7 @@ class HBase
 
   # @overload HBase.log4j=(filename)
   #   Configure Log4j logging with the given file
-  #   @param [String] filename Path to log4j.properties file
+  #   @param [String] filename Path to log4j.properties or log4j.xml file
   #   @return [nil]
   # @overload HBase.log4j=(hash)
   #   Configure Log4j logging with the given Hash
@@ -26,10 +26,15 @@ class HBase
       arg.each do |k, v|
         props.setProperty k.to_s, v.to_s
       end
-      arg = props
+      org.apache.log4j.PropertyConfigurator.configure props
+    else
+      case File.extname(arg).downcase
+      when '.xml'
+        org.apache.log4j.xml.DOMConfigurator.configure arg
+      else
+        org.apache.log4j.PropertyConfigurator.configure arg
+      end
     end
-
-    org.apache.log4j.PropertyConfigurator.configure arg
   end
 
   # Connects to HBase
@@ -78,6 +83,9 @@ class HBase
     unless @closed
       @htable_pool.close
       HConnectionManager.deleteConnection(@config, true)
+      if Thread.current[:hbase_jruby]
+        Thread.current[:hbase_jruby].delete(self)
+      end
       @closed = true
     end
   end
