@@ -12,7 +12,7 @@
 ```ruby
 require 'hbase-jruby'
 
-HBase.resolve_dependency! 'cdh4.1.3'
+HBase.resolve_dependency! 'cdh4.2.0'
 
 hbase = HBase.new
 table = hbase[:test_table]
@@ -68,6 +68,7 @@ Call `HBase.resolve_dependency!` helper method passing one of the arguments list
 
 | Argument   | Dependency               | Required executable |
 |------------|--------------------------|---------------------|
+| cdh4.2[.*] | Cloudera CDH4.2          | mvn                 |
 | cdh4.1[.*] | Cloudera CDH4.1          | mvn                 |
 | cdh3[u*]   | Cloudera CDH3            | mvn                 |
 | 0.94[.*]   | Apache HBase 0.94        | mvn                 |
@@ -78,9 +79,9 @@ Call `HBase.resolve_dependency!` helper method passing one of the arguments list
 #### Examples
 
 ```ruby
-# Load JAR files from CDH4.1.x using Maven
+# Load JAR files from CDH4 using Maven
+HBase.resolve_dependency! 'cdh4.2.0'
 HBase.resolve_dependency! 'cdh4.1.3'
-HBase.resolve_dependency! 'cdh4.1.1'
 
 # Load JAR files of HBase 0.94.x using Maven
 HBase.resolve_dependency! '0.94.1'
@@ -102,8 +103,9 @@ as described in [this page](http://maven.apache.org/guides/mini/guide-proxies.ht
 You may want to suppress (or customize) log messages from HBase.
 
 ```ruby
-# With an external log4j.properties file
+# With an external log4j.properties or log4j.xml file
 HBase.log4j = '/your/log4j.properties'
+HBase.log4j = '/your/log4j.xml'
 
 # With a Hash
 HBase.log4j = { 'log4j.threshold' => 'ERROR' }

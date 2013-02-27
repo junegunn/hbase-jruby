@@ -24,8 +24,12 @@ class TestHBaseJRubyBase < Test::Unit::TestCase
   end
   hbase.close
 
+  def connect
+    HBase.new 'hbase.zookeeper.quorum' => ZK
+  end
+
   def setup
-    @hbase ||= HBase.new 'hbase.zookeeper.quorum' => ZK
+    @hbase = connect
     @table = @hbase.table(TABLE)
 
     # Drop & Create
@@ -47,5 +51,6 @@ class TestHBaseJRubyBase < Test::Unit::TestCase
     if RECREATE
       @table.drop! if @table && @table.exists?
     end
+    @hbase.close
   end
 end

@@ -24,6 +24,8 @@ module Aggregation
   # @param [Symbol, org.apache.hadoop.hbase.coprocessor.ColumnInterpreter] type
   #   Column type (only :fixnum is supported as of now) or ColumnInterpreter object used to decode the value
   def aggregate op, type = :fixnum
+    check_closed
+
     aggregation_impl op, type
   end
 
