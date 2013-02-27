@@ -16,11 +16,13 @@ class Table
   include HBase::Util
 
   # (INTERNAL) Returns the underlying org.apache.hadoop.hbase.client.HTable object (local to current thread)
-  # @return [org.apache.hadoop.hbase.client.HTable]
+  # @return [org.apache.hadoop.hbase.client.PooledHTable]
   def htable
     check_closed
 
-    local_htables = Thread.current[:htable] ||= {}
+    # [:hbase_jruby][HBase connection][Table name]
+    local_vars = Thread.current[:hbase_jruby] ||= {}
+    local_htables = local_vars[@hbase] ||= {}
     local_htables[@name] ||= @pool.get_table(@name)
   end
 
@@ -28,6 +30,12 @@ class Table
   # @return [nil]
   def close
     nil
+  end
+
+  # Returns whether if the connection is closed
+  # @return [Boolean]
+  def closed?
+    @hbase.closed?
   end
 
   [:get, :count, :aggregate,
@@ -59,6 +67,8 @@ class Table
   #   @param [Hash<Hash>] data Data to put indexed by rowkeys
   #   @return [Fixnum] Number of puts succeeded
   def put *args
+    check_closed
+
     return put(args.first => args.last) if args.length == 2
 
     puts = args.first.map { |rowkey, props| putify rowkey, props }
@@ -106,6 +116,8 @@ class Table
   #       ['a002', 'cf1'],
   #       ['a003'])
   def delete *args
+    check_closed
+
     specs = args.first.is_a?(Array) ? args : [args]
 
     htable.delete specs.map { |spec|
@@ -131,6 +143,8 @@ class Table
   # @param [*Object] rowkeys List of rowkeys of rows to delete
   # @return [nil]
   def delete_row *rowkeys
+    check_closed
+
     htable.delete rowkeys.map { |rk| Delete.new(Util.to_bytes rk) }
   end
 
@@ -150,6 +164,8 @@ class Table
   #   @example
   #     table.increment('a000', 'cf1:col1' => 1, 'cf1:col2' => 2)
   def increment rowkey, *args
+    check_closed
+
     if args.first.is_a?(Hash)
       cols = args.first
       htable.increment Increment.new(Util.to_bytes rowkey).tap { |inc|
