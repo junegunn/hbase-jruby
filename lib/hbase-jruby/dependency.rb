@@ -7,13 +7,17 @@ require 'erb'
 class HBase
 
   # @private
+  # https://github.com/apache/hbase/tags
+  # http://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.apache.hbase%22%20AND%20a%3A%22hbase%22
+  # https://ccp.cloudera.com/display/SUPPORT/CDH+Downloads
   SUPPORTED_PROFILES = {
-    # Prefix => Latest version
+    # Prefix => Latest known version
     'cdh4.2' => 'cdh4.2.0',
     'cdh4.1' => 'cdh4.1.3',
-    'cdh3'   => 'cdh3u5',
-    '0.94'   => '0.94.3',
-    '0.92'   => '0.92.1',
+    'cdh3'   => 'cdh3u6',
+    '0.95'   => '0.95.0',
+    '0.94'   => '0.94.6.1',
+    '0.92'   => '0.92.2',
   }
 
   class << self
@@ -111,7 +115,7 @@ class HBase
     end
 
     # Import Java classes (Prerequisite for classes in hbase-jruby)
-    # @return [Array<String>] List of Java classes not found
+    # @return [Array<String>] List of Java classes *NOT* found
     def import_java_classes!
       imp = lambda { |hash|
         hash.map { |base, classes|

@@ -20,9 +20,13 @@ class ByteArray
   # each converted to its byte array representation
   # @param [*Object] values
   def initialize *values
-    @java = values.inject(Util::JAVA_BYTE_ARRAY_EMPTY) { |sum, value|
-      Bytes.add sum, Util.to_bytes(value)
-    }
+    HBase.import_java_classes!
+    if defined?(Bytes) && defined?(Arrays)
+      ByteArray.class_eval do
+        alias initialize initialize_
+      end
+    end
+    initialize_(*values)
   end
 
   def each
@@ -111,7 +115,7 @@ class ByteArray
         length
       end
     raise ArgumentError.new("Byte length must be specified for type: #{type}") unless length
-    raise ArgumentError.new("Not enought bytes for #{type}") if length > @java.length
+    raise ArgumentError.new("Not enough bytes for #{type}") if length > @java.length
 
     arr   = @java.to_a
     val   = arr[0, length].to_java(Java::byte)
@@ -141,6 +145,13 @@ class ByteArray
   # @return [Fixnum]
   def hash
     Arrays.java_send(:hashCode, [Util::JAVA_BYTE_ARRAY_CLASS], @java)
+  end
+
+private
+  def initialize_ *values
+    @java = values.inject(Util::JAVA_BYTE_ARRAY_EMPTY) { |sum, value|
+      Bytes.add sum, Util.to_bytes(value)
+    }
   end
 end#ByteArray
 end#HBase

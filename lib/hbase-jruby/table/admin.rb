@@ -65,7 +65,7 @@ class Table
       case desc
       when HTableDescriptor
         patch_table_descriptor! desc, props
-        admin.createTable *[desc, splits].compact
+        admin.createTable(*[desc, splits].compact)
       when Symbol, String
         todo = lambda { create!({desc => {}}, props) }
       when Hash
@@ -75,7 +75,7 @@ class Table
           htd.addFamily hcd(name, opts)
         end
 
-        admin.createTable *[htd, splits].compact
+        admin.createTable(*[htd, splits].compact)
       else
         raise ArgumentError, 'Invalid table description'
       end
