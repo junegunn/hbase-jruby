@@ -389,7 +389,7 @@ private
       # Timerange / Timestamp
       case @trange
       when Array
-        get.setTimeRange *@trange
+        get.setTimeRange(*@trange)
       when Time, Fixnum
         get.setTimeStamp @trange
       end
@@ -520,7 +520,7 @@ private
       # Timerange / Timestamp
       case @trange
       when Array
-        scan.setTimeRange *@trange
+        scan.setTimeRange(*@trange)
       when Time, Fixnum
         scan.setTimeStamp @trange
       end

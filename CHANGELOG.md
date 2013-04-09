@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.2.4
+-----
+- Fixed NameError when HBase::ByteArray is used without first creating an HBase instance
+- Updated dependency profiles: 0.95.0, 0.94.6.1, 0.92.2, cdh3u6
+
 0.2.3
 -----
 - Fix: [Thread.current[:htable] must be local to each connection](https://github.com/junegunn/hbase-jruby/issues/4)

@@ -66,15 +66,19 @@ or by `require`ing relevant JAR files after launching JRuby.
 Well, there's an easier way.
 Call `HBase.resolve_dependency!` helper method passing one of the arguments listed below.
 
-| Argument   | Dependency               | Required executable |
-|------------|--------------------------|---------------------|
-| cdh4.2[.*] | Cloudera CDH4.2          | mvn                 |
-| cdh4.1[.*] | Cloudera CDH4.1          | mvn                 |
-| cdh3[u*]   | Cloudera CDH3            | mvn                 |
-| 0.94[.*]   | Apache HBase 0.94        | mvn                 |
-| 0.92[.*]   | Apache HBase 0.92        | mvn                 |
-| *POM PATH* | Custom Maven POM file    | mvn                 |
-| `:local`   | Local HBase installation | hbase               |
+| Argument   | Dependency               | Default version | Required executable |
+| ---------- | ------------------------ | --------------- | ------------------- |
+| cdh4.2[.*] | Cloudera CDH4.2          | cdh4.2.0        | mvn                 |
+| cdh4.1[.*] | Cloudera CDH4.1          | cdh4.1.3        | mvn                 |
+| cdh3[u*]   | Cloudera CDH3            | cdh3u6          | mvn                 |
+| 0.95[.*]   | Apache HBase 0.95        | 0.95.0          | mvn                 |
+| 0.94[.*]   | Apache HBase 0.94        | 0.94.6.1        | mvn                 |
+| 0.92[.*]   | Apache HBase 0.92        | 0.92.2          | mvn                 |
+| *POM PATH* | Custom Maven POM file    | -               | mvn                 |
+| `:local`   | Local HBase installation | -               | hbase               |
+
+(Default version is used when an argument prefix is given without specific patch version.
+ e.g. `cdh4.2` defaults to `cdh4.2.0`)
 
 #### Examples
 
@@ -84,7 +88,7 @@ HBase.resolve_dependency! 'cdh4.2.0'
 HBase.resolve_dependency! 'cdh4.1.3'
 
 # Load JAR files of HBase 0.94.x using Maven
-HBase.resolve_dependency! '0.94.1'
+HBase.resolve_dependency! '0.94.6.1'
 HBase.resolve_dependency! '0.94.2', :verbose => true
 
 # Dependency resolution with custom POM file
@@ -92,6 +96,7 @@ HBase.resolve_dependency! '/path/to/my/pom.xml'
 HBase.resolve_dependency! '/path/to/my/pom.xml', :profile => 'trunk'
 
 # Load JAR files from local HBase installation
+# (equivalent to: export CLASSPATH=$CLASSPATH:`hbase classpath`)
 HBase.resolve_dependency! :local
 ```
 
