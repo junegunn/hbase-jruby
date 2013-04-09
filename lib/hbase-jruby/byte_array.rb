@@ -26,7 +26,7 @@ class ByteArray
         alias initialize initialize_
       end
     end
-    initialize_ *values
+    initialize_(*values)
   end
 
   def each
