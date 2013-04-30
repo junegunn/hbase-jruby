@@ -127,6 +127,17 @@ class HBase
   end
   alias [] table
 
+  # Returns an Array of snapshot information
+  # @return [Array<Hash>]
+  def snapshots
+    with_admin { |admin| admin.listSnapshots }.map { |sd|
+      props = sd.getAllFields.map { |k, v|
+        [k.name.to_sym, v.respond_to?(:name) ? v.name : v]
+      }
+      Hash[props]
+    }
+  end
+
 private
   def check_closed
     raise RuntimeError, "Connection already closed" if closed?

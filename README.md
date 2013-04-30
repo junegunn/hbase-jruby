@@ -329,13 +329,16 @@ row.each do |cell|
   timestamp = cell.timestamp
 
   # Cell value as Java byte array
-  bytes     = cell.bytes
+  bytes     = cell.raw
 
   # Typed access
   # value_as_string = cell.string
   # value_as_fixnum = cell.fixnum
   # ...
 end
+
+# Array of HBase::Cells
+cells = row.to_a
 ```
 
 #### `to_hash`

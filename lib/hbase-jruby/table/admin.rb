@@ -240,6 +240,21 @@ class Table
     end
   end
 
+  # Creates a snapshot of the table
+  # @param [String] snapshot_name Snapshot name
+  # @return [nil]
+  def snapshot! snapshot_name
+    with_admin do |admin|
+      admin.snapshot snapshot_name, @name
+    end
+  end
+
+  # Returns an Array of snapshot information for this table
+  # @return [Array<Hash>]
+  def snapshots
+    @hbase.snapshots.select { |h| h[:table] == @name }
+  end
+
 private
   COLUMN_PROPERTIES = {
     :blockcache            => { :set => :setBlockCacheEnabled,         :get => :isBlockCacheEnabled },

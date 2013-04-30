@@ -70,12 +70,30 @@ class Cell
   end
   alias sym symbol
 
-  # Returns the column value as a Fixnum
+  # Returns the 8-byte column value as a Fixnum
   # @return [Fixnum]
   def fixnum
     Util.from_bytes :fixnum, value
   end
   alias long fixnum
+
+  # Returns the 4-byte column value as a Fixnum
+  # @return [Fixnum]
+  def int
+    Util.from_bytes :int, value
+  end
+
+  # Returns the 2-byte column value as a Fixnum
+  # @return [Fixnum]
+  def short
+    Util.from_bytes :short, value
+  end
+
+  # Returns the 1-byte column value as a Fixnum
+  # @return [Fixnum]
+  def byte
+    Util.from_bytes :byte, value
+  end
 
   # Returns the column value as a BigDecimal
   # @return [BigDecimal]

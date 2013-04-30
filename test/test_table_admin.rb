@@ -259,5 +259,35 @@ class TestTableAdmin < TestHBaseJRubyBase
       @table.drop!
     end
   end
+
+  def test_snapshots
+    @hbase.admin do |admin|
+      @hbase.snapshots.map { |e| e[:name] }.each do |name|
+        admin.deleteSnapshot name
+      end
+    end
+
+    assert_equal 0, @hbase.snapshots.length
+    assert_equal 0, @table.snapshots.length
+
+    @table.snapshot! 'hbase_jruby_test_snapshot1'
+    @table.snapshot! 'hbase_jruby_test_snapshot2'
+
+    assert_equal 2, @hbase.snapshots.length
+    assert_equal 2, @table.snapshots.length # FIXME: table-wise snapshots
+
+    @hbase.snapshots.each do |snapshot|
+      assert_equal @table.name, snapshot[:table]
+      assert_match /hbase_jruby_test_snapshot[12]/, snapshot[:name]
+    end
+
+    @hbase.admin do |admin|
+      admin.deleteSnapshot 'hbase_jruby_test_snapshot1'
+      admin.deleteSnapshot 'hbase_jruby_test_snapshot2'
+    end
+
+    assert_equal 0, @hbase.snapshots.length
+    assert_equal 0, @table.snapshots.length
+  end
 end unless ENV['HBASE_JRUBY_TEST_SKIP_ADMIN']
 
