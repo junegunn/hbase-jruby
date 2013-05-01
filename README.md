@@ -147,12 +147,9 @@ table = hbase.table(:test_table)
 table = hbase[:test_table]
 ```
 
-
-## Creating a table
+### Creating a table
 
 ```ruby
-table = hbase[:my_table]
-
 # Drop table if exists
 table.drop! if table.exists?
 
