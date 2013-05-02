@@ -14,7 +14,7 @@ require "hbase-jruby/scoped"
 require "hbase-jruby/table"
 require "hbase-jruby/table/admin"
 require "hbase-jruby/table/inspection"
-require "hbase-jruby/result"
+require "hbase-jruby/row"
 require 'hbase-jruby/hbase'
 
 HBase.import_java_classes!

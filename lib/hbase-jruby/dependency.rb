@@ -12,8 +12,8 @@ class HBase
   # https://ccp.cloudera.com/display/SUPPORT/CDH+Downloads
   SUPPORTED_PROFILES = {
     # Prefix => Latest known version
-    'cdh4.2' => 'cdh4.2.0',
-    'cdh4.1' => 'cdh4.1.3',
+    'cdh4.2' => 'cdh4.2.1',
+    'cdh4.1' => 'cdh4.1.4',
     'cdh3'   => 'cdh3u6',
     '0.95'   => '0.95.0',
     '0.94'   => '0.94.6.1',

@@ -24,7 +24,7 @@ class Scoped
       if block_given?
         scanner = htable.getScanner(filtered_scan)
         scanner.each do |result|
-          cnt += 1 if yield(Result.send(:new, result))
+          cnt += 1 if yield(Row.send(:new, result))
         end
       else
         scanner = htable.getScanner(filtered_scan_minimum)
@@ -41,29 +41,29 @@ class Scoped
   #   Single GET.
   #   Gets a record with the given rowkey. If the record is not found, nil is returned.
   #   @param [Object] rowkey Rowkey
-  #   @return [HBase::Result, nil]
+  #   @return [HBase::Row, nil]
   # @overload get(rowkeys)
   #   Batch GET. Gets an array of records with the given rowkeys.
   #   Nonexistent records will be returned as nils.
   #   @param [Array<Object>] *rowkeys Rowkeys
-  #   @return [Array<HBase::Result>]
+  #   @return [Array<HBase::Row>]
   def get rowkeys
     check_closed
 
     case rowkeys
     when Array
       htable.get(rowkeys.map { |rk| getify rk }).map { |result|
-        result.isEmpty ? nil : Result.new(result)
+        result.isEmpty ? nil : Row.new(result)
       }
     else
       result = htable.get(getify rowkeys)
-      result.isEmpty ? nil : Result.new(result)
+      result.isEmpty ? nil : Row.new(result)
     end
   end
 
   # Iterate through the scope.
   # @yield [row] Yields each row in the scope
-  # @yieldparam [HBase::Result] row
+  # @yieldparam [HBase::Row] row
   def each
     check_closed
 
@@ -71,7 +71,7 @@ class Scoped
       begin
         scanner = htable.getScanner(filtered_scan)
         scanner.each do |result|
-          yield Result.send(:new, result)
+          yield Row.send(:new, result)
         end
       ensure
         scanner.close if scanner
