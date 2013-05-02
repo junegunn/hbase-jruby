@@ -288,6 +288,8 @@ class TestTableAdmin < TestHBaseJRubyBase
 
     assert_equal 0, @hbase.snapshots.length
     assert_equal 0, @table.snapshots.length
+  rescue Exception
+    # TODO: Only works on HBase 0.94 or above
   end
 end unless ENV['HBASE_JRUBY_TEST_SKIP_ADMIN']
 
