@@ -183,7 +183,7 @@ class Table
 
   # Scan through the table
   # @yield [row] Yields each row in the scope
-  # @yieldparam [HBase::Result] row
+  # @yieldparam [HBase::Row] row
   # @return [HBase::Scoped]
   def each
     check_closed

@@ -3,7 +3,7 @@ require 'bigdecimal'
 class HBase
 # Represents a row returned by HBase
 # @author Junegunn Choi <junegunn.c@gmail.com>
-class Result
+class Row
   include Enumerable
 
   # Returns the rowkey of the row
@@ -450,6 +450,9 @@ private
       end
     }
   end
-end#Result
+end#Row
 end#HBase
+
+# For backward compatibility
+HBase::Result = HBase::Row
 

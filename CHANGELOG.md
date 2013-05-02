@@ -1,6 +1,14 @@
 Changelog
 =========
 
+0.2.5
+-----
+- Added `HBase::Table#snapshots` method
+- Added `HBase::Table#snapshot!` method
+- Added `HBase#snapshots` method
+- Added `HBase::Cell#{raw,int,short,byte}` methods
+- Updated dependency profiles: cdh4.2.1, cdh4.1.4
+
 0.2.4
 -----
 - Fixed NameError when HBase::ByteArray is used without first creating an HBase instance
