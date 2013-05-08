@@ -127,11 +127,13 @@ class Scoped
 
       key_range = key_range[0...-1] # defensive
       key_range << last unless last.empty?
+    else
+      prefixes = []
     end
 
     if key_range[0].is_a?(Range)
       raise ArgumentError, "Invalid range" unless key_range.length == 1
-    elsif prefixes
+    elsif !prefixes.empty?
       raise ArgumentError, "Invalid range" unless [0, 1, 2].include?(key_range.length)
     else
       raise ArgumentError, "Invalid range" unless [1, 2].include?(key_range.length)
@@ -144,7 +146,7 @@ class Scoped
               key_range[0] :
               (key_range.empty? ? nil : key_range.map { |e| e.nil? ? nil : Util.to_bytes(e) }),
           :@prefixes,
-          prefixes || []
+          prefixes
   end
 
   # Returns an HBase::Scoped object with the filters added

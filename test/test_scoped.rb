@@ -25,6 +25,7 @@ class TestScoped < TestHBaseJRubyBase
   def test_invalid_range
     assert_raise(ArgumentError) { @table.range }
     assert_raise(ArgumentError) { @table.range(:xxx => 'row1') }
+    assert_raise(ArgumentError) { @table.range({}) }
     assert_raise(ArgumentError) { @table.range(1, 2, 3) }
     assert_raise(ArgumentError) { @table.range(nil, nil) }
     assert_raise(ArgumentError) { @table.range(1..3, 4..5) }
