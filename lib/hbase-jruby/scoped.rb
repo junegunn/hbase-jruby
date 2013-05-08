@@ -121,23 +121,28 @@ class Scoped
   #     table.range(:prefix => '2012')
   #     table.range(:prefix => ['2010', '2012'])
   def range *key_range
-    if key_range.last.is_a?(Hash)
-      prefixes  = arrayfy(key_range.last[:prefix]).compact
-      raise ArgumentError,
-        "Invalid range. Unknown option(s) specified." unless (key_range.last.keys - [:prefix]).empty?
-      key_range = key_range[0...-1]
+    if (last = key_range.last).is_a?(Hash)
+      prefixes = arrayfy(last[:prefix]).compact
+      last = last.reject { |k, v| k == :prefix }
+
+      key_range = key_range[0...-1] # defensive
+      key_range << last unless last.empty?
     end
 
-    if prefixes
+    if key_range[0].is_a?(Range)
+      raise ArgumentError, "Invalid range" unless key_range.length == 1
+    elsif prefixes
       raise ArgumentError, "Invalid range" unless [0, 1, 2].include?(key_range.length)
     else
       raise ArgumentError, "Invalid range" unless [1, 2].include?(key_range.length)
     end
 
+    raise ArgumentError, "Invalid range" if !key_range.empty? && key_range.all? { |e| e.nil? }
+
     spawn :@range,
           key_range[0].is_a?(Range) ?
               key_range[0] :
-              (key_range.empty? ? nil : key_range),
+              (key_range.empty? ? nil : key_range.map { |e| e.nil? ? nil : Util.to_bytes(e) }),
           :@prefixes,
           prefixes || []
   end
@@ -368,12 +373,12 @@ private
         filters <<
           RowFilter.new(
             CompareFilter::CompareOp::GREATER_OR_EQUAL,
-            BinaryComparator.new(Util.to_bytes range[0])) if range[0]
+            BinaryComparator.new(range[0])) if range[0]
 
         filters <<
           RowFilter.new(
             CompareFilter::CompareOp::LESS,
-            BinaryComparator.new(Util.to_bytes range[1])) if range[1]
+            BinaryComparator.new(range[1])) if range[1]
       else
         raise ArgumentError, "Invalid range"
       end if range
@@ -485,8 +490,8 @@ private
           scan.setStopRow Util.append_0(Util.to_bytes range.end)
         end
       when Array
-        scan.setStartRow Util.to_bytes range[0] if range[0]
-        scan.setStopRow  Util.to_bytes range[1] if range[1]
+        scan.setStartRow range[0] if range[0]
+        scan.setStopRow  range[1] if range[1]
       else
         # This shouldn't happen though.
         raise ArgumentError, "Invalid range"

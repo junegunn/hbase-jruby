@@ -26,6 +26,8 @@ class TestScoped < TestHBaseJRubyBase
     assert_raise(ArgumentError) { @table.range }
     assert_raise(ArgumentError) { @table.range(:xxx => 'row1') }
     assert_raise(ArgumentError) { @table.range(1, 2, 3) }
+    assert_raise(ArgumentError) { @table.range(nil, nil) }
+    assert_raise(ArgumentError) { @table.range(1..3, 4..5) }
   end
 
   def test_invalid_project
@@ -94,6 +96,20 @@ class TestScoped < TestHBaseJRubyBase
 
     # Unscope
     assert_equal 50, @table.range(111..150).filter('cf1:a' => 131...140, 'cf2:b' => 132..133).unscope.count
+  end
+
+  def test_range_on_short_int
+    (1..10).each do |i|
+      @table.put({ :short => i }, 'cf1:a' => 'dummy')
+    end
+
+    assert_equal 5, @table.range({ :short => 6 }).count
+    assert_equal 2, @table.range({ :short => 6 }, { :short => 8 }).count
+    assert_equal 2, @table.range({ :short => 6 }, { :short => 8, :prefix => []}).count
+    assert_equal 2, @table.range({ :short => 6 }, { :short => 8 }, :prefix => []).count
+    assert_equal 3, @table.range(nil, { :short => 4 }).count
+    assert_equal 3, @table.range(nil, { :short => 4, :prefix => [] }).count
+    assert_equal 3, @table.range(nil, { :short => 4 }, :prefix => []).count
   end
 
   def test_filter_on_short_int
