@@ -96,6 +96,32 @@ class TestScoped < TestHBaseJRubyBase
     assert_equal 50, @table.range(111..150).filter('cf1:a' => 131...140, 'cf2:b' => 132..133).unscope.count
   end
 
+  def test_filter_on_short_int
+    @table.put(1, 'cf1:a' => { :long  => 100 })
+    @table.put(2, 'cf1:a' => { :int   => 100 })
+    @table.put(3, 'cf1:a' => { :short => 100 })
+    @table.put(4, 'cf1:a' => { :byte  => 100 })
+    @table.put(5, 'cf1:a' => { :byte  => 110 })
+
+    assert_equal 1, @table.filter('cf1:a' => { :long  => 100 }).count
+    assert_equal 1, @table.filter('cf1:a' => { :int   => 100 }).count
+    assert_equal 1, @table.filter('cf1:a' => { :short => 100 }).count
+    assert_equal 1, @table.filter('cf1:a' => { :byte  => 100 }).count
+
+    assert_equal 1, @table.filter('cf1:a' => { :long  => 100 }).first.rowkey(:fixnum)
+    assert_equal 2, @table.filter('cf1:a' => { :int   => 100 }).first.rowkey(:fixnum)
+    assert_equal 3, @table.filter('cf1:a' => { :short => 100 }).first.rowkey(:fixnum)
+    assert_equal 4, @table.filter('cf1:a' => { :byte  => 100 }).first.rowkey(:fixnum)
+
+    assert_equal 5, @table.filter('cf1:a' => { :gt => { :byte => 100 } }).first.rowkey(:fixnum)
+  end
+
+  def test_filter_operator_and_short_int
+    assert_raise(ArgumentError) {
+      @table.filter('cf1:a' => { :long  => 100, :gt => 10 })
+    }
+  end
+
   def test_scan
     insert = lambda do
       (40..70).each do |i|

@@ -492,10 +492,10 @@ See the following example.
   table.put idx, 'cf1:a' => idx % 10
 end
 
-table.filter('cf1:a' => { lte: 1 }).to_a
-  # 0, 1, 10, 11, 20, 21
-table.while('cf1:a' => { lte: 1 }).to_a
-  # 0, 1
+table.filter('cf1:a' => { lte: 1 }).map { |r| r.rowkey :fixnum }
+  # [0, 1, 10, 11, 20, 21]
+table.while('cf1:a'  => { lte: 1 }).map { |r| r.rowkey :fixnum }
+  # [0, 1]
   #   Scan terminates immediately when condition not met.
 ```
 

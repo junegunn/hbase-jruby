@@ -432,7 +432,11 @@ private
             when :ne # , :!= # Ruby 1.8 compatibility
               CompareFilter::CompareOp::NOT_EQUAL
             else
-              raise ArgumentError, "Unknown operator: #{op}"
+              if val.length == 1
+                return filter_for(cf, cq, Util.to_bytes(val))
+              else
+                raise ArgumentError, "Unknown operator: #{op}"
+              end
             end
           case v
           when Array
@@ -448,8 +452,6 @@ private
                 SingleColumnValueFilter.new(cf, cq, operator, Util.to_bytes(vv))
               }
             )
-          when Hash
-            raise ArgumentError, "Hash predicate not supported"
           else
             SingleColumnValueFilter.new(cf, cq, operator, Util.to_bytes(v))
           end

@@ -1,6 +1,10 @@
 Changelog
 =========
 
+0.2.6
+-----
+- Fixed `HBase::Scoped#filter` method to take short integer (byte, short, int) values
+
 0.2.5
 -----
 - Added `HBase::Table#snapshots` method
