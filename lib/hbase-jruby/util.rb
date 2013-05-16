@@ -65,6 +65,34 @@ module Util
       end
     end
 
+    def to_typed_bytes type, val
+      return Util.to_bytes val if type.nil?
+
+      import_java_classes!
+      case type
+      when :string
+        val.to_java_bytes
+      when :symbol, :sym
+        val.to_s.to_java_bytes
+      when :byte
+        [val].to_java(Java::byte)
+      when :boolean, :bool
+        Bytes.to_bytes val
+      when :int
+        Bytes.java_send :toBytes, [Java::int], val
+      when :short
+        Bytes.java_send :toBytes, [Java::short], val
+      when :long, :fixnum
+        Bytes.java_send :toBytes, [Java::long], val
+      when :float, :double
+        Bytes.java_send :toBytes, [Java::double], val
+      when :raw
+        val
+      else
+        raise ArgumentError, "invalid type: #{type}"
+      end
+    end
+
     # Returns Ruby object decoded from the byte array according to the given type
     # @param [Symbol, Class] type Type to convert to
     # @param [byte[]] val Java byte array

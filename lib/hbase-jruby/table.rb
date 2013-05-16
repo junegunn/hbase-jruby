@@ -9,6 +9,7 @@ class HBase
 class Table
   attr_reader :name
   attr_reader :config
+  attr_reader :schema
 
   include Enumerable
   include Admin
@@ -186,7 +187,7 @@ class Table
   # @yieldparam [HBase::Row] row
   # @return [Enumerator]
   def each &block
-    scoped.each &block
+    scoped.each(&block)
   end
 
   # Returns HBase::Scoped object for this table
@@ -195,13 +196,98 @@ class Table
     Scoped.send(:new, self)
   end
 
+  def schema= definition
+    lookup = empty_lookup_table
+    definition.each do |cf, cols|
+      # Column => Type
+      if cf.to_s.index ':'
+        if cols.is_a?(Symbol)
+          lookup[:type][:exact][cf]        = cols
+          lookup[:type][:exact][cf.to_sym] = cols
+          lookup[:type][:exact][cf.to_s]   = cols
+        else
+          raise ArgumentError, "invalid schema"
+        end
+      # Family => { Column => Type }
+      else
+        # Type
+        if cols.is_a?(Symbol) || cols.is_a?(String)
+          lookup[:type][:pattern][/^#{cf}:/] = cols
+        # Qualifiers
+        elsif cols.is_a?(Hash)
+          cols.each do |cq, type|
+            raise ArgumentError, "invalid schema" unless type.is_a?(Symbol)
+
+            # Pattern
+            if cq.is_a?(Regexp)
+              lookup[:name][:pattern][cq] = cf
+              lookup[:type][:pattern][cq] = type
+            # Exact
+            else
+              [cq, cq.to_s, cq.to_sym, [cf, cq].join(':')].each do |key|
+                lookup[:name][:exact][key] = [cf, cq].join ':'
+                lookup[:type][:exact][key] = type
+              end
+            end
+          end
+        else
+          raise ArgumentError, "invalid schema"
+        end
+      end
+    end
+
+    @lookup = lookup
+    @schema = definition.dup
+  end
+
+  # @private
+  def fullname_of? cq
+    lookup(@lookup[:name], cq) { |partial, input|
+      [partial, input].join ':'
+    } || cq
+  end
+
+  # @private
+  def type_of? cq
+    lookup @lookup[:type], cq
+  end
+
 private
+  def lookup dic, cq
+    2.times do |i|
+      if match = dic[:exact][cq]
+        return match
+      elsif pair = dic[:pattern].find { |k, v| cq =~ k }
+        return block_given? ? yield(pair[1], cq) : pair[1]
+      end
+
+      break if i == 1
+      cq = cq.to_s.split(':')[1]
+      break if cq.nil?
+    end
+    nil
+  end
+
   def initialize hbase, config, htable_pool, name
     @hbase  = hbase
     @config = config
     @pool   = htable_pool
     @name   = name.to_s
     @schema = {}
+    @lookup = empty_lookup_table
+  end
+
+  def empty_lookup_table
+    {
+      :name => {
+        :exact   => {},
+        :pattern => {},
+      },
+      :type => {
+        :exact   => {},
+        :pattern => {},
+      }
+    }
   end
 
   def check_closed
@@ -211,21 +297,23 @@ private
   def putify rowkey, props
     Put.new(Util.to_bytes rowkey).tap { |put|
       props.each do |col, val|
-        cf, cq = Util.parse_column_name(col)
+        cf, cq = Util.parse_column_name(fullname_of? col)
+        type   = type_of? col
+
         case val
         when Hash
           val.each do |t, v|
             case t
             # Timestamp / Ruby Time
             when Time, Fixnum
-              put.add cf, cq, time_to_long(t), Util.to_bytes(v)
+              put.add cf, cq, time_to_long(t), Util.to_typed_bytes(type, v)
             # Types: :byte, :short, :int, ...
             else
-              put.add cf, cq, Util.to_bytes(t => v)
+              put.add cf, cq, Util.to_typed_bytes(t, v)
             end
           end
         else
-          put.add cf, cq, Util.to_bytes(val)
+          put.add cf, cq, Util.to_typed_bytes(type, val)
         end
       end
     }

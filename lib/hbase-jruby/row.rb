@@ -22,6 +22,11 @@ class Row
     end
   end
 
+  def [] col
+    type = @table.type_of?(col) || :raw
+    self.send type, @table.fullname_of?(col)
+  end
+
   # Returns Hash representation of the row.
   # @param [Hash] schema Schema used to parse byte arrays (column family, qualifier and the value)
   # @return [Hash] Hash representation of the row indexed by ColumnKey
@@ -422,8 +427,10 @@ private
     end
   end
 
+  # @param [HBase::Table] table
   # @param [org.apache.hadoop.hbase.client.Result] java_result
-  def initialize java_result
+  def initialize table, java_result
+    @table  = table
     @result = java_result
     @allmap = nil
   end

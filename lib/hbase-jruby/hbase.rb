@@ -4,7 +4,7 @@ require 'java'
 # @!attribute [r] config
 #   @return [org.apache.hadoop.conf.Configuration]
 class HBase
-  attr_reader :config
+  attr_reader :config, :schema
 
   include Admin
 
