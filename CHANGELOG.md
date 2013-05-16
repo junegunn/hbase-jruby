@@ -3,10 +3,15 @@ Changelog
 
 0.3.0
 -----
-- Enumerable classes (Table, Scoped, Row, ByteArray) now return Enumerator on each when block not given
+- Easier data access with table schema
+  - `HBase::Table#schema=` method to provide the schema of the table
+  - You can omit column family names on predefined columns
+  - Automatic type conversion for known columns
+- Incompatible changes
+  - *`Row#to_hash` and `Row#to_hash_with_versions` are now deprecated*. Use `to_h` and `to_h_with_versions` instead.
+  - Enumerable classes (Table, Scoped, Row, ByteArray) now return Enumerator on each method when block not given
 - Added `HBase::Table#scoped` method to return `HBase::Scoped` object for the table
-- Added ability to specify type information for each table for easier data access
-- Defined `HBase::Cell#eql?` method for equaility check
+- Added `HBase::Cell#{eql?,hash}` method for equaility check
 
 0.2.6
 -----

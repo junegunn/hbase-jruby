@@ -12,7 +12,7 @@
 ```ruby
 require 'hbase-jruby'
 
-HBase.resolve_dependency! 'cdh4.2.0'
+HBase.resolve_dependency! 'cdh4.2.1'
 
 hbase = HBase.new
 table = hbase[:test_table]
@@ -39,6 +39,61 @@ end
 # DELETE
 table.delete(:rowkey9)
 ```
+
+## Another quick example using table schema (since 0.3)
+
+0.3.0 introduces the concept of table schema described as a Hash.
+
+Using schema greatly simplifies the way you access data:
+- It allows you to omit column family names
+- Automatic type conversion when writing or reading data
+
+```ruby
+hbase = HBase.new
+table = hbase[:test_table]
+
+table.schema = {
+  cf1: {
+    name:   :string,
+    age:    :fixnum,
+    sex:    :symbol,
+    height: :float,
+    weight: :float,
+    alive:  :boolean,
+  },
+  cf2: {
+    description:    :string,
+    /^score.*/   => :float
+  }
+}
+
+table.put(
+    100 => {
+      name:        'John Doe',
+      age:         20,
+      sex:         :male,
+      height:      6.0,
+      weight:      160
+      description: 'N/A',
+      score1:      8.0,
+      score2:      9.0,
+      score3:      10.0,
+      alive:       true
+    }
+)
+
+john = table.get(100)
+
+puts john[:name], john[:age]
+
+# Hash representation of the row
+puts john.to_h
+
+# Hash representation of the row containing all the versions of values (uppercase H)
+puts john.to_H
+```
+
+(The examples following this section was written prior to 0.3.0, so they do not use schema.)
 
 ## Installation
 
@@ -260,24 +315,6 @@ end
 
 # Array of HBase::Cells
 cells = row.to_a
-```
-
-#### `to_hash`
-
-```ruby
-# Returns the Hash representation of the record with the specified schema
-schema = {
-  'cf1:col1' => :string,
-  'cf1:col2' => :fixnum,
-  'cf1:col3' => :bigdecimal,
-  'cf1:col4' => :float,
-  'cf1:col5' => :boolean,
-  'cf1:col6' => :symbol }
-
-table.get('rowkey1').to_hash(schema)
-
-# Returns all versions for each column indexed by their timestamps
-table.get('rowkey1').to_hash_with_versions(schema)
 ```
 
 ### DELETE

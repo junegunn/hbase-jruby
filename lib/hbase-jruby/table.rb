@@ -257,7 +257,7 @@ private
     2.times do |i|
       if match = dic[:exact][cq]
         return match
-      elsif pair = dic[:pattern].find { |k, v| cq =~ k }
+      elsif pair = dic[:pattern].find { |k, v| cq.to_s =~ k }
         return block_given? ? yield(pair[1], cq) : pair[1]
       end
 

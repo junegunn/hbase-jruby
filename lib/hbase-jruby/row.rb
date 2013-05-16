@@ -27,6 +27,51 @@ class Row
     self.send type, @table.fullname_of?(col)
   end
 
+  # Only supports string column qualifiers
+  # @return [Hash]
+  def to_h
+    {}.tap do |ret|
+      @result.getNoVersionMap.each do |cf, cqmap|
+        cqmap.each do |cq, val|
+          name = cq.to_s.to_sym
+          type = @table.type_of?(name)
+
+          unless type
+            name = [cf.to_s, cq.to_s].join ':'
+            type = @table.type_of?(name)
+          end
+
+          ret[name] = type ? Util.from_bytes(type, val) : val
+        end
+      end
+    end
+  end
+
+  # @return [Hash]
+  def to_H
+    {}.tap do |ret|
+      @result.getMap.each do |cf, cqmap|
+        cqmap.each do |cq, tsmap|
+          name = cq.to_s.to_sym
+          type = @table.type_of?(name)
+
+          unless type
+            name = [cf.to_s, cq.to_s].join ':'
+            type = @table.type_of?(name)
+          end
+
+          ret[name] =
+            Hash[
+              tsmap.map { |ts, val|
+                [ ts,  type ? Util.from_bytes(type, val) : val ]
+              }
+            ]
+        end
+      end
+    end
+  end
+
+  # @deprecated
   # Returns Hash representation of the row.
   # @param [Hash] schema Schema used to parse byte arrays (column family, qualifier and the value)
   # @return [Hash] Hash representation of the row indexed by ColumnKey
@@ -44,6 +89,7 @@ class Row
     }
   end
 
+  # @deprecated
   # Returns Hash representation of the row.
   # Each column value again is represented as a Hash indexed by timestamp of each version.
   # @param [Hash] schema Schema used to parse byte arrays (column family, qualifier and the value)
