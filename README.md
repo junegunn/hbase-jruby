@@ -54,31 +54,31 @@ table = hbase[:test_table]
 
 table.schema = {
   cf1: {
-    name:   :string,
-    age:    :fixnum,
-    sex:    :symbol,
-    height: :float,
-    weight: :float,
-    alive:  :boolean,
+    name:         :string,
+    age:          :fixnum,
+    sex:          :symbol,
+    height:       :float,
+    weight:       :float,
+    alive:        :boolean,
   },
   cf2: {
-    description:    :string,
-    /^score.*/   => :float
+    biography:    :string,
+    /^score.*/ => :float
   }
 }
 
 table.put(
     100 => {
-      name:        'John Doe',
-      age:         20,
-      sex:         :male,
-      height:      6.0,
-      weight:      160
-      description: 'N/A',
-      score1:      8.0,
-      score2:      9.0,
-      score3:      10.0,
-      alive:       true
+      name:      'John Doe',
+      age:       20,
+      sex:       :male,
+      height:    6.0,
+      weight:    160
+      biography: 'N/A',
+      score1:    8.0,
+      score2:    9.0,
+      score3:    10.0,
+      alive:     true
     }
 )
 
@@ -93,7 +93,11 @@ puts john.to_h
 puts john.to_H
 ```
 
-(The examples following this section was written prior to 0.3.0, so they do not use schema.)
+One downside of using schema is that it doesn't work well with _non-string column qualifiers_.
+For example `to_h` and `to_H` returns Hash indexed only by Symbols (for known columns)
+and Strings (for unknown ones).
+
+The examples following this section was written prior to 0.3.0, so they do not use schema.
 
 ## Installation
 
