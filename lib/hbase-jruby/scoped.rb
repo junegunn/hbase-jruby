@@ -206,7 +206,7 @@ class Scoped
         end
       end
     end
-    spawn :@project, @project + columns
+    spawn :@project, @project + columns.map { |c| @table.fullname_of? c }
   end
 
   # Returns an HBase::Scoped object with the specified version number limit.

@@ -71,8 +71,18 @@ class TestSchema < TestHBaseJRubyBase
 
     assert_equal data['cf1:x'], HBase::Util.from_bytes(:long, row['cf1:x'])
 
-    # FILTER
+    data1 = @table.get(1).to_h
+    data1[:a] *= 2
+    @table.put 3, data1
+
+    # PUT again
+    assert_equal data[:a] * 2, @table.get(3)[:a]
+
     # PROJECT
+    assert_equal [:a, :c, 'cf2:e', 'cf3:f'],
+      @table.project(:a, 'cf1:c', :cf2, :cf3).first.to_h.keys
+
+    # FILTER
   end
 
   def test_schema_readme
