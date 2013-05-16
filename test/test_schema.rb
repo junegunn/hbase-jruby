@@ -73,16 +73,28 @@ class TestSchema < TestHBaseJRubyBase
 
     data1 = @table.get(1).to_h
     data1[:a] *= 2
+    data1[:b] = :new_symbol
     @table.put 3, data1
 
     # PUT again
     assert_equal data[:a] * 2, @table.get(3)[:a]
+    assert_equal :new_symbol,  @table.get(3)[:b]
+    assert_equal :new_symbol,  @table.get(3)['b']
+    assert_equal :new_symbol,  @table.get(3)['cf1:b']
 
     # PROJECT
     assert_equal [:a, :c, 'cf2:e', 'cf3:f'],
       @table.project(:a, 'cf1:c', :cf2, :cf3).first.to_h.keys
 
     # FILTER
+    assert_equal 1, @table.filter(:b => :new_symbol).count
+    assert_equal 2, @table.filter(:b => data[:b]).count
+
+    assert_equal 2, @table.filter('cf1:a' => 50..110  ).count
+    assert_equal 2, @table.filter('a' => 50..110      ).count
+    assert_equal 2, @table.filter(:a => 50..110       ).count
+    assert_equal 1, @table.filter(:a => { :gt => 150 }).count
+
   end
 
   def test_schema_readme

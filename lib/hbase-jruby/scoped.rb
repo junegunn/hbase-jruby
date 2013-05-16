@@ -591,7 +591,7 @@ private
       case f
       when Hash
         f.map { |col, val|
-          cf, cq = Util.parse_column_name col
+          cf, cq = Util.parse_column_name(@table.fullname_of? col)
           type = @table.type_of?(col)
 
           case val
