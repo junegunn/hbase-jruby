@@ -129,6 +129,10 @@ class Cell
   end
   alias == eql?
 
+  def hash
+    @java.hasCode
+  end
+
   # Returns a printable version of this cell
   # @return [String]
   def inspect
