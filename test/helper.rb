@@ -7,6 +7,10 @@ SimpleCov.start
 
 RECREATE = false
 
+unless defined? Enumerator
+  include Enumerable::Enumerator
+end
+
 $LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
 
 require "hbase-jruby"

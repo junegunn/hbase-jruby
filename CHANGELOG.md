@@ -1,6 +1,13 @@
 Changelog
 =========
 
+0.3.0
+-----
+- Enumerable classes (Table, Scoped, Row, ByteArray) now return Enumerator on each when block not given
+- Added `HBase::Table#scoped` method to return `HBase::Scoped` object for the table
+- Added ability to specify type information for each table for easier data access
+- Defined `HBase::Cell#eql?` method for equaility check
+
 0.2.6
 -----
 - Fixed `HBase::Scoped#filter` method to take short integer (byte, short, int) values

@@ -44,16 +44,16 @@ class Table
    :time_range, :at
   ].each do |method|
     define_method(method) do |*args|
-      self.each.send(method, *args)
+      self.scoped.send(method, *args)
     end
   end
 
   def with_java_scan &block
-    self.each.with_java_scan(&block)
+    self.scoped.with_java_scan(&block)
   end
 
   def with_java_get &block
-    self.each.with_java_get(&block)
+    self.scoped.with_java_get(&block)
   end
 
   # Performs PUT operations
@@ -184,15 +184,15 @@ class Table
   # Scan through the table
   # @yield [row] Yields each row in the scope
   # @yieldparam [HBase::Row] row
-  # @return [HBase::Scoped]
-  def each
-    check_closed
+  # @return [Enumerator]
+  def each &block
+    scoped.each &block
+  end
 
-    if block_given?
-      Scoped.send(:new, self).each { |r| yield r }
-    else
-      Scoped.send(:new, self)
-    end
+  # Returns HBase::Scoped object for this table
+  # @return [HBase::Scoped]
+  def scoped
+    Scoped.send(:new, self)
   end
 
 private
@@ -201,6 +201,7 @@ private
     @config = config
     @pool   = htable_pool
     @name   = name.to_s
+    @schema = {}
   end
 
   def check_closed

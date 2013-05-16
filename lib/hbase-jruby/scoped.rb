@@ -67,6 +67,8 @@ class Scoped
   def each
     check_closed
 
+    return enum_for(:each) unless block_given?
+
     if block_given?
       begin
         scanner = htable.getScanner(filtered_scan)

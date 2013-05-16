@@ -57,12 +57,12 @@ class TestScoped < TestHBaseJRubyBase
       @table.put(i, 'cf1:a' => i, 'cf2:b' => i, 'cf3:c' => i * 3)
     end
 
-    assert_instance_of HBase::Scoped, @table.each
-    scoped = @table.each
-    assert_equal scoped, scoped.each
+    assert_instance_of HBase::Scoped, @table.scoped
+    assert_instance_of Enumerator, @table.each
 
     assert_equal 50, @table.count
     assert_equal 50, @table.each.count
+    assert_equal 50, @table.each.take_while { true }.count
     assert_equal 50, @table.to_a.length # each
 
     # Start key
@@ -147,10 +147,10 @@ class TestScoped < TestHBaseJRubyBase
     end
     insert.call
 
-    assert_instance_of HBase::Scoped, @table.each
+    assert_instance_of HBase::Scoped, @table.scoped
 
     # Test both for HBase::Table and HBase::Scoped
-    [@table, @table.each].each do |table|
+    [@table, @table.scoped].each do |table|
       # project
       project_cols = ['cf1:a', 'cf3:c']
       assert table.project(*project_cols).all? { |result|
@@ -212,7 +212,7 @@ class TestScoped < TestHBaseJRubyBase
     end
 
     insert.call
-    [@table, @table.each].each do |table|
+    [@table, @table.scoped].each do |table|
       # versions
       assert table.all? { |result| result.to_hash_with_versions['cf1:a'].length == 2 }
       assert table.versions(1).all? { |result| result.to_hash_with_versions['cf1:a'].length == 1 }

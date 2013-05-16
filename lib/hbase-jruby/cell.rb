@@ -122,6 +122,13 @@ class Cell
     KeyValue.COMPARATOR.compare(@java, other.java)
   end
 
+  # Checks if the cells are the same
+  # @param [HBase::Cell] other
+  def eql? other
+    (self <=> other) == 0
+  end
+  alias == eql?
+
   # Returns a printable version of this cell
   # @return [String]
   def inspect

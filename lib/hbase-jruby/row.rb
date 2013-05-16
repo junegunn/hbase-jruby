@@ -16,12 +16,9 @@ class Row
 
   # Enumerates through cells
   def each
-    if block_given?
-      @result.raw.each do |kv|
-        yield Cell.new(kv)
-      end
-    else
-      self
+    return enum_for(:each) unless block_given?
+    @result.raw.each do |kv|
+      yield Cell.new(kv)
     end
   end
 

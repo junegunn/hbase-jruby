@@ -65,7 +65,9 @@ class TestTable < TestHBaseJRubyBase
 
     # single-get (latest version)
     result = @table.get('row1')
-    assert_equal result, result.each
+    # Test enumerator
+    assert_equal result.to_a, result.each.each.to_a
+    assert_equal result.to_a, result.each.take_while { true }.to_a
 
     assert_equal 'row1', @table.get('row1').rowkey
     assert_equal 'row1', @table.get('row1').rowkey

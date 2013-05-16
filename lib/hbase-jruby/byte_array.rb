@@ -30,11 +30,8 @@ class ByteArray
   end
 
   def each
-    if block_given?
-      @java.to_a.each { |byte| yield byte }
-    else
-      self
-    end
+    return enum_for(:each) unless block_given?
+    @java.to_a.each { |byte| yield byte }
   end
 
   # Checks if the two byte arrays are the same
