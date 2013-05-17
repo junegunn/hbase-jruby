@@ -7,7 +7,8 @@ class Cell
 
   # Creates a boxed object for a KeyValue object
   # @param [org.apache.hadoop.hbase.KeyValue] key_value
-  def initialize key_value
+  def initialize table, key_value
+    @table = table
     @java = key_value
     @ck   = nil
   end
@@ -49,12 +50,17 @@ class Cell
   end
   alias ts timestamp
 
+  # Returns the value of the cell. If the column in not defined in the schema, returns Java byte array.
+  def value
+    name, type = @table.name_and_type?(cf, cq)
+    type ? Util.from_bytes(type, raw) : raw
+  end
+
   # Returns the value of the cell as a Java byte array
   # @return [byte[]]
-  def value
+  def raw
     @java.getValue
   end
-  alias raw value
 
   # Returns the column value as a String
   # @return [String]
