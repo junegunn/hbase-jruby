@@ -2,6 +2,7 @@ class HBase
 class << self
   # Shortcut method to HBase::ByteArray.new
   # @param [*Object] values
+  # @return [HBase::ByteArray]
   def ByteArray *values
     ByteArray.new(*values)
   end
@@ -15,6 +16,13 @@ class ByteArray
   alias to_java_bytes java
 
   include Enumerable
+
+  # Shortcut method to HBase::ByteArray.new
+  # @param [*Object] values
+  # @return [HBase::ByteArray]
+  def self.[] *values
+    ByteArray.new(*values)
+  end
 
   # Initializes ByteArray instance with the given objects,
   # each converted to its byte array representation
