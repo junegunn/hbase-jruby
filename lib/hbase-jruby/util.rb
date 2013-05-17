@@ -70,9 +70,7 @@ module Util
 
       import_java_classes!
       case type
-      when :string
-        val.to_java_bytes
-      when :symbol, :sym
+      when :string, :str, :symbol, :sym
         val.to_s.to_java_bytes
       when :byte
         [val].to_java(Java::byte)
@@ -86,6 +84,15 @@ module Util
         Bytes.java_send :toBytes, [Java::long], val
       when :float, :double
         Bytes.java_send :toBytes, [Java::double], val
+      when :bigdecimal
+        case val
+        when BigDecimal
+          Bytes.java_send :toBytes, [java.math.BigDecimal], v.to_java
+        when java.math.BigDecimal
+          Bytes.java_send :toBytes, [java.math.BigDecimal], v
+        else
+          raise ArgumentError, "not BigDecimal"
+        end
       when :raw
         val
       else

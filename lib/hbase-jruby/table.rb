@@ -208,13 +208,15 @@ class Table
         else
           raise ArgumentError, "invalid schema"
         end
+      # Family => Type
       # Family => { Column => Type }
       else
         # Type
-        if cols.is_a?(Symbol) || cols.is_a?(String)
+        case cols
+        when Symbol
           lookup[:type][:pattern][/^#{cf}:/] = cols
-        # Qualifiers
-        elsif cols.is_a?(Hash)
+        # { Column => Type }
+        when Hash
           cols.each do |cq, type|
             raise ArgumentError, "invalid schema" unless type.is_a?(Symbol)
 
@@ -224,8 +226,9 @@ class Table
               lookup[:type][:pattern][cq] = type
             # Exact
             else
-              [cq, cq.to_s, cq.to_sym, [cf, cq].join(':')].each do |key|
-                lookup[:name][:exact][key] = [cf, cq].join ':'
+              fullname = [cf, cq].join(':')
+              [cq, cq.to_s, cq.to_sym, fullname].each do |key|
+                lookup[:name][:exact][key] = fullname
                 lookup[:type][:exact][key] = type
               end
             end
@@ -242,18 +245,31 @@ class Table
 
   # @private
   def fullname_of? cq
-    lookup(@lookup[:name], cq) { |partial, input|
+    schema_lookup(@lookup[:name], cq) { |partial, input|
       [partial, input].join ':'
     } || cq
   end
 
   # @private
+  # @return [Symbol|nil]
   def type_of? cq
-    lookup @lookup[:type], cq
+    schema_lookup @lookup[:type], cq
+  end
+
+  # @private
+  def name_and_type? cf, cq
+    name = cq.to_s
+    if type = @table.type_of?(name)
+      name = name.to_sym
+    else
+      name = [cf.to_s, cq.to_s].join ':'
+      type = @table.type_of?(name)
+    end
+    [name, type]
   end
 
 private
-  def lookup dic, cq
+  def schema_lookup dic, cq
     2.times do |i|
       if match = dic[:exact][cq]
         return match

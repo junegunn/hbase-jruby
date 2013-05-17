@@ -18,7 +18,7 @@ class Row
   def each
     return enum_for(:each) unless block_given?
     @result.raw.each do |kv|
-      yield Cell.new(kv)
+      yield Cell.new(@table, kv)
     end
   end
 
@@ -33,14 +33,7 @@ class Row
     {}.tap do |ret|
       @result.getNoVersionMap.each do |cf, cqmap|
         cqmap.each do |cq, val|
-          name = cq.to_s.to_sym
-          type = @table.type_of?(name)
-
-          unless type
-            name = [cf.to_s, cq.to_s].join ':'
-            type = @table.type_of?(name)
-          end
-
+          name, type = @table.name_and_type?(cf, cq)
           ret[name] = type ? Util.from_bytes(type, val) : val
         end
       end
@@ -52,14 +45,7 @@ class Row
     {}.tap do |ret|
       @result.getMap.each do |cf, cqmap|
         cqmap.each do |cq, tsmap|
-          name = cq.to_s.to_sym
-          type = @table.type_of?(name)
-
-          unless type
-            name = [cf.to_s, cq.to_s].join ':'
-            type = @table.type_of?(name)
-          end
-
+          name, type = @table.name_and_type?(cf, cq)
           ret[name] =
             Hash[
               tsmap.map { |ts, val|
@@ -76,6 +62,7 @@ class Row
   # @param [Hash] schema Schema used to parse byte arrays (column family, qualifier and the value)
   # @return [Hash] Hash representation of the row indexed by ColumnKey
   def to_hash schema = {}
+    warn "Deprecated: use to_h instead"
     schema = parse_schema schema
 
     HASH_TEMPLATE.clone.tap { |ret|
@@ -95,6 +82,7 @@ class Row
   # @param [Hash] schema Schema used to parse byte arrays (column family, qualifier and the value)
   # @return [Hash<Hash>] Hash representation of the row indexed by ColumnKey
   def to_hash_with_versions schema = {}
+    warn "Deprecated: use to_H instead"
     schema = parse_schema schema
 
     HASH_TEMPLATE.clone.tap { |ret|
