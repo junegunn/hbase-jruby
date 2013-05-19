@@ -102,7 +102,7 @@ table.range(0..100)
   table.put book.rowkey => { price: book[:price] + BigDecimal('1') }
 
   # Atomic increment
-  table.increment book.rowkey, :reviews => 1, :stars => 5
+  table.increment book.rowkey, reviews: 1, stars: 5
 
   # Delete a column
   table.delete book.rowkey, :comment1
