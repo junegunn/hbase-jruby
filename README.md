@@ -17,7 +17,7 @@
 
 Using table schema greatly simplifies the way you access data:
 - It allows you to omit column family names
-- Automatically convert types when writing or reading data
+- Automatic type conversion when writing or reading data
 
 This document has been shortened focusing on this new way of accessing data.
 For old-school low-level APIs, refer to
@@ -31,8 +31,85 @@ require 'hbase-jruby'
 HBase.resolve_dependency! 'cdh4.2.1'
 
 hbase = HBase.new
-table = hbase[:book]
 
+table = hbase[:book]
+table.create!({
+  cf1: {
+    bloomfilter: :row,
+  },
+  cf2: {
+    compression: :gz,
+    bloomfilter: :rowcol,
+    versions:    5
+  }
+}) unless table.exists?
+
+hbase.schema[:book] = {
+  # Columns in cf1 family
+  cf1: {
+    title:    :string,
+    author:   :string,
+    category: :string,
+    year:     :short,
+    pages:    :fixnum,
+    price:    :bigdecimal,
+    weight:   :float,
+    in_print: :boolean
+  },
+  # Columns in cf2 family
+  cf2: {
+    summary: :string,
+    reviews: :fixnum,
+    stars:   :fixnum,
+    /^comment\d+/ => :string
+  }
+}
+
+# PUT
+table.put 1 => {
+  title:     'The Golden Bough: A Study of Magic and Religion',
+  author:    'Sir James G. Frazer',
+  category:  'Occult',
+  year:      1890,
+  pages:     1006,
+  price:     BigDecimal('21.50'),
+  weight:    3.0,
+  in_print:  true,
+  summary:   'A wide-ranging, comparative study of mythology and religion',
+  reviews:   52,
+  stars:     226,
+  comment1:  'A must-have',
+  comment2:  'Rewarding purchase'
+}
+
+# GET
+book     = table.get(1)
+title    = book[:title]
+comment2 = book[:comment2]
+as_hash  = book.to_h
+
+# SCAN
+table.range(0..100)
+     .filter(year:     1880...1900,
+             in_print: true,
+             category: ['Comics', 'Fiction', /cult/i],
+             price:    { lt: BigDecimal('30.00') },
+             summary:  /myth/i)
+     .project(:cf1, :reviews)
+     .each do |book|
+
+  # Update columns
+  table.put book.rowkey => { price: book[:price] + BigDecimal('1') }
+
+  # Atomic increment
+  table.increment book.rowkey, :reviews => 1, :stars => 5
+
+  # Delete a column
+  table.delete book.rowkey, :comment1
+end
+
+# Delete row
+table.delete 1
 ```
 
 ## Setting up
@@ -142,9 +219,42 @@ table.create! cf1: {},
 
 ## Basic operations
 
-We'll assume that `table` object in the following examples is given the book schema shown above.
-Columns that are not predefined in the schema can be referenced
-using `FAMILY:QUALIFIER` notation (or 2-element Array of family and qualifier names).
+### Defining table schema for easier data access
+
+HBase stores everything as simple Java byte arrays.
+So it's basically up to users to encode and decode data when accessing HBase,
+and that is a tedious and error-prone task.
+`hbase-jruby` introduces the concept of table schema, which simplifies accessing data in HBase.
+
+We'll use the following schema throughout the examples.
+
+```ruby
+hbase.schema[:book] = {
+  # Columns in cf1 family
+  cf1: {
+    title:    :string,
+    author:   :string,
+    category: :string,
+    year:     :short,
+    pages:    :fixnum,
+    price:    :bigdecimal,
+    weight:   :float,
+    in_print: :boolean
+  },
+  # Columns in cf2 family
+  cf2: {
+    summary: :string,
+    reviews: :fixnum,
+    stars:   :fixnum,
+    /^comment\d+/ => :string
+  }
+}
+```
+
+Columns that are not defined in the schema can be referenced
+using `FAMILY:QUALIFIER` notation or 2-element Array of column family name (as Symbol) and qualifier,
+however since there's no type information, they are returned as Java byte arrays,
+which have to be decoded manually.
 
 ### PUT
 
@@ -180,9 +290,15 @@ title  = book[:title]
 author = book[:author]
 year   = book[:year]
 
-# Columns not in the schema are returned as Java byte arrays
-# So they need to be converted manually as follows
-extra = HBase::Util.from_bytes :bigdecimal, book['cf2:extra']
+# Convert to simple Hash
+hash = book.to_h
+
+# Convert to Hash containing all versions of values indexed by their timestamps
+all_hash = book.to_H
+
+# Columns not defined in the schema are returned as Java byte arrays
+# They need to be decoded manually
+extra = HBase::Util.from_bytes(:bigdecimal, book['cf2:extra'])
 # or, simply
 extra = book.bigdecimal 'cf2:extra'
 ```
@@ -309,7 +425,7 @@ table.range('A'..'Z').                      # Row key range,
       filter(year: [1990, 2000, 2010]).     # Set-inclusion condition on cf1:year
       filter(weight: 2.0..4.0).             # Range filter on cf1:weight
       filter(RandomRowFilter.new(0.5)).     # Any Java HBase filter
-      while(revies: { gt: 20 }).            # Early termination of scan
+      while(reviews: { gt: 20 }).           # Early termination of scan
       time_range(Time.now - 600, Time.now). # Scan data of the last 10 minutes
       limit(10).                            # Limits the size of the result set
       versions(2).                          # Only fetches 2 versions for each value
@@ -394,7 +510,7 @@ table.range(nil, 1000).
         reviews: { gt: 100, lte: 200 },
 
         # Array of the aforementioned types: OR condition (disjunctive)
-        category: ['Fiction', 'Comic', /science/i, { ne: 'Political Science' }]
+        category: ['Fiction', 'Comic', /science/i, { ne: 'Political Science' }]).
 
       # Multiple calls for conjunctive filtering
       filter(summary: /instant/i).
@@ -790,16 +906,14 @@ table.range('1'..'3').map { |r| r.rowkey :string }
 
 ### Non-string column qualifier
 
-If a column qualifier is not a String, a 2-element Array should be used
-instead of a conventional `FAMILY:QUALIFIER` String.
+If a column qualifier is not a String, a 2-element Array should be used.
 
 ```ruby
 table.put 'rowkey',
-  'cf1:col1'                    => 'Hello world',
   [:cf1, 100  ] => "Byte representation of an 8-byte integer",
   [:cf1, bytes] => "Qualifier is an arbitrary byte array"
 
-table.get('rowkey')[[:cf1, 100]]
+table.get('rowkey')[:cf1, 100]
 # ...
 ```
 
