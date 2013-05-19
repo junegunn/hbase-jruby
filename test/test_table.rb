@@ -82,9 +82,9 @@ class TestTable < TestHBaseJRubyBase
     assert_equal 201,   @table.get('row1').short('cf1:short')
     assert_equal 301,   @table.get('row1').int('cf1:int')
 
-    # single-get-multi-col
-    assert_equal %w[Hello World], @table.get('row1').string(['cf1:str1', 'cf1:str2'])
-    assert_equal [301, 401], @table.get('row1').int(['cf1:int', 'cf1:int2'])
+    # single-get-multi-col (deprecated since 0.3)
+    # assert_equal %w[Hello World], @table.get('row1').string(['cf1:str1', 'cf1:str2'])
+    # assert_equal [301, 401], @table.get('row1').int(['cf1:int', 'cf1:int2'])
 
     # single-get-multi-ver
     assert_equal [1, 2],        @table.get('row1').fixnums('cf1:a').values
@@ -102,10 +102,10 @@ class TestTable < TestHBaseJRubyBase
 
     assert @table.get('row1').fixnums('cf1:a').keys.all? { |k| k.instance_of? Fixnum }
 
-    # single-get-multi-col-multi=ver
-    rets = @table.get('row1').strings(['cf1:str1', 'cf1:str2'])
-    assert_equal ['Hello', 'World'], rets.map(&:values).map(&:first)
-    assert_equal ['Goodbye', 'Cruel world'], rets.map(&:values).map(&:last)
+    # single-get-multi-col-multi=ver (deprecated since 0.3)
+    # rets = @table.get('row1').strings(['cf1:str1', 'cf1:str2'])
+    # assert_equal ['Hello', 'World'], rets.map(&:values).map(&:first)
+    # assert_equal ['Goodbye', 'Cruel world'], rets.map(&:values).map(&:last)
 
     # multi-get
     assert_equal %w[row1 row2 row3], @table.get(['row1', 'row2', 'row3']).map { |r| r.rowkey }
