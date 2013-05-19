@@ -4,7 +4,7 @@ $LOAD_PATH.unshift File.expand_path('..', __FILE__)
 require 'helper'
 require 'bigdecimal'
 
-class TestCell < Test::Unit::TestCase
+class TestCell < TestHBaseJRubyBase
   import org.apache.hadoop.hbase.KeyValue
   Util = HBase::Util
 
@@ -23,7 +23,7 @@ class TestCell < Test::Unit::TestCase
       { :byte  => 100 }         => :byte
     }.each do |value, type|
       kv = KeyValue.new("rowkey".to_java_bytes, "hello".to_java_bytes, "world".to_java_bytes, ts, Util.to_bytes(value))
-      cell = HBase::Cell.new(kv)
+      cell = HBase::Cell.new(@table, kv) # FIXME
 
       assert_equal "rowkey", cell.rowkey
       assert_equal "hello",  cell.cf, cell.family
@@ -50,7 +50,7 @@ class TestCell < Test::Unit::TestCase
         KeyValue.new("rowkey".to_java_bytes, "apple".to_java_bytes,  "beta".to_java_bytes,  ts, val),
         KeyValue.new("rowkey".to_java_bytes, "banana".to_java_bytes, "beta".to_java_bytes,  ts, val),
         KeyValue.new("rowkey".to_java_bytes, "banana".to_java_bytes, "gamma".to_java_bytes, ts, val),
-      ].map { |kv| HBase::Cell.new kv }
+      ].map { |kv| HBase::Cell.new @table, kv }
 
     assert_equal cells, cells.reverse.sort
   end
