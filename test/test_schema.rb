@@ -223,6 +223,7 @@ class TestSchema < TestHBaseJRubyBase
     table.put 2, :reviews => 100, :stars => 500
     assert_equal data[:reviews] + 1 + data[:stars] + 5 + 100 + 500,
       table.project(:reviews, :stars).aggregate(:sum)
+    table.disable_aggregation!
 
     # Undefined columns
     table.put 1, 'cf1:x'      => 1000
