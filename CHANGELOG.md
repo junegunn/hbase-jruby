@@ -11,6 +11,7 @@ Changelog
   - *`Row#to_hash` and `Row#to_hash_with_versions` are now deprecated*. Use `to_h` and `to_h_with_versions` instead.
   - Enumerable classes (Table, Scoped, Row, ByteArray) now return Enumerator on each method when block not given
   - `Cell#value` can now return the correct data type if defined in the schema. For Java byte array, use `Cell#raw`.
+  - `Row#[type|types]` methods no more take Array of columns as arguments
 - Added `HBase::Table#scoped` method to return `HBase::Scoped` object for the table
 - Added `HBase::Cell#{eql?,hash}` method for equaility check
 

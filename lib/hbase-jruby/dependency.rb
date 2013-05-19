@@ -154,10 +154,6 @@ class HBase
         HBase::Result => %w[
           org.apache.hadoop.hbase.util.Bytes
         ],
-        HBase::ColumnKey => %w[
-          java.util.Arrays
-          org.apache.hadoop.hbase.util.Bytes
-        ],
         HBase::Table => %w[
           org.apache.hadoop.hbase.HColumnDescriptor
           org.apache.hadoop.hbase.HTableDescriptor

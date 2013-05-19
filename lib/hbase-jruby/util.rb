@@ -87,9 +87,9 @@ module Util
       when :bigdecimal
         case val
         when BigDecimal
-          Bytes.java_send :toBytes, [java.math.BigDecimal], v.to_java
+          Bytes.java_send :toBytes, [java.math.BigDecimal], val.to_java
         when java.math.BigDecimal
-          Bytes.java_send :toBytes, [java.math.BigDecimal], v
+          Bytes.java_send :toBytes, [java.math.BigDecimal], val
         else
           raise ArgumentError, "not BigDecimal"
         end
@@ -127,7 +127,7 @@ module Util
         Bytes.to_double val
       when :boolean, :bool
         Bytes.to_boolean val
-      when :raw
+      when :raw, nil
         val
       else
         raise ArgumentError, "Invalid type: #{type}"
@@ -148,8 +148,6 @@ module Util
     # @param [Object, Array, KeyValue] col
     def parse_column_name col
       case col
-      when ColumnKey
-        return col.cf.to_java_bytes, col.cq(:raw)
       when KeyValue
         return col.getFamily, col.getQualifier
       when Array
@@ -157,8 +155,9 @@ module Util
       when '', nil
         raise ArgumentError, "Column family not specified"
       else
-        cf, cq = KeyValue.parseColumn(col.to_s.to_java_bytes)
-        cq = JAVA_BYTE_ARRAY_EMPTY if cq.nil? && col.to_s[-1, 1] == ':'
+        col = col.to_s
+        cf, cq = KeyValue.parseColumn(col.to_java_bytes)
+        cq = JAVA_BYTE_ARRAY_EMPTY if cq.nil? && col[-1, 1] == ':'
         return cf, cq
       end
     end

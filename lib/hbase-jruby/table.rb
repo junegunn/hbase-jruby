@@ -123,7 +123,9 @@ class Table
 
     htable.delete specs.map { |spec|
       rowkey, cfcq, *ts = spec
-      cf, cq = Util.parse_column_name(cfcq) if cfcq
+      if cfcq
+        cf, cq, _ = parse_column cfcq
+      end
 
       Delete.new(Util.to_bytes rowkey).tap { |del|
         if !ts.empty?
@@ -171,13 +173,13 @@ class Table
       cols = args.first
       htable.increment Increment.new(Util.to_bytes rowkey).tap { |inc|
         cols.each do |col, by|
-          cf, cq = Util.parse_column_name(col)
+          cf, cq, _ = parse_column col
           inc.addColumn cf, cq, by
         end
       }
     else
       col, by = args
-      cf, cq = Util.parse_column_name(col)
+      cf, cq = parse_column col
       htable.incrementColumnValue Util.to_bytes(rowkey), cf, cq, by || 1
     end
   end
@@ -196,42 +198,39 @@ class Table
     Scoped.send(:new, self)
   end
 
+  # [cq]
+  # [cf:cq]
   def schema= definition
     lookup = empty_lookup_table
     definition.each do |cf, cols|
-      # Column => Type
-      if cf.to_s.index ':'
-        if cols.is_a?(Symbol)
-          lookup[:type][:exact][cf]        = cols
-          lookup[:type][:exact][cf.to_sym] = cols
-          lookup[:type][:exact][cf.to_s]   = cols
-        else
-          raise ArgumentError, "invalid schema"
-        end
-      # Family => Type
-      # Family => { Column => Type }
-      else
-        # Type
-        case cols
-        when Symbol
-          lookup[:type][:pattern][/^#{cf}:/] = cols
-        # { Column => Type }
-        when Hash
-          cols.each do |cq, type|
-            raise ArgumentError, "invalid schema" unless type.is_a?(Symbol)
+      unless [Symbol, String].any? { |k| cf.is_a? k }
+        raise ArgumentError,
+          "invalid schema: use String or Symbol for column family name"
+      end
 
-            # Pattern
-            if cq.is_a?(Regexp)
-              lookup[:name][:pattern][cq] = cf
-              lookup[:type][:pattern][cq] = type
-            # Exact
-            else
-              fullname = [cf, cq].join(':')
-              [cq, cq.to_s, cq.to_sym, fullname].each do |key|
-                lookup[:name][:exact][key] = fullname
-                lookup[:type][:exact][key] = type
-              end
-            end
+      # CF:CQ => Type shortcut
+      cf = cf.to_s
+      if cf.index(':')
+        cf, cq = key.to_s.split ':', 2
+        cols = { cq => cols }
+      else
+        raise ArgumentError, "invalid schema: expected Hash" unless cols.is_a?(Hash)
+      end
+
+      # Family => { Column => Type }
+      cols.each do |cq, type|
+        raise ArgumentError, "invalid schema" unless type.is_a?(Symbol)
+
+        # Pattern
+        case cq
+        when Regexp
+          lookup[:pattern][cq] = [cf, nil, type]
+        # Exact
+        when String, Symbol
+          cq = cq.to_s
+          cfcq = [cf, cq].join(':')
+          [cq, cq.to_sym, cfcq].each do |key|
+            lookup[:exact][key] = [cf, cq.to_sym, type]
           end
         else
           raise ArgumentError, "invalid schema"
@@ -244,46 +243,22 @@ class Table
   end
 
   # @private
-  def fullname_of? cq
-    schema_lookup(@lookup[:name], cq) { |partial, input|
-      [partial, input].join ':'
-    } || cq
-  end
-
-  # @private
-  # @return [Symbol|nil]
-  def type_of? cq
-    schema_lookup @lookup[:type], cq
-  end
-
-  # @private
-  def name_and_type? cf, cq
-    name = cq.to_s
-    if type = @table.type_of?(name)
-      name = name.to_sym
-    else
-      name = [cf.to_s, cq.to_s].join ':'
-      type = @table.type_of?(name)
+  def lookup_schema col
+    if match = @lookup[:exact][col]
+      return match
+    elsif pair = @lookup[:pattern].find { |k, v| col.to_s =~ k }
+      return pair[1].dup.tap { |e| e[1] = col.to_sym }
     end
-    [name, type]
+  end
+
+  # @private
+  def parse_column col
+    cf, cq, type = lookup_schema col
+    cf, cq = Util.parse_column_name(cf ? [cf, cq] : col)
+    return [cf, cq, type]
   end
 
 private
-  def schema_lookup dic, cq
-    2.times do |i|
-      if match = dic[:exact][cq]
-        return match
-      elsif pair = dic[:pattern].find { |k, v| cq.to_s =~ k }
-        return block_given? ? yield(pair[1], cq) : pair[1]
-      end
-
-      break if i == 1
-      cq = cq.to_s.split(':')[1]
-      break if cq.nil?
-    end
-    nil
-  end
-
   def initialize hbase, config, htable_pool, name
     @hbase  = hbase
     @config = config
@@ -295,14 +270,8 @@ private
 
   def empty_lookup_table
     {
-      :name => {
-        :exact   => {},
-        :pattern => {},
-      },
-      :type => {
-        :exact   => {},
-        :pattern => {},
-      }
+      :exact   => {},
+      :pattern => {},
     }
   end
 
@@ -313,8 +282,7 @@ private
   def putify rowkey, props
     Put.new(Util.to_bytes rowkey).tap { |put|
       props.each do |col, val|
-        cf, cq = Util.parse_column_name(fullname_of? col)
-        type   = type_of? col
+        cf, cq, type = parse_column col
 
         case val
         when Hash

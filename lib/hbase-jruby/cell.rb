@@ -21,12 +21,6 @@ class Cell
     Util.from_bytes type, @java.getRow
   end
 
-  # Returns the ColumnKey object for the cell
-  # @return [ColumnKey]
-  def column_key
-    @ck ||= ColumnKey.new @java.getFamily, @java.getQualifier
-  end
-
   # Returns the name of the column family of the cell
   # @return [String]
   def family
@@ -52,8 +46,8 @@ class Cell
 
   # Returns the value of the cell. If the column in not defined in the schema, returns Java byte array.
   def value
-    name, type = @table.name_and_type?(cf, cq)
-    type ? Util.from_bytes(type, raw) : raw
+    _, _, type = @table.lookup_schema(cq)
+    Util.from_bytes(type, raw)
   end
 
   # Returns the value of the cell as a Java byte array

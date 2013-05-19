@@ -45,6 +45,7 @@ class ByteArray
   # Checks if the two byte arrays are the same
   # @param [HBase::ByteArray] other
   def eql? other
+    other = other_as_byte_array other
     Arrays.equals(@java, other.java)
   end
   alias == eql?
@@ -52,6 +53,7 @@ class ByteArray
   # Compares two ByteArray objects
   # @param [HBase::ByteArray] other
   def <=> other
+    other = other_as_byte_array other
     Bytes.compareTo(@java, other.java)
   end
 
@@ -157,6 +159,15 @@ private
     @java = values.inject(Util::JAVA_BYTE_ARRAY_EMPTY) { |sum, value|
       Bytes.add sum, Util.to_bytes(value)
     }
+  end
+
+  def other_as_byte_array other
+    case other
+    when ByteArray
+      other
+    else
+      ByteArray[other]
+    end
   end
 end#ByteArray
 end#HBase

@@ -35,7 +35,6 @@ class TestCell < Test::Unit::TestCase
         assert_equal value, cell.send(type)
       end
       assert HBase::Util.java_bytes?(cell.raw)
-      assert_equal HBase::ColumnKey.new(:hello, :world), cell.column_key
       assert_instance_of String, cell.inspect
     end
   end

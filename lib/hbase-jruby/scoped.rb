@@ -206,7 +206,10 @@ class Scoped
         end
       end
     end
-    spawn :@project, @project + columns.map { |c| @table.fullname_of? c }
+    spawn :@project, @project + columns.map { |c|
+      cf, cq, type = @table.lookup_schema(c)
+      cf ? [cf, cq] : c
+    }
   end
 
   # Returns an HBase::Scoped object with the specified version number limit.
@@ -591,8 +594,7 @@ private
       case f
       when Hash
         f.map { |col, val|
-          cf, cq = Util.parse_column_name(@table.fullname_of? col)
-          type = @table.type_of?(col)
+          cf, cq, type = @table.parse_column col
 
           case val
           when Array
@@ -623,7 +625,8 @@ private
 
   # @private
   def typed_bytes col, v
-    Util.to_typed_bytes(type_of?(col), v)
+    _, _, type = @table.lookup_schema(col)
+    Util.to_typed_bytes(type || :raw, v)
   end
 
   def check_closed

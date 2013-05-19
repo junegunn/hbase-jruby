@@ -156,54 +156,6 @@ class TestTable < TestHBaseJRubyBase
     assert_equal ['B1'], @table.get(rowkey).strings('cf1:b').values
   end
 
-  def test_to_hash
-    data = {
-      'cf1:a' => 'Hello',
-      'cf1:b' => 200,
-      'cf1:c' => 3.14,
-      'cf2:d' => :world,
-      'cf2:e' => false,
-      'cf3:f' => BigDecimal.new('1234567890123456789012345678901234567890'),
-      'cf3'   => true
-    }
-    schema = {
-      'cf1:a' => :string,
-      'cf1:b' => :fixnum,
-      'cf1:c' => :float,
-      HBase::ColumnKey(:cf2, :d) => :symbol,
-      HBase::ColumnKey(:cf2, :e) => :boolean,
-      HBase::ColumnKey(:cf3, :f) => :bigdecimal,
-      'cf3'   => :boolean
-    }
-    @table.put('row1', data)
-    @table.put('row2', 'cf1:a' => 'Goodbye')
-
-    assert_equal data, @table.get('row1').to_hash(schema).map { |k, v| { k.to_s => v } }.inject(:merge)
-    assert_equal 1,    @table.get('row1').to_hash_with_versions(schema)['cf1:a'].length
-    assert_equal 1,    @table.get('row1').to_hash_with_versions(schema)[HBase::ColumnKey(:cf1, :a)].length
-
-    # Better testing for versioned values
-    @table.put('row1', data)
-    assert_equal data, @table.get('row1').to_hash(schema).map { |k, v| { k.to_s => v } }.inject(:merge)
-
-    assert_equal 2, @table.get('row1').to_hash_with_versions(schema)['cf1:a'].length
-    assert_equal 1, @table.get('row1').to_hash_with_versions(schema)['cf3:f'].length
-
-    # get option: :versions
-    assert_equal 1, @table.versions(1).get('row1').to_hash_with_versions(schema)['cf1:a'].length
-
-    # scoped get with filters
-    assert_equal 2, @table.get(['row1', 'row2']).count
-    assert_equal 2, @table.range('row1'...'row2').get(['row1', 'row2']).count
-    assert_equal 2, @table.range('row1'..'row2').get(['row1', 'row2']).compact.count
-    assert_equal 1, @table.range('row1'...'row2').get(['row1', 'row2']).compact.count
-    assert_equal 1, @table.range(:prefix => 'row2').get(['row1', 'row2']).compact.count
-    assert_equal 1, @table.filter('cf1:a' => 'Hello').get(['row1', 'row2']).compact.count
-
-    # scoped get with projection
-    assert_equal %w[cf3 cf3:f], @table.project('cf3').get('row1').to_hash.keys.map(&:to_s)
-  end
-
   def test_increment
     @table.put('row1', 'cf1:counter' => 1, 'cf1:counter2' => 100)
     assert_equal 1, @table.get('row1').fixnum('cf1:counter')

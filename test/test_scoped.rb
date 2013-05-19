@@ -249,21 +249,21 @@ class TestScoped < TestHBaseJRubyBase
   end
 
   def test_non_string_column_name
-    @table.put 'rowkey', Hash[ (1..20).map { |cq| [HBase::ColumnKey('cf1', cq), cq] } ]
+    @table.put 'rowkey', Hash[ (1..20).map { |cq| [['cf1', cq], cq] } ]
 
-    assert((1..20).all? { |cq| @table.get('rowkey').fixnum(HBase::ColumnKey('cf1', cq)) == cq })
+    assert((1..20).all? { |cq| @table.get('rowkey').fixnum(['cf1', cq]) == cq })
 
     assert @table.project(['cf1', 10], ['cf1', 20]).map { |r|
-      [r.fixnum(HBase::ColumnKey('cf1', 10)), r.fixnum(HBase::ColumnKey.new('cf1', 20))]
+      [r.fixnum(['cf1', 10]), r.fixnum(['cf1', 20])]
     }.all? { |e| e == [10, 20] }
 
     hash = @table.get('rowkey').to_hash(
-      HBase::ColumnKey('cf1', 1) => :fixnum,
-      HBase::ColumnKey('cf1', 2) => :fixnum
+      ['cf1', 1] => :fixnum,
+      ['cf1', 2] => :fixnum
     )
-    assert_equal 1, hash[HBase::ColumnKey(:cf1, 1)]
-    assert_equal 2, hash[HBase::ColumnKey(:cf1, 2)]
-    assert_equal 3, HBase::Util.from_bytes(:fixnum, hash[HBase::ColumnKey(:cf1, 3)])
+    assert_equal 1, hash[[:cf1, 1]]
+    assert_equal 2, hash[[:cf1, 2]]
+    assert_equal 3, HBase::Util.from_bytes(:fixnum, hash[[:cf1, 3]])
   end
 
   def test_table_descriptor
@@ -289,14 +289,14 @@ class TestScoped < TestHBaseJRubyBase
     (1..100).each do |rk|
       data = {}
       (1..200).each do |cq|
-        data[HBase::ColumnKey(:cf1, cq)] = rk + cq
+        data[[:cf1, cq]] = rk + cq
       end
       all_data[rk] = data
     end
     @table.put all_data
 
     # One simple filter (Rowkey 10 ~ 19)
-    scoped1 = @table.filter(HBase::ColumnKey('cf1', 100) => 110...120)
+    scoped1 = @table.filter(['cf1', 100] => 110...120)
     ret = scoped1.get((1..100).to_a)
     assert_equal 100, ret.count
     assert_equal 10, ret.compact.count
@@ -304,7 +304,7 @@ class TestScoped < TestHBaseJRubyBase
     # Two filters
     scoped2 = scoped1.filter(
       # Rowkey 10 ~ 19 & 9 ~ 14 = 10 ~ 14
-      HBase::ColumnKey('cf1', 1) => 10..15
+      ['cf1', 1] => 10..15
     )
     ret = scoped2.get((1..100).to_a)
     assert_equal 100, ret.count

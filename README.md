@@ -23,11 +23,6 @@ This document has been shortened focusing on this new way of accessing data.
 For old-school low-level APIs, refer to
 [the older versions of this document](https://github.com/junegunn/hbase-jruby/blob/b56e21f933f0b388aa5d4d708467273463b76d73/README.md).
 
-One downside of using schema is that it doesn't work well with _non-string column qualifiers_.
-For example `to_h` and `to_H` returns Hash indexed only by Symbols (for known columns)
-and Strings (for unknown ones). If you need to use non-string qualifiers,
-you should fall back to low-level APIs described in the following sections.
-
 ## A quick example
 
 ```ruby
@@ -149,7 +144,7 @@ table.create! cf1: {},
 
 We'll assume that `table` object in the following examples is given the book schema shown above.
 Columns that are not predefined in the schema can be referenced
-using `FAMILY:QUALIFIER` notation (or ColumnKey object when non-string qualifier).
+using `FAMILY:QUALIFIER` notation (or 2-element Array of family and qualifier names).
 
 ### PUT
 
@@ -795,16 +790,16 @@ table.range('1'..'3').map { |r| r.rowkey :string }
 
 ### Non-string column qualifier
 
-If a column qualifier is not a String, *an HBase::ColumnKey instance* should be used
+If a column qualifier is not a String, a 2-element Array should be used
 instead of a conventional `FAMILY:QUALIFIER` String.
 
 ```ruby
 table.put 'rowkey',
   'cf1:col1'                    => 'Hello world',
-  HBase::ColumnKey(:cf1, 100)   => "Byte representation of an 8-byte integer",
-  HBase::ColumnKey(:cf1, bytes) => "Qualifier is an arbitrary byte array"
+  [:cf1, 100  ] => "Byte representation of an 8-byte integer",
+  [:cf1, bytes] => "Qualifier is an arbitrary byte array"
 
-table.get('rowkey')[HBase::ColumnKey(:cf1, 100)]
+table.get('rowkey')[[:cf1, 100]]
 # ...
 ```
 
