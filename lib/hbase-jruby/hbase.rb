@@ -61,6 +61,7 @@ class HBase
         end
       end
     @htable_pool = HTablePool.new @config, java.lang.Integer::MAX_VALUE
+    @schema = Schema.new
     @closed = false
   end
 

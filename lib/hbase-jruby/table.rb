@@ -9,7 +9,6 @@ class HBase
 class Table
   attr_reader :name
   attr_reader :config
-  attr_reader :schema
 
   include Enumerable
   include Admin
@@ -124,7 +123,7 @@ class Table
     htable.delete specs.map { |spec|
       rowkey, cfcq, *ts = spec
       if cfcq
-        cf, cq, _ = parse_column cfcq
+        cf, cq, _ = lookup_and_parse cfcq
       end
 
       Delete.new(Util.to_bytes rowkey).tap { |del|
@@ -173,13 +172,13 @@ class Table
       cols = args.first
       htable.increment Increment.new(Util.to_bytes rowkey).tap { |inc|
         cols.each do |col, by|
-          cf, cq, _ = parse_column col
+          cf, cq, _ = lookup_and_parse col
           inc.addColumn cf, cq, by
         end
       }
     else
       col, by = args
-      cf, cq = parse_column col
+      cf, cq = lookup_and_parse col
       htable.incrementColumnValue Util.to_bytes(rowkey), cf, cq, by || 1
     end
   end
@@ -198,81 +197,22 @@ class Table
     Scoped.send(:new, self)
   end
 
-  # [cq]
-  # [cf:cq]
-  def schema= definition
-    lookup = empty_lookup_table
-    definition.each do |cf, cols|
-      unless [Symbol, String].any? { |k| cf.is_a? k }
-        raise ArgumentError,
-          "invalid schema: use String or Symbol for column family name"
-      end
-
-      # CF:CQ => Type shortcut
-      cf = cf.to_s
-      if cf.index(':')
-        cf, q = key.to_s.split ':', 2
-        cols = { q => cols }
-      else
-        raise ArgumentError, "invalid schema: expected Hash" unless cols.is_a?(Hash)
-      end
-
-      # Family => { Column => Type }
-      cols.each do |cq, type|
-        raise ArgumentError, "invalid schema" unless type.is_a?(Symbol)
-
-        # Pattern
-        case cq
-        when Regexp
-          lookup[:pattern][cq] = [cf, nil, type]
-        # Exact
-        when String, Symbol
-          cq = cq.to_s
-          cfcq = [cf, cq].join(':')
-          [cq, cq.to_sym, cfcq].each do |key|
-            lookup[:exact][key] = [cf, cq.to_sym, type]
-          end
-        else
-          raise ArgumentError, "invalid schema"
-        end
-      end
-    end
-
-    @lookup = lookup
-    @schema = definition.dup
-  end
-
-  # @private
   def lookup_schema col
-    if match = @lookup[:exact][col]
-      return match
-    elsif pair = @lookup[:pattern].find { |k, v| col.to_s =~ k }
-      return pair[1].dup.tap { |e| e[1] = col.to_sym }
-    end
+    @schema.lookup @name_sym, col
   end
 
-  # @private
-  def parse_column col
-    cf, cq, type = lookup_schema col
-    cf, cq = Util.parse_column_name(cf ? [cf, cq] : col)
-    return [cf, cq, type]
+  def lookup_and_parse col
+    @schema.lookup_and_parse @name_sym, col
   end
 
 private
   def initialize hbase, config, htable_pool, name
-    @hbase  = hbase
-    @config = config
-    @pool   = htable_pool
-    @name   = name.to_s
-    @schema = {}
-    @lookup = empty_lookup_table
-  end
-
-  def empty_lookup_table
-    {
-      :exact   => {},
-      :pattern => {},
-    }
+    @hbase    = hbase
+    @schema   = hbase.schema
+    @config   = config
+    @pool     = htable_pool
+    @name     = name.to_s
+    @name_sym = name.to_sym
   end
 
   def check_closed
@@ -282,7 +222,7 @@ private
   def putify rowkey, props
     Put.new(Util.to_bytes rowkey).tap { |put|
       props.each do |col, val|
-        cf, cq, type = parse_column col
+        cf, cq, type = lookup_and_parse col
 
         case val
         when Hash

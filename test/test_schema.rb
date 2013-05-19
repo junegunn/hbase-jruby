@@ -6,7 +6,7 @@ require 'set'
 
 class TestSchema < TestHBaseJRubyBase
   def test_schema
-    @table.schema = {
+    @hbase.schema[@table.name] = {
       # Schema allows you to omit column family names,
       # and to retrieve data without specifying types every time
       :cf1 => {
@@ -94,7 +94,7 @@ class TestSchema < TestHBaseJRubyBase
   end
 
   def test_schema_readme
-    @table.schema = {
+    @hbase.schema[@table.name] = {
       :cf1 => {
         :name   => :string,
         :age    => :fixnum,
@@ -141,7 +141,7 @@ class TestSchema < TestHBaseJRubyBase
   def test_schema_book
     table = @table
 
-    table.schema = {
+    @hbase.schema[table.name] = {
       # Columns in cf1 family
       cf1: {
         title:    :string,

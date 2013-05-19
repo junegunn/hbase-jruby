@@ -594,7 +594,7 @@ private
       case f
       when Hash
         f.map { |col, val|
-          cf, cq, type = @table.parse_column col
+          cf, cq, type = @table.lookup_and_parse col
 
           case val
           when Array
