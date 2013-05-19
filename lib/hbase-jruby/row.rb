@@ -22,7 +22,8 @@ class Row
     end
   end
 
-  def [] col
+  def [] *col
+    col = col.length == 1 ? col[0] : col
     cf, cq, type = @table.lookup_schema(col)
     if cf
       self.send type, [cf, cq]

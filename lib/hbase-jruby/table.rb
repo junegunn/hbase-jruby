@@ -211,8 +211,8 @@ class Table
       # CF:CQ => Type shortcut
       cf = cf.to_s
       if cf.index(':')
-        cf, cq = key.to_s.split ':', 2
-        cols = { cq => cols }
+        cf, q = key.to_s.split ':', 2
+        cols = { q => cols }
       else
         raise ArgumentError, "invalid schema: expected Hash" unless cols.is_a?(Hash)
       end
