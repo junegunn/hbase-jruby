@@ -65,9 +65,11 @@ class Schema
   # @private
   # @return [Array] CF, CQ, Type. When not found, nil.
   def lookup table, col
-    if match = @lookup[table][:exact][col]
+    return nil unless lookup = @lookup[table]
+
+    if match = lookup[:exact][col]
       return match
-    elsif pair = @lookup[table][:pattern].find { |k, v| col.to_s =~ k }
+    elsif pair = lookup[:pattern].find { |k, v| col.to_s =~ k }
       return pair[1].dup.tap { |e| e[1] = col.to_sym }
     end
   end
