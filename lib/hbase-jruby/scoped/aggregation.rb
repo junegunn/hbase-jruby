@@ -17,6 +17,20 @@ module Aggregation
       cpc = 'org.apache.hadoop.hbase.coprocessor.AggregateImplementation'
       add_coprocessor! cpc, &block unless has_coprocessor?(cpc)
     end
+
+    # Disables aggregation support for the table (asynchronous)
+    # @return [nil]
+    def disable_aggregation
+      cpc = 'org.apache.hadoop.hbase.coprocessor.AggregateImplementation'
+      remove_coprocessor cpc if has_coprocessor?(cpc)
+    end
+
+    # Disables aggregation support for the table (synchronous)
+    # @return [nil]
+    def disable_aggregation! &block
+      cpc = 'org.apache.hadoop.hbase.coprocessor.AggregateImplementation'
+      remove_coprocessor! cpc, &block if has_coprocessor?(cpc)
+    end
   end
 
   # Performs aggregation with coprocessor

@@ -7,51 +7,98 @@
 - ActiveRecord-like method chaining for data retrieval
 - Automatic Hadoop/HBase dependency resolution
 
+## Installation
+
+    gem install hbase-jruby
+
 ## A quick example
 
 ```ruby
 require 'hbase-jruby'
 
-HBase.resolve_dependency! 'cdh4.2.0'
+# Load required JAR files from CDH distribution using Maven
+HBase.resolve_dependency! 'cdh4.2.1'
 
+# Connect to HBase on localhost
 hbase = HBase.new
-table = hbase[:test_table]
 
-# PUT
-table.put :rowkey1 => { 'cf1:a' => 100, 'cf2:b' => "Hello" }
+# Define table schema for easier data access
+hbase.schema = {
+  book: {
+    # Columns in cf1 family
+    cf1: {
+      title:    :string,
+      author:   :string,
+      category: :string,
+      year:     :short,
+      pages:    :fixnum,
+      price:    :bigdecimal,
+      weight:   :float,
+      in_print: :boolean
+    },
+    # Columns in cf2 family
+    cf2: {
+      summary: :string,
+      reviews: :fixnum,
+      stars:   :fixnum,
+      /^comment\d+/ => :string
+    }
+  }
+}
 
-# GET
-row = table.get(:rowkey1)
-number = row.fixnum('cf1:a')
-string = row.string('cf1:b')
-
-# SCAN
-table.range('rowkey1'..'rowkey9').
-      filter('cf1:a' => 100..200,             # cf1:a between 100 and 200
-             'cf1:b' => 'Hello',              # cf1:b = 'Hello'
-             'cf2:c' => /world/i,             # cf2:c matches /world/i
-             'cf2:d' => ['foo', /^BAR/i]).    # cf2:d = 'foo' OR matches /^BAR/i
-      project('cf1:a', 'cf2').
-      each do |row|
-  puts row.fixnum('cf1:a')
+# Create book table with two column families
+table = hbase[:book]
+unless table.exists?
+  table.create! cf1: { min_versions: 2 },
+                cf2: { bloomfilter: :rowcol, versions: 5 }
 end
 
-# DELETE
-table.delete(:rowkey9)
+# PUT
+table.put 1 => {
+  title:     'The Golden Bough: A Study of Magic and Religion',
+  author:    'Sir James G. Frazer',
+  category:  'Occult',
+  year:      1890,
+  pages:     1006,
+  price:     BigDecimal('21.50'),
+  weight:    3.0,
+  in_print:  true,
+  summary:   'A wide-ranging, comparative study of mythology and religion',
+  reviews:   52,
+  stars:     226,
+  comment1:  'A must-have',
+  comment2:  'Rewarding purchase'
+}
+
+# GET
+book     = table.get(1)
+title    = book[:title]
+comment2 = book[:comment2]
+as_hash  = book.to_h
+
+# SCAN
+table.range(0..100)
+     .filter(year:     1880...1900,
+             in_print: true,
+             category: ['Comics', 'Fiction', /cult/i],
+             price:    { lt: BigDecimal('30.00') },
+             summary:  /myth/i)
+     .project(:cf1, :reviews)
+     .each do |book|
+
+  # Update columns
+  table.put book.rowkey, price: book[:price] + BigDecimal('1')
+
+  # Atomic increment
+  table.increment book.rowkey, reviews: 1, stars: 5
+
+  # Delete a column
+  table.delete book.rowkey, :comment1
+end
+
+# Delete row
+table.delete 1
 ```
-
-## Installation
-
-### From Rubygems
-
-    gem install hbase-jruby
-
-### From source
-
-    git clone -b devel https://github.com/junegunn/hbase-jruby.git
-    cd hbase-jruby
-    rake build
-    gem install pkg/hbase-jruby-0.2.2-java.gem
 
 ## Setting up
 
@@ -72,7 +119,7 @@ Call `HBase.resolve_dependency!` helper method passing one of the arguments list
 | cdh4.1[.*] | Cloudera CDH4.1          | cdh4.1.4        | mvn                 |
 | cdh3[u*]   | Cloudera CDH3            | cdh3u6          | mvn                 |
 | 0.95[.*]   | Apache HBase 0.95        | 0.95.0          | mvn                 |
-| 0.94[.*]   | Apache HBase 0.94        | 0.94.6.1        | mvn                 |
+| 0.94[.*]   | Apache HBase 0.94        | 0.94.7          | mvn                 |
 | 0.92[.*]   | Apache HBase 0.92        | 0.92.2          | mvn                 |
 | *POM PATH* | Custom Maven POM file    | -               | mvn                 |
 | `:local`   | Local HBase installation | -               | hbase               |
@@ -84,16 +131,16 @@ Call `HBase.resolve_dependency!` helper method passing one of the arguments list
 
 ```ruby
 # Load JAR files from CDH4 using Maven
-HBase.resolve_dependency! 'cdh4.2.0'
+HBase.resolve_dependency! 'cdh4.2.1'
 HBase.resolve_dependency! 'cdh4.1.3'
 
 # Load JAR files of HBase 0.94.x using Maven
-HBase.resolve_dependency! '0.94.6.1'
-HBase.resolve_dependency! '0.94.2', :verbose => true
+HBase.resolve_dependency! '0.94.7'
+HBase.resolve_dependency! '0.94.2', verbose: true
 
 # Dependency resolution with custom POM file
 HBase.resolve_dependency! '/path/to/my/pom.xml'
-HBase.resolve_dependency! '/path/to/my/pom.xml', :profile => 'trunk'
+HBase.resolve_dependency! '/path/to/my/pom.xml', profile: 'trunk'
 
 # Load JAR files from local HBase installation
 # (equivalent to: export CLASSPATH=$CLASSPATH:`hbase classpath`)
@@ -126,10 +173,10 @@ hbase = HBase.new
 hbase = HBase.new 'hbase.zookeeper.quorum' => 'remote-server.mydomain.net'
 
 # Extra configuration
-hbase = HBase.new 'hbase.zookeeper.quorum' => 'remote-server.mydomain.net',
-                  'hbase.client.retries.number' => 3,
+hbase = HBase.new 'hbase.zookeeper.quorum'       => 'remote-server.mydomain.net',
+                  'hbase.client.retries.number'  => 3,
                   'hbase.client.scanner.caching' => 1000,
-                  'hbase.rpc.timeout' => 120000
+                  'hbase.rpc.timeout'            => 120000
 
 # Close HBase connection
 hbase.close
@@ -154,130 +201,188 @@ table = hbase[:test_table]
 table.drop! if table.exists?
 
 # Create table with two column families
-table.create! :cf1 => {},
-              :cf2 => { :compression => :snappy, :bloomfilter => :row }
+table.create! cf1: {},
+              cf2: { compression: :snappy, bloomfilter: :row }
 ```
 
 ## Basic operations
+
+### Defining table schema for easier data access
+
+HBase stores everything as plain Java byte arrays. So it's completely up to
+users to encode and decode column values of various types into and from byte
+arrays, and that is a quite tedious and error-prone task.
+
+To remedy this situation, `hbase-jruby` implements the concept of table schema.
+
+Using table schema greatly simplifies the way you access data:
+- With schema, byte array conversion becomes automatic
+- It allows you to omit column family names (e.g. `:title` instead of `"cf1:title"`)
+
+We'll use the following schema throughout the examples.
+
+```ruby
+hbase.schema = {
+  # Schema for `book` table
+  book: {
+    # Columns in cf1 family
+    cf1: {
+      title:    :string,
+      author:   :string,
+      category: :string,
+      year:     :short,
+      pages:    :fixnum,
+      price:    :bigdecimal,
+      weight:   :float,
+      in_print: :boolean
+    },
+    # Columns in cf2 family
+    cf2: {
+      summary: :string,
+      reviews: :fixnum,
+      stars:   :fixnum,
+      /^comment\d+/ => :string
+    }
+  }
+}
+```
+
+Columns that are not defined in the schema can be referenced
+using `FAMILY:QUALIFIER` notation or 2-element Array of column family name (as Symbol) and qualifier,
+however since there's no type information, they are returned as Java byte arrays,
+which have to be decoded manually.
 
 ### PUT
 
 ```ruby
 # Putting a single row
-table.put 'rowkey1', 'cf1:col1' => "Hello", 'cf2:col2' => "World"
+# - Row keys can be of any type, in this case, we use String type
+table.put 'rowkey1', title: "Hello World", year: 2013
 
 # Putting multiple rows
-table.put 'rowkey1' => { 'cf1:col1' => "Hello",   'cf2:col2' => "World" },
-          'rowkey2' => { 'cf1:col1' => "Howdy",   'cf2:col2' => "World" },
-          'rowkey3' => { 'cf1:col1' => "So long", 'cf2:col2' => "World" }
+table.put 'rowkey1' => { title: 'foo',    year: 2013 },
+          'rowkey2' => { title: "bar",    year: 2014 },
+          'rowkey3' => { title: 'foobar', year: 2015 }
 
 # Putting values with timestamps
 table.put 'rowkey1' => {
-    'cf1:col1' => {
-      1353143856665 => "Hello",
-      1352978648642 => "Goodbye" },
-    'cf2:col2' => "World"
+    title: {
+      1353143856665 => "Hello world",
+      1352978648642 => "Goodbye world"
+    },
+    year: 2013
   }
 ```
 
 ### GET
 
-HBase stores everything as a byte array, so when you fetch data from HBase,
-you need to explicitly specify the type of each value stored.
-
 ```ruby
-row = table.get('rowkey1')
+book = table.get('rowkey1')
 
 # Rowkey
-rowk = row.rowkey
+rowkey = row.rowkey         # Rowkey as raw Java byte array
+rowkey = row.rowkey :string # Rowkey as String
 
-# Column value as a raw Java byte array
-col0 = row.raw 'cf1:col0'
+# Access columns in schema
+title  = book[:title]
+author = book[:author]
+year   = book[:year]
 
-# Decode column values
-col1 = row.string     'cf1:col1'
-col2 = row.fixnum     'cf1:col2'
-col3 = row.bigdecimal 'cf1:col3'
-col4 = row.float      'cf1:col4'
-col5 = row.boolean    'cf1:col5'
-col6 = row.symbol     'cf1:col6'
+# Convert to simple Hash
+hash = book.to_h
 
-# Decode multiple columns at once
-row.string ['cf1:str1', 'cf1:str2']
-  # [ "Hello", "World" ]
+# Convert to Hash containing all versions of values indexed by their timestamps
+all_hash = book.to_H
+
+# Columns not defined in the schema are returned as Java byte arrays
+# They need to be decoded manually
+extra = HBase::Util.from_bytes(:bigdecimal, book['cf2:extra'])
+# or, simply
+extra = book.bigdecimal 'cf2:extra'
 ```
 
-#### Batch GET
+### Batch-GET
 
 ```ruby
 # Pass an array of row keys as the parameter
-rows = table.get(['rowkey1', 'rowkey2', 'rowkey3'])
+books = table.get(['rowkey1', 'rowkey2', 'rowkey3'])
 ```
 
-#### Decode all versions with plural-form (-s) methods
+#### `to_h`
+
+`to_h` and `to_H` return the Hash representation of the row.
+(The latter returns all values with their timestamp)
+
+If a column is defined in the schema, it is referenced using its quailifier in Symbol type.
+If a column is not defined, it is represented as a 2-element Array
+of column family in Symbol and column qualifier as ByteArray.
+Even so, to make it easier to reference those columns, an extended version of
+Hash is returned with which you can also reference them with `FAMILY:QUALIFIER`
+notation or `[cf, cq]` array notation.
 
 ```ruby
-# Decode all versions as Hash indexed by their timestamps
-row.strings 'cf1:str'
-  # {1353143856665=>"Hello", 1353143856662=>"Goodbye"}
+table.put 1000 => {
+  title:      'Hello world', # Known column
+  comment100: 'foo',         # Known column
+  'cf2:extra' => 'bar',      # Unknown column
+  [:cf2, 10]  => 'foobar'    # Unknown column, non-string qualifier
+}
 
-# Decode all versions of multiple columns
-row.strings ['cf1:str1', 'cf1:str2']
-  # [
-  #   {1353143856665=>"Hello", 1353143856662=>"Goodbye"},
-  #   {1353143856665=>"World", 1353143856662=>"Cruel world"}
-  # ]
+book = table.get 10000
+hash = book.to_h
+  # {
+  #   :title => "Hello world",
+  #   [:cf2, HBase::ByteArray<0, 0, 0, 0, 0, 0, 0, 10>] =>
+  #       byte[102, 111, 111, 98, 97, 114]@6f28bb44,
+  #   :comment100 => "foo",
+  #   [:cf2, HBase::ByteArray<101, 120, 116, 114, 97>] =>
+  #       byte[98, 97, 114]@77190cfc}
+  # }
 
-# Plural-form methods are provided for any other data types as well
-cols0 = row.raws        'cf1:col0'
-cols1 = row.strings     'cf1:col1'
-cols2 = row.fixnums     'cf1:col2'
-cols3 = row.bigdecimals 'cf1:col3'
-cols4 = row.floats      'cf1:col4'
-cols5 = row.booleans    'cf1:col5'
-cols6 = row.symbols     'cf1:col6'
+hash['cf2:extra']
+  # byte[98, 97, 114]@77190cfc
+
+hash[%w[cf2 extra]]
+  # byte[98, 97, 114]@77190cfc
+
+hash[[:cf2, HBase::ByteArray['extra']]]
+  # byte[98, 97, 114]@77190cfc
+
+hash['cf2:extra'].to_s
+  # 'bar'
+
+# Columns with non-string qualifiers must be referenced using 2-element Array notation
+hash['cf2:10']
+  # nil
+hash[[:cf2, 10]]
+  # byte[102, 111, 111, 98, 97, 114]@6f28bb44
+
+hash_with_versions = book.to_H
+  # {
+  #   :title => {1369019227766 => "Hello world"},
+  #   [:cf2, HBase::ByteArray<0, 0, 0, 0, 0, 0, 0, 10>] =>
+  #       {1369019227766 => byte[102, 111, 111, 98, 97, 114]@6f28bb44},
+  #   :comment100 => {1369019227766 => "foo"},
+  #   [:cf2, HBase::ByteArray<101, 120, 116, 114, 97>]  =>
+  #       {1369019227766 => byte[98, 97, 114]@77190cfc}}
+  # }
 ```
 
 #### Intra-row scan
 
-Intra-row scan can be done with `each` method which yields `HBase::Cell` instances.
+Intra-row scan can be done using `each` method which yields `HBase::Cell` instances.
 
 ```ruby
 # Intra-row scan (all versions)
 row.each do |cell|
   family    = cell.family
-  qualifier = cell.qualifier(:string)  # Column qualifier as String
+  qualifier = cell.qualifier :string  # Column qualifier as String
   timestamp = cell.timestamp
-
-  # Cell value as Java byte array
-  bytes     = cell.raw
-
-  # Typed access
-  # value_as_string = cell.string
-  # value_as_fixnum = cell.fixnum
-  # ...
+  value     = cell.value
 end
 
 # Array of HBase::Cells
 cells = row.to_a
-```
-
-#### `to_hash`
-
-```ruby
-# Returns the Hash representation of the record with the specified schema
-schema = {
-  'cf1:col1' => :string,
-  'cf1:col2' => :fixnum,
-  'cf1:col3' => :bigdecimal,
-  'cf1:col4' => :float,
-  'cf1:col5' => :boolean,
-  'cf1:col6' => :symbol }
-
-table.get('rowkey1').to_hash(schema)
-
-# Returns all versions for each column indexed by their timestamps
-table.get('rowkey1').to_hash_with_versions(schema)
 ```
 
 ### DELETE
@@ -287,23 +392,23 @@ table.get('rowkey1').to_hash_with_versions(schema)
 table.delete('rowkey1')
 
 # Deletes all columns in the specified column family
-table.delete('rowkey1', 'cf1')
+table.delete('rowkey1', :cf1)
 
 # Deletes a column
-table.delete('rowkey1', 'cf1:col1')
+table.delete('rowkey1', :author)
 
 # Deletes a column with empty qualifier.
 # (!= deleing the entire columns in the family. See the trailing colon.)
 table.delete('rowkey1', 'cf1:')
 
 # Deletes a version of a column
-table.delete('rowkey1', 'cf1:col1', 1352978648642)
+table.delete('rowkey1', :author, 1352978648642)
 
 # Deletes multiple versions of a column
-table.delete('rowkey1', 'cf1:col1', 1352978648642, 1352978649642)
+table.delete('rowkey1', :author, 1352978648642, 1352978649642)
 
 # Batch delete
-table.delete(['rowkey1'], ['rowkey2'], ['rowkey3', 'cf1:col1', 1352978648642, 135297864964])
+table.delete(['rowkey1'], ['rowkey2'], ['rowkey3', :author, 1352978648642, 135297864964])
 ```
 
 However, the last syntax seems a bit unwieldy when you just wish to delete a few rows.
@@ -318,11 +423,16 @@ table.delete_row 'rowkey1', 'rowkey2', 'rowkey3'
 ### Atomic increment of column values
 
 ```ruby
-# Atomically increase cf1:counter by one
-table.increment('rowkey1', 'cf1:counter', 1)
+# Atomically increase cf2:reviews by one
+table.increment('rowkey1', reviews: 1)
 
-# Atomically increase two columns by one and two respectively
-table.increment('rowkey1', 'cf1:counter' => 1, 'cf1:counter2' => 2)
+# Atomically increase two columns by one and five respectively
+table.increment('rowkey1', reviews: 1, stars: 5)
+
+# Increase column values of multiple rows.
+# - Atomicity is only guaranteed within each row.
+table.increment 'rowkey1' => { reviews: 1, stars: 5 },
+                'rowkey2' => { reviews: 1, stars: 3 }
 ```
 
 ### SCAN
@@ -332,10 +442,11 @@ table.increment('rowkey1', 'cf1:counter' => 1, 'cf1:counter2' => 2)
 ```ruby
 # Full scan
 table.each do |row|
-  age  = row.fixnum('cf:age')
-  name = row.string('cf:name')
-  # ...
+  p row.to_h
 end
+
+# Returns Enumerator when block is not given
+table.each.with_index.each_slice(10).to_a
 ```
 
 ## Scoped access
@@ -374,13 +485,13 @@ you can retrieve data with the following methods.
 import org.apache.hadoop.hbase.filter.RandomRowFilter
 
 table.range('A'..'Z').                      # Row key range,
-      project('cf1:a').                     # Select cf1:a column
+      project(:author).                     # Select cf1:author column
       project('cf2').                       # Select cf2 family as well
-      filter('cf1:a' => 'Hello').           # Filter by cf1:a value
-      filter('cf2:d' => 100..200).          # Range filter on cf2:d
-      filter('cf2:e' => [10, 20..30]).      # Set-inclusion condition on cf2:e
+      filter(category: 'Comics').           # Filter by cf1:category value
+      filter(year: [1990, 2000, 2010]).     # Set-inclusion condition on cf1:year
+      filter(weight: 2.0..4.0).             # Range filter on cf1:weight
       filter(RandomRowFilter.new(0.5)).     # Any Java HBase filter
-      while('cf2:f' => { ne: 'OPEN' }).     # Early termination of scan
+      while(reviews: { gt: 20 }).           # Early termination of scan
       time_range(Time.now - 600, Time.now). # Scan data of the last 10 minutes
       limit(10).                            # Limits the size of the result set
       versions(2).                          # Only fetches 2 versions for each value
@@ -389,7 +500,7 @@ table.range('A'..'Z').                      # Row key range,
       with_java_scan { |scan|               # Directly access Java Scan object
         scan.setCacheBlocks false
       }.
-      to_a                                  # To Array
+      to_a                                  # To Array of HBase::Rows
 ```
 
 ### *range*
@@ -420,15 +531,15 @@ Optionally, prefix filter can be applied as follows.
 # Row keys with "APPLE" prefix
 #   Start key is automatically set to "APPLE",
 #   stop key "APPLF" to avoid unnecessary disk access
-table.range(:prefix => 'APPLE')
+table.range(prefix: 'APPLE')
 
 # Row keys with "ACE", "BLUE" or "APPLE" prefix
 #   Start key is automatically set to "ACE",
 #   stop key "BLUF"
-table.range(:prefix => ['ACE', 'BLUE', 'APPLE'])
+table.range(prefix: ['ACE', 'BLUE', 'APPLE'])
 
 # Prefix filter with start key and stop key.
-table.range('ACE', 'BLUEMARINE', :prefix => ['ACE', 'BLUE', 'APPLE'])
+table.range('ACE', 'BLUEMARINE', prefix: ['ACE', 'BLUE', 'APPLE'])
 ```
 
 Subsequent calls to `#range` override the range previously defined.
@@ -437,7 +548,7 @@ Subsequent calls to `#range` override the range previously defined.
 # Previous ranges are discarded
 scope.range(1, 100).
       range(50..100).
-      range(:prefix => 'A').
+      range(prefix: 'A').
       range(1, 1000)
   # Same as `scope.range(1, 1000)`
 ```
@@ -451,27 +562,24 @@ Multiple calls have conjunctive effects.
 # Range scanning the table with filters
 table.range(nil, 1000).
       filter(
-        # Numbers and characters: Checks if the value is equal to the given value
-        'cf1:a' => 'Hello',
-        'cf1:b' => 1024,
+        # Equality match
+        year: 2013,
 
         # Range of numbers or characters: Checks if the value falls within the range
-        'cf1:c' => 100..200,
-        'cf1:d' => 'A'..'C',
+        weight: 2.0..4.0
+        author: 'A'..'C'
 
         # Regular expression: Checks if the value matches the regular expression
-        'cf1:e' => /world$/i,
+        summary: /classic$/i,
 
         # Hash: Tests the value with 6 types of operators (:gt, :lt, :gte, :lte, :eq, :ne)
-        'cf1:f' => { gt: 1000, lte: 2000 },
-        'cf1:g' => { ne: 1000 },
+        reviews: { gt: 100, lte: 200 },
 
         # Array of the aforementioned types: OR condition (disjunctive)
-        'cf1:h' => %w[A B C],
-        'cf1:i' => ['A'...'B', 'C', /^D/, { lt: 'F' }]).
+        category: ['Fiction', 'Comic', /science/i, { ne: 'Political Science' }]).
 
       # Multiple calls for conjunctive filtering
-      filter('cf1:j' => ['Alice'..'Bob', 'Cat']).
+      filter(summary: /instant/i).
 
       # Any number of Java filters can be applied
       filter(org.apache.hadoop.hbase.filter.RandomRowFilter.new(0.5)).
@@ -489,12 +597,12 @@ See the following example.
 
 ```ruby
 (0...30).each do |idx|
-  table.put idx, 'cf1:a' => idx % 10
+  table.put idx, year: 2000 + idx % 10
 end
 
-table.filter('cf1:a' => { lte: 1 }).map { |r| r.rowkey :fixnum }
+table.filter(year: { lte: 2001 }).map { |r| r.rowkey :fixnum }
   # [0, 1, 10, 11, 20, 21]
-table.while('cf1:a'  => { lte: 1 }).map { |r| r.rowkey :fixnum }
+table.while(year: { lte: 2001 }).map { |r| r.rowkey :fixnum }
   # [0, 1]
   #   Scan terminates immediately when condition not met.
 ```
@@ -505,9 +613,9 @@ table.while('cf1:a'  => { lte: 1 }).map { |r| r.rowkey :fixnum }
 Multiple calls have additive effects.
 
 ```ruby
-# Fetches cf1:a and all columns in column family cf2 and cf3
-scoped.project('cf1:a', 'cf2').
-       project('cf3')
+# Fetches cf1:title, cf1:author, and all columns in column family cf2 and cf3
+scoped.project(:title, :author, :cf2).
+       project(:cf3)
 ```
 
 HBase filters can not only filter rows but also columns.
@@ -519,17 +627,17 @@ to pass column filter to filter method.
 ```ruby
 # Column prefix filter:
 #   Fetch columns whose qualifiers start with the specified prefixes
-scoped.project(:prefix => 'alice').
-       project(:prefix => %w[alice bob])
+scoped.project(prefix: 'alice').
+       project(prefix: %w[alice bob])
 
 # Column range filter:
 #   Fetch columns whose qualifiers within the ranges
-scoped.project(:range => 'a'...'c').
-       project(:range => ['i'...'k', 'x'...'z'])
+scoped.project(range: 'a'...'c').
+       project(range: ['i'...'k', 'x'...'z'])
 
 # Column pagination filter:
 #   Fetch columns within the specified intra-scan offset and limit
-scoped.project(:offset => 1000, :limit => 10)
+scoped.project(offset: 1000, limit: 10)
 ```
 
 When using column filters on *fat* rows with many columns,
@@ -540,7 +648,7 @@ However setting batch size allows multiple rows with the same row key are return
 ```ruby
 # Let's say that we have rows with more than 10 columns whose qualifiers start with `str`
 puts scoped.range(1..100).
-            project(:prefix => 'str').
+            project(prefix: 'str').
             batch(10).
             map { |row| [row.rowkey(:fixnum), row.count].map(&:to_s).join ': ' }
 
@@ -556,12 +664,10 @@ puts scoped.range(1..100).
 ### Scoped SCAN / GET
 
 ```ruby
-scoped = table.versions(1).                       # Limits the number of versions
-               filter('cf1:a' => 'Hello',         # With filters
-                      'cf1:b' => 100...200,
-                      'cf1:c' => 'Alice'..'Bob').
-               range('rowkey0'..'rowkey2')        # Range of rowkeys.
-               project('cf1', 'cf2:x')            # Projection
+scoped = table.versions(1)                 # Limits the number of versions
+              .filter(year: 1990...2000)
+              .range('rowkey0'..'rowkey2') # Range of rowkeys.
+              .project('cf1', 'cf2:x')     # Projection
 
 # Scoped GET
 #   Nonexistent or filtered rows are returned as nils
@@ -603,22 +709,22 @@ of the projected columns.
 
 ```ruby
 # cf1:a must hold 8-byte integer values
-table.project('cf1:a').aggregate(:sum)
-table.project('cf1:a').aggregate(:avg)
-table.project('cf1:a').aggregate(:min)
-table.project('cf1:a').aggregate(:max)
-table.project('cf1:a').aggregate(:std)
-table.project('cf1:a').aggregate(:row_count)
+table.project(:reviews).aggregate(:sum)
+table.project(:reviews).aggregate(:avg)
+table.project(:reviews).aggregate(:min)
+table.project(:reviews).aggregate(:max)
+table.project(:reviews).aggregate(:std)
+table.project(:reviews).aggregate(:row_count)
 
 # Aggregation of multiple columns
-table.project('cf1:a', 'cf1:b').aggregate(:sum)
+table.project(:reviews, :stars).aggregate(:sum)
 ```
 
 By default, aggregate method assumes that the projected values are 8-byte integers.
 For other data types, you can pass your own ColumnInterpreter.
 
 ```ruby
-table.project('cf1:b').aggregate(:sum, MyColumnInterpreter.new)
+table.project(:price).aggregate(:sum, MyColumnInterpreter.new)
 ```
 
 ## Table inspection
@@ -691,8 +797,7 @@ With `regions` method, you can even presplit the new table just like the old one
 ```ruby
 hbase[:dupe_table].create!(
   table.raw_families,
-  table.raw_properties.merge(
-    :splits => table.regions.map { |r| r[:start_key] }.compact))
+  table.raw_properties.merge(splits: table.regions.map { |r| r[:start_key] }.compact))
 ```
 
 ## Table administration
@@ -709,21 +814,22 @@ and come with non-bang, asynchronous counterparts.
 table.create!(
     # 1st Hash: Column family specification
     {
-      :cf1 => { :compression => :snappy },
-      :cf2 => { :bloomfilter => :row }
+      cf1: { compression: snappy },
+      cf2: { bloomfilter: row }
     },
 
     # 2nd Hash: Table properties
-    :max_filesize       => 256 * 1024 ** 2,
-    :deferred_log_flush => false,
-    :splits             => [1000, 2000, 3000])
+    max_filesize:       256 * 1024 ** 2,
+    deferred_log_flush: false,
+    splits:             [1000, 2000, 3000]
+)
 
 # Alter table properties (synchronous with optional block)
 table.alter!(
-  :max_filesize       => 512 * 1024 ** 2,
-  :memstore_flushsize =>  64 * 1024 ** 2,
-  :readonly           => false,
-  :deferred_log_flush => true
+  max_filesize:       512 * 1024 ** 2,
+  memstore_flushsize: 64 * 1024 ** 2,
+  readonly:           false,
+  deferred_log_flush: true
 ) { |progress, total|
   # Progress report with an optional block
   puts [progress, total].join('/')
@@ -731,10 +837,10 @@ table.alter!(
 
 # Alter table properties (asynchronous)
 table.alter(
-  :max_filesize       => 512 * 1024 ** 2,
-  :memstore_flushsize =>  64 * 1024 ** 2,
-  :readonly           => false,
-  :deferred_log_flush => true
+  max_filesize:       512 * 1024 ** 2,
+  memstore_flushsize: 64 * 1024 ** 2,
+  readonly:           false,
+  deferred_log_flush: true
 )
 ```
 
@@ -780,11 +886,10 @@ http://hbase.apache.org/apidocs/org/apache/hadoop/hbase/HTableDescriptor.html
 
 ```ruby
 # Add column family
-table.add_family! :cf3, :compression => :snappy,
-                        :bloomfilter => :row
+table.add_family! :cf3, compression: :snappy, bloomfilter: :row
 
 # Alter column family
-table.alter_family! :cf2, :bloomfilter => :rowcol
+table.alter_family! :cf2, bloomfilter: :rowcol
 
 # Remove column family
 table.delete_family! :cf1
@@ -797,8 +902,7 @@ table.delete_family! :cf1
 unless table.has_coprocessor?(cp_class_name1)
   table.add_coprocessor! cp_class_name1
 end
-table.add_coprocessor! cp_class_name2,
-  :path => path, :priority => priority, :params => params
+table.add_coprocessor! cp_class_name2, path: path, priority: priority, params: params
 
 # Remove coprocessor
 table.remove_coprocessor! cp_class_name1
@@ -868,17 +972,14 @@ table.range('1'..'3').map { |r| r.rowkey :string }
 
 ### Non-string column qualifier
 
-If a column qualifier is not a String, *an HBase::ColumnKey instance* should be used
-instead of a conventional `FAMILY:QUALIFIER` String.
+If a column qualifier is not a String, a 2-element Array should be used.
 
 ```ruby
 table.put 'rowkey',
-  'cf1:col1'                    => 'Hello world',
-  HBase::ColumnKey(:cf1, 100)   => "Byte representation of an 8-byte integer",
-  HBase::ColumnKey(:cf1, bytes) => "Qualifier is an arbitrary byte array"
+  [:cf1, 100  ] => "Byte representation of an 8-byte integer",
+  [:cf1, bytes] => "Qualifier is an arbitrary byte array"
 
-table.get('rowkey').string('cf1:col1')
-table.get('rowkey').string(HBase::ColumnKey(:cf1, 100))
+table.get('rowkey')[:cf1, 100]
 # ...
 ```
 
@@ -895,12 +996,7 @@ table.put({ int: 12345 }, 'cf1:a' => { byte: 100 },   # 1-byte integer
                           'cf1:c' => { int: 300 },    # 4-byte integer
                           'cf1:4' => 400)             # Ordinary 8-byte integer
 
-result = table.get(int: 12345)
-
-result.byte('cf1:a')   # 100
-result.short('cf1:b')  # 200
-result.int('cf1:c')    # 300
-# ...
+row = table.get(int: 12345)
 ```
 
 ### Working with byte arrays
@@ -919,7 +1015,7 @@ which makes byte array manipulation much easier.
 A ByteArray can be created as a concatenation of any number of objects.
 
 ```ruby
-ba = HBase::ByteArray(100, 3.14, {int: 300}, "Hello World")
+ba = HBase::ByteArray[100, 3.14, {int: 300}, "Hello World"]
 ```
 
 Then you can slice it and decode each part,
@@ -943,7 +1039,7 @@ ba << { short: 300 }
 concatenate another ByteArray,
 
 ```ruby
-ba += HBase::ByteArray(1024)
+ba += HBase::ByteArray[1024]
 ```
 
 or shift decoded objects from it.

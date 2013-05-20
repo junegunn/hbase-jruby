@@ -44,16 +44,16 @@ class Table
    :time_range, :at
   ].each do |method|
     define_method(method) do |*args|
-      self.each.send(method, *args)
+      self.scoped.send(method, *args)
     end
   end
 
   def with_java_scan &block
-    self.each.with_java_scan(&block)
+    self.scoped.with_java_scan(&block)
   end
 
   def with_java_get &block
-    self.each.with_java_get(&block)
+    self.scoped.with_java_get(&block)
   end
 
   # Performs PUT operations
@@ -122,7 +122,9 @@ class Table
 
     htable.delete specs.map { |spec|
       rowkey, cfcq, *ts = spec
-      cf, cq = Util.parse_column_name(cfcq) if cfcq
+      if cfcq
+        cf, cq, _ = lookup_and_parse cfcq
+      end
 
       Delete.new(Util.to_bytes rowkey).tap { |del|
         if !ts.empty?
@@ -163,20 +165,30 @@ class Table
   #   @param [Hash] column_by_hash Column expression to increment amount pairs
   #   @example
   #     table.increment('a000', 'cf1:col1' => 1, 'cf1:col2' => 2)
+  # @overload increment(inc_spec)
+  #   Increase values of multiple columns from multiple rows.
+  #   @param [Hash] inc_spec { rowkey => { col => by } }
+  #   @example
+  #     table.increment 'a000' => { 'cf1:col1' => 1, 'cf1:col2' => 2 },
+  #                     'a001' => { 'cf1:col1' => 3, 'cf1:col2' => 4 }
   def increment rowkey, *args
     check_closed
 
-    if args.first.is_a?(Hash)
+    if args.empty? && rowkey.is_a?(Hash)
+      rowkey.each do |key, spec|
+        increment key, spec
+      end
+    elsif args.first.is_a?(Hash)
       cols = args.first
       htable.increment Increment.new(Util.to_bytes rowkey).tap { |inc|
         cols.each do |col, by|
-          cf, cq = Util.parse_column_name(col)
+          cf, cq, _ = lookup_and_parse col
           inc.addColumn cf, cq, by
         end
       }
     else
       col, by = args
-      cf, cq = Util.parse_column_name(col)
+      cf, cq = lookup_and_parse col
       htable.incrementColumnValue Util.to_bytes(rowkey), cf, cq, by || 1
     end
   end
@@ -184,23 +196,32 @@ class Table
   # Scan through the table
   # @yield [row] Yields each row in the scope
   # @yieldparam [HBase::Row] row
-  # @return [HBase::Scoped]
-  def each
-    check_closed
+  # @return [Enumerator]
+  def each &block
+    scoped.each(&block)
+  end
 
-    if block_given?
-      Scoped.send(:new, self).each { |r| yield r }
-    else
-      Scoped.send(:new, self)
-    end
+  # Returns HBase::Scoped object for this table
+  # @return [HBase::Scoped]
+  def scoped
+    Scoped.send(:new, self)
+  end
+
+  def lookup_schema col
+    @hbase.schema.lookup @name_sym, col
+  end
+
+  def lookup_and_parse col
+    @hbase.schema.lookup_and_parse @name_sym, col
   end
 
 private
   def initialize hbase, config, htable_pool, name
-    @hbase  = hbase
-    @config = config
-    @pool   = htable_pool
-    @name   = name.to_s
+    @hbase    = hbase
+    @config   = config
+    @pool     = htable_pool
+    @name     = name.to_s
+    @name_sym = name.to_sym
   end
 
   def check_closed
@@ -210,21 +231,22 @@ private
   def putify rowkey, props
     Put.new(Util.to_bytes rowkey).tap { |put|
       props.each do |col, val|
-        cf, cq = Util.parse_column_name(col)
+        cf, cq, type = lookup_and_parse col
+
         case val
         when Hash
           val.each do |t, v|
             case t
             # Timestamp / Ruby Time
             when Time, Fixnum
-              put.add cf, cq, time_to_long(t), Util.to_bytes(v)
+              put.add cf, cq, time_to_long(t), Util.to_typed_bytes(type, v)
             # Types: :byte, :short, :int, ...
             else
-              put.add cf, cq, Util.to_bytes(t => v)
+              put.add cf, cq, Util.to_typed_bytes(t, v)
             end
           end
         else
-          put.add cf, cq, Util.to_bytes(val)
+          put.add cf, cq, Util.to_typed_bytes(type, val)
         end
       end
     }

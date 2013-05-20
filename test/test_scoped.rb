@@ -57,12 +57,12 @@ class TestScoped < TestHBaseJRubyBase
       @table.put(i, 'cf1:a' => i, 'cf2:b' => i, 'cf3:c' => i * 3)
     end
 
-    assert_instance_of HBase::Scoped, @table.each
-    scoped = @table.each
-    assert_equal scoped, scoped.each
+    assert_instance_of HBase::Scoped, @table.scoped
+    assert_instance_of Enumerator, @table.each
 
     assert_equal 50, @table.count
     assert_equal 50, @table.each.count
+    assert_equal 50, @table.each.take_while { true }.count
     assert_equal 50, @table.to_a.length # each
 
     # Start key
@@ -147,21 +147,25 @@ class TestScoped < TestHBaseJRubyBase
     end
     insert.call
 
-    assert_instance_of HBase::Scoped, @table.each
+    assert_instance_of HBase::Scoped, @table.scoped
+
+    get_cols = lambda do |hsh|
+      hsh.keys.map { |e| [e[0], e[1].decode(:string)].join ':' }
+    end
 
     # Test both for HBase::Table and HBase::Scoped
-    [@table, @table.each].each do |table|
+    [@table, @table.scoped].each do |table|
       # project
       project_cols = ['cf1:a', 'cf3:c']
       assert table.project(*project_cols).all? { |result|
-        result.to_hash.keys == project_cols
+        get_cols.call(result.to_h) == project_cols
       }
 
       # project: additive
-      assert_equal project_cols + ['cf3:d'], table.project(*project_cols).project('cf3:d').first.to_hash.keys.map(&:to_s)
+      assert_equal project_cols + ['cf3:d'], get_cols.call( table.project(*project_cols).project('cf3:d').first.to_h )
 
       # project: family
-      assert_equal %w[cf1:a cf3:c cf3:d cf3:e], table.project('cf1:a', 'cf3').first.to_hash.keys.map(&:to_s)
+      assert_equal %w[cf1:a cf3:c cf3:d cf3:e], get_cols.call( table.project('cf1:a', 'cf3').first.to_h )
 
       # filter: Hash
       #   to_a.length instead of count :)
@@ -189,16 +193,18 @@ class TestScoped < TestHBaseJRubyBase
       # filter: Java filter
       # Bug: https://issues.apache.org/jira/browse/HBASE-6954
       import org.apache.hadoop.hbase.filter.ColumnPaginationFilter
-      assert_equal 3, table.filter(ColumnPaginationFilter.new(3, 1)).first.to_hash.keys.length
+      assert_equal 3, table.filter(ColumnPaginationFilter.new(3, 1)).first.to_h.keys.length
 
       # filter: Java filter list
       import org.apache.hadoop.hbase.filter.FilterList
       import org.apache.hadoop.hbase.filter.ColumnRangeFilter
       assert_equal %w[cf2:b cf3:c],
-          table.filter(FilterList.new [
-             ColumnRangeFilter.new('a'.to_java_bytes, true, 'd'.to_java_bytes, true),
-             ColumnPaginationFilter.new(2, 1),
-          ]).first.to_hash.keys.map(&:to_s)
+          get_cols.call(
+            table.filter(FilterList.new [
+               ColumnRangeFilter.new('a'.to_java_bytes, true, 'd'.to_java_bytes, true),
+               ColumnPaginationFilter.new(2, 1),
+            ]).first.to_h
+          )
 
 
       # limit with filter
@@ -212,10 +218,10 @@ class TestScoped < TestHBaseJRubyBase
     end
 
     insert.call
-    [@table, @table.each].each do |table|
+    [@table, @table.scoped].each do |table|
       # versions
-      assert table.all? { |result| result.to_hash_with_versions['cf1:a'].length == 2 }
-      assert table.versions(1).all? { |result| result.to_hash_with_versions['cf1:a'].length == 1 }
+      assert table.all? { |result| result.to_H[%w[cf1 a]].length == 2 }
+      assert table.versions(1).all? { |result| result.to_H[%w[cf1 a]].length == 1 }
     end
   end
 
@@ -233,7 +239,7 @@ class TestScoped < TestHBaseJRubyBase
       @table.put rk.to_s, 'cf1:a' => rk
     end
     assert_equal 20, @table.range('1'..'9').count
-    assert_equal %w[1 10 11 12 13 14 15 16 17 18 19 2 20 3 4 5 6 7 8 9], @table.range('1'..'9').map(&:rowkey)
+    assert_equal %w[1 10 11 12 13 14 15 16 17 18 19 2 20 3 4 5 6 7 8 9], @table.range('1'..'9').map { |e| e.rowkey :string }
 
     assert_equal 19, @table.range('1'...'9').count
 
@@ -249,21 +255,18 @@ class TestScoped < TestHBaseJRubyBase
   end
 
   def test_non_string_column_name
-    @table.put 'rowkey', Hash[ (1..20).map { |cq| [HBase::ColumnKey('cf1', cq), cq] } ]
+    @table.put 'rowkey', Hash[ (1..20).map { |cq| [['cf1', cq], cq] } ]
 
-    assert((1..20).all? { |cq| @table.get('rowkey').fixnum(HBase::ColumnKey('cf1', cq)) == cq })
+    assert((1..20).all? { |cq| @table.get('rowkey').fixnum(['cf1', cq]) == cq })
 
     assert @table.project(['cf1', 10], ['cf1', 20]).map { |r|
-      [r.fixnum(HBase::ColumnKey('cf1', 10)), r.fixnum(HBase::ColumnKey.new('cf1', 20))]
+      [r.fixnum(['cf1', 10]), r.fixnum(['cf1', 20])]
     }.all? { |e| e == [10, 20] }
 
-    hash = @table.get('rowkey').to_hash(
-      HBase::ColumnKey('cf1', 1) => :fixnum,
-      HBase::ColumnKey('cf1', 2) => :fixnum
-    )
-    assert_equal 1, hash[HBase::ColumnKey(:cf1, 1)]
-    assert_equal 2, hash[HBase::ColumnKey(:cf1, 2)]
-    assert_equal 3, HBase::Util.from_bytes(:fixnum, hash[HBase::ColumnKey(:cf1, 3)])
+    hash = @table.get('rowkey').to_h
+    assert_equal 1, HBase::Util.from_bytes(:fixnum, hash[[:cf1, 1]])
+    assert_equal 2, HBase::Util.from_bytes(:fixnum, hash[[:cf1, 2]])
+    assert_equal 3, HBase::Util.from_bytes(:fixnum, hash[[:cf1, 3]])
   end
 
   def test_table_descriptor
@@ -289,14 +292,14 @@ class TestScoped < TestHBaseJRubyBase
     (1..100).each do |rk|
       data = {}
       (1..200).each do |cq|
-        data[HBase::ColumnKey(:cf1, cq)] = rk + cq
+        data[[:cf1, cq]] = rk + cq
       end
       all_data[rk] = data
     end
     @table.put all_data
 
     # One simple filter (Rowkey 10 ~ 19)
-    scoped1 = @table.filter(HBase::ColumnKey('cf1', 100) => 110...120)
+    scoped1 = @table.filter(['cf1', 100] => 110...120)
     ret = scoped1.get((1..100).to_a)
     assert_equal 100, ret.count
     assert_equal 10, ret.compact.count
@@ -304,7 +307,7 @@ class TestScoped < TestHBaseJRubyBase
     # Two filters
     scoped2 = scoped1.filter(
       # Rowkey 10 ~ 19 & 9 ~ 14 = 10 ~ 14
-      HBase::ColumnKey('cf1', 1) => 10..15
+      ['cf1', 1] => 10..15
     )
     ret = scoped2.get((1..100).to_a)
     assert_equal 100, ret.count

@@ -7,10 +7,16 @@ SimpleCov.start
 
 RECREATE = false
 
+unless defined? Enumerator
+  Enumerator = Enumerable::Enumerator
+end
+
 $LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
 
 require "hbase-jruby"
-HBase.resolve_dependency!(ENV.fetch('HBASE_JRUBY_TEST_DIST'), :verbose => true)
+if dist = ENV['HBASE_JRUBY_TEST_DIST']
+  HBase.resolve_dependency!(dist, :verbose => true)
+end
 HBase.log4j = { 'log4j.threshold' => 'ERROR' }
 
 class TestHBaseJRubyBase < Test::Unit::TestCase
