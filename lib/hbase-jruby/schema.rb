@@ -15,7 +15,7 @@ class Schema
   # @param [Symbol] table
   # @param [Hash] definition
   def []= table, definition
-    if definition.nil?
+    if definition.nil? || definition.empty?
       delete table
       return nil
     end

@@ -6,38 +6,38 @@ require 'set'
 
 class TestSchema < TestHBaseJRubyBase
   def teardown
-    @hbase.schema[@table.name] = nil
+    @hbase.schema[@table.name] = {}
 
     # Same
     @hbase.schema.delete @table.name
   end
 
   def test_schema
-    @hbase.schema[@table.name] = {
-      # Schema allows you to omit column family names,
-      # and to retrieve data without specifying types every time
-      :cf1 => {
-        :a    => :fixnum,
-        :b    => :symbol,
-        :c    => :int,
-        /^d/i => :float,
-        'd2'  => :short,
-      },
-      # Every column from cf2 is :string
-      :cf2 => { :e => :string },
+    @hbase.schema = {
+      @table.name => {
+        :cf1 => {
+          :a    => :fixnum,
+          :b    => :symbol,
+          :c    => :int,
+          /^d/i => :float,
+          'd2'  => :short,
+        },
+        # Every column from cf2 is :string
+        :cf2 => { :e => :string },
 
-      # cf3:f is a 8-byte integer
-      :cf3 => { :f => :fixnum },
+        # cf3:f is a 8-byte integer
+        :cf3 => { :f => :fixnum },
+      }
     }
 
     data = {
-      :a      => 100,
-      :b      => :symb,
-      :c      => 200,
-      :d      => 3.14,
-      :d2     => 300,
-      :e      => 'Hello',
-      :f      => 400,
+      :a  => 100,
+      :b  => :symb,
+      :c  => 200,
+      :d  => 3.14,
+      :d2 => 300,
+      :e  => 'Hello',
+      :f  => 400,
       [:cf1, HBase::ByteArray['x']] => 500
     }
 

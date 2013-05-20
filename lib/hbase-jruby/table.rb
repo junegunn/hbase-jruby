@@ -198,17 +198,16 @@ class Table
   end
 
   def lookup_schema col
-    @schema.lookup @name_sym, col
+    @hbase.schema.lookup @name_sym, col
   end
 
   def lookup_and_parse col
-    @schema.lookup_and_parse @name_sym, col
+    @hbase.schema.lookup_and_parse @name_sym, col
   end
 
 private
   def initialize hbase, config, htable_pool, name
     @hbase    = hbase
-    @schema   = hbase.schema
     @config   = config
     @pool     = htable_pool
     @name     = name.to_s

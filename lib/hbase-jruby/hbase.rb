@@ -139,6 +139,20 @@ class HBase
     }
   end
 
+  # @param [Hash] hash
+  # @return [HBase::Schema]
+  def schema= hash
+    unless hash.is_a?(Hash)
+      raise ArgumentError, "invalid schema: Hash required"
+    end
+
+    schema = Schema.new
+    hash.each do |table, definition|
+      schema[table] = definition
+    end
+    @schema = schema
+  end
+
 private
   def check_closed
     raise RuntimeError, "Connection already closed" if closed?

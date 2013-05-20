@@ -38,24 +38,26 @@ unless table.exists?
                 cf2: { bloomfilter: :rowcol, versions: 5 }
 end
 
-hbase.schema[:book] = {
-  # Columns in cf1 family
-  cf1: {
-    title:    :string,
-    author:   :string,
-    category: :string,
-    year:     :short,
-    pages:    :fixnum,
-    price:    :bigdecimal,
-    weight:   :float,
-    in_print: :boolean
-  },
-  # Columns in cf2 family
-  cf2: {
-    summary: :string,
-    reviews: :fixnum,
-    stars:   :fixnum,
-    /^comment\d+/ => :string
+hbase.schema = {
+  book: {
+    # Columns in cf1 family
+    cf1: {
+      title:    :string,
+      author:   :string,
+      category: :string,
+      year:     :short,
+      pages:    :fixnum,
+      price:    :bigdecimal,
+      weight:   :float,
+      in_print: :boolean
+    },
+    # Columns in cf2 family
+    cf2: {
+      summary: :string,
+      reviews: :fixnum,
+      stars:   :fixnum,
+      /^comment\d+/ => :string
+    }
   }
 }
 
@@ -223,24 +225,27 @@ and that is a tedious and error-prone task.
 We'll use the following schema throughout the examples.
 
 ```ruby
-hbase.schema[:book] = {
-  # Columns in cf1 family
-  cf1: {
-    title:    :string,
-    author:   :string,
-    category: :string,
-    year:     :short,
-    pages:    :fixnum,
-    price:    :bigdecimal,
-    weight:   :float,
-    in_print: :boolean
-  },
-  # Columns in cf2 family
-  cf2: {
-    summary: :string,
-    reviews: :fixnum,
-    stars:   :fixnum,
-    /^comment\d+/ => :string
+hbase.schema = {
+  # Schema for book table
+  book: {
+    # Columns in cf1 family
+    cf1: {
+      title:    :string,
+      author:   :string,
+      category: :string,
+      year:     :short,
+      pages:    :fixnum,
+      price:    :bigdecimal,
+      weight:   :float,
+      in_print: :boolean
+    },
+    # Columns in cf2 family
+    cf2: {
+      summary: :string,
+      reviews: :fixnum,
+      stars:   :fixnum,
+      /^comment\d+/ => :string
+    }
   }
 }
 ```
