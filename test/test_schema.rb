@@ -150,40 +150,40 @@ class TestSchema < TestHBaseJRubyBase
 
     @hbase.schema[table.name] = {
       # Columns in cf1 family
-      cf1: {
-        title:    :string,
-        author:   :string,
-        category: :string,
-        year:     :short,
-        pages:    :fixnum,
-        price:    :bigdecimal,
-        weight:   :float,
-        in_print: :boolean
+      :cf1 => {
+        :title    => :string,
+        :author   => :string,
+        :category => :string,
+        :year     => :short,
+        :pages    => :fixnum,
+        :price    => :bigdecimal,
+        :weight   => :float,
+        :in_print => :boolean
       },
       # Columns in cf2 family
-      cf2: {
-        summary: :string,
-        reviews: :fixnum,
-        stars:   :fixnum,
+      :cf2 => {
+        :summary      => :string,
+        :reviews      => :fixnum,
+        :stars        => :fixnum,
         /^comment\d+/ => :string
       }
     }
 
     # Put data (rowkey: 1)
     data = {
-      title:     'The Golden Bough: A Study of Magic and Religion',
-      author:    'Sir James G. Frazer',
-      category:  'Occult',
-      year:      1890,
-      pages:     1006,
-      price:     BigDecimal('21.50'),
-      weight:    3.0,
-      in_print:  true,
-      summary:   'A wide-ranging, comparative study of mythology and religion',
-      reviews:   52,
-      stars:     226,
-      comment1:  'A must-have',
-      comment2:  'Rewarding purchase'
+      :title    => 'The Golden Bough: A Study of Magic and Religion',
+      :author   => 'Sir James G. Frazer',
+      :category => 'Occult',
+      :year     => 1890,
+      :pages    => 1006,
+      :price    => BigDecimal('21.50'),
+      :weight   => 3.0,
+      :in_print => true,
+      :summary  => 'A wide-ranging, comparative study of mythology and religion',
+      :reviews  => 52,
+      :stars    => 226,
+      :comment1 => 'A must-have',
+      :comment2 => 'Rewarding purchase'
     }
     table.put 1, data
 
@@ -197,21 +197,21 @@ class TestSchema < TestHBaseJRubyBase
     assert_equal true, book.to_H.values.map(&:keys).flatten.all? { |e| e.is_a? Fixnum }
 
     # Scan table
-    table.range(0..100)
-         .filter(year:     1880...1900,
-                 in_print: true,
-                 category: ['Comics', 'Fiction', /cult/i],
-                 price:    { lt: BigDecimal('30.00') },
-                 summary:  /myth/i)
-         .project(:cf1, :reviews)
-         .each do |book|
+    table.range(0..100).
+          filter(:year     => 1880...1900,
+                 :in_print => true,
+                 :category => ['Comics', 'Fiction', /cult/i],
+                 :price    => { :lt => BigDecimal('30.00') },
+                 :summary  => /myth/i).
+          project(:cf1, :reviews).
+          each do |book|
 
       assert_equal data[:title], book[:title]
       assert_equal data[:reviews], book[:reviews]
       assert_equal nil, book[:summary]
 
       # Update price
-      table.put book.rowkey => { price: book[:price] + BigDecimal('1') }
+      table.put book.rowkey => { :price => book[:price] + BigDecimal('1') }
 
       # Atomic increment
       table.increment book.rowkey, :reviews => 1, :stars => 5
