@@ -10,7 +10,7 @@ class Row
   # @param [Symbol] type The type of the rowkey
   #   Can be one of :string, :symbol, :fixnum, :float, :short, :int, :bigdecimal, :boolean and :raw.
   # @return [String, byte[]]
-  def rowkey type = :string
+  def rowkey type = :raw
     Util.from_bytes type, @result.getRow
   end
 

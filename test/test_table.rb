@@ -69,8 +69,8 @@ class TestTable < TestHBaseJRubyBase
     assert_equal result.to_a, result.each.each.to_a
     assert_equal result.to_a, result.each.take_while { true }.to_a
 
-    assert_equal 'row1', @table.get('row1').rowkey
-    assert_equal 'row1', @table.get('row1').rowkey
+    assert_equal 'row1', @table.get('row1').rowkey(:string)
+    assert_equal 'row1', @table.get('row1').rowkey(:string)
     assert_equal 1,      @table.get('row1').fixnum('cf1:a')
     assert_equal 'a',    @table.get('row1').string('cf1:b')
     assert_equal 'a',    String.from_java_bytes(@table.get('row1').raw('cf1:b'))
@@ -108,7 +108,7 @@ class TestTable < TestHBaseJRubyBase
     # assert_equal ['Goodbye', 'Cruel world'], rets.map(&:values).map(&:last)
 
     # multi-get
-    assert_equal %w[row1 row2 row3], @table.get(['row1', 'row2', 'row3']).map { |r| r.rowkey }
+    assert_equal %w[row1 row2 row3], @table.get(['row1', 'row2', 'row3']).map { |r| r.rowkey :string }
     assert_equal [1, 2, 4         ], @table.get(['row1', 'row2', 'row3']).map { |r| r.fixnum('cf1:a') }
     assert_equal [3.14, 6.28, 6.28], @table.get(['row1', 'row2', 'row3']).map { |r| r.float('cf1:c') }
     assert_equal [nil, nil        ], @table.get(['xxx', 'yyy'])

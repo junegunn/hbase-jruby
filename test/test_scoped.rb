@@ -239,7 +239,7 @@ class TestScoped < TestHBaseJRubyBase
       @table.put rk.to_s, 'cf1:a' => rk
     end
     assert_equal 20, @table.range('1'..'9').count
-    assert_equal %w[1 10 11 12 13 14 15 16 17 18 19 2 20 3 4 5 6 7 8 9], @table.range('1'..'9').map(&:rowkey)
+    assert_equal %w[1 10 11 12 13 14 15 16 17 18 19 2 20 3 4 5 6 7 8 9], @table.range('1'..'9').map { |e| e.rowkey :string }
 
     assert_equal 19, @table.range('1'...'9').count
 

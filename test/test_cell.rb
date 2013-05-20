@@ -25,7 +25,7 @@ class TestCell < TestHBaseJRubyBase
       kv = KeyValue.new("rowkey".to_java_bytes, "hello".to_java_bytes, "world".to_java_bytes, ts, Util.to_bytes(value))
       cell = HBase::Cell.new(@table, kv) # FIXME
 
-      assert_equal "rowkey", cell.rowkey
+      assert_equal "rowkey", cell.rowkey(:string)
       assert_equal "hello",  cell.cf, cell.family
       assert_equal "world",  cell.cq, cell.qualifier
       assert_equal ts,       cell.ts
