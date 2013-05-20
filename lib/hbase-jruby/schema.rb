@@ -15,10 +15,14 @@ class Schema
   # @param [Symbol] table
   # @param [Hash] definition
   def []= table, definition
+    if definition.nil?
+      delete table
+      return nil
+    end
+
     unless definition.is_a?(Hash)
       raise ArgumentError, 'invalid schema definition: Hash required'
     end
-    table      = table.to_sym
     definition = definition.dup.freeze
     lookup     = empty_lookup_table
 
@@ -58,11 +62,13 @@ class Schema
       end
     end
 
+    table = table.to_sym
     @lookup[table] = lookup
     @schema[table] = definition
   end
 
   # @private
+  # @param [Symbol] table
   # @return [Array] CF, CQ, Type. When not found, nil.
   def lookup table, col
     return nil unless lookup = @lookup[table]
@@ -75,10 +81,25 @@ class Schema
   end
 
   # @private
+  # @param [Symbol] table
   def lookup_and_parse table, col
     cf, cq, type = lookup table, col
     cf, cq = Util.parse_column_name(cf ? [cf, cq] : col)
     return [cf, cq, type]
+  end
+
+  # Delete schema for the table
+  # @param [Symbol] table
+  def delete table
+    table = table.to_sym
+    @lookup.delete table
+    @schema.delete table
+    nil
+  end
+
+  # @return [Hash]
+  def to_h
+    @schema
   end
 
 private

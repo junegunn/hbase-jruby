@@ -5,6 +5,13 @@ require 'helper'
 require 'set'
 
 class TestSchema < TestHBaseJRubyBase
+  def teardown
+    @hbase.schema[@table.name] = nil
+
+    # Same
+    @hbase.schema.delete @table.name
+  end
+
   def test_schema
     @hbase.schema[@table.name] = {
       # Schema allows you to omit column family names,
@@ -223,26 +230,33 @@ class TestSchema < TestHBaseJRubyBase
     table.put 2, :reviews => 100, :stars => 500
     assert_equal data[:reviews] + 1 + data[:stars] + 5 + 100 + 500,
       table.project(:reviews, :stars).aggregate(:sum)
-    table.disable_aggregation!
+    #table.disable_aggregation!
 
     # Undefined columns
     table.put 1, 'cf1:x'      => 1000
     table.put 1, [:cf1, :y]   => 2000
     table.put 1, [:cf1, 2013] => 3000
     assert_equal 1000, table.get(1).fixnum('cf1:x')
-    assert_equal 1000, HBase::Util.from_bytes(:fixnum, table.get(1)['cf1:x'])
-    assert_equal 1000, HBase::Util.from_bytes(:fixnum, table.get(1)[[:cf1, :x]])
-    assert_equal 1000, HBase::Util.from_bytes(:fixnum, table.get(1)[[:cf1, 'x']])
-    assert_equal 1000, HBase::Util.from_bytes(:fixnum, table.get(1)[[:cf1, HBase::ByteArray['x']]])
-    assert_equal 1000, HBase::Util.from_bytes(:fixnum, table.get(1)[:cf1, :x])
-    assert_equal 1000, HBase::Util.from_bytes(:fixnum, table.get(1)[:cf1, 'x'])
-    assert_equal 1000, HBase::Util.from_bytes(:fixnum, table.get(1)[:cf1, HBase::ByteArray['x']])
-    assert_equal 1000, HBase::Util.from_bytes(:fixnum, table.get(1).to_h[[:cf1, HBase::ByteArray['x']]])
-    #assert_equal 1000, HBase::Util.from_bytes(:fixnum, table.get(1).to_h[[:cf1, 'x']])
+
+    [
+      [:cf1, HBase::ByteArray['x']],
+      ['cf1', HBase::ByteArray['x']],
+      [:cf1, :x],
+      [:cf1, 'x'],
+      ['cf1', :x],
+      %w[cf1 x],
+      'cf1:x'
+    ].each do |param|
+      assert_equal 1000, HBase::Util.from_bytes(:fixnum, table.get(1)[param])
+      assert_equal 1000, HBase::Util.from_bytes(:fixnum, table.get(1)[*param])
+      assert_equal 1000, HBase::Util.from_bytes(:fixnum, table.get(1).to_h[param])
+    end
 
     assert_equal 2000, HBase::Util.from_bytes(:fixnum, table.get(1)[:cf1, :y])
     assert_equal 3000, HBase::Util.from_bytes(:fixnum, table.get(1)[:cf1, 2013])
+    assert_equal 3000, HBase::Util.from_bytes(:fixnum, table.get(1)[[:cf1, 2013]])
     assert_equal 3000, HBase::Util.from_bytes(:fixnum, table.get(1).to_h[[:cf1, HBase::ByteArray[2013]]])
+    assert_equal 3000, HBase::Util.from_bytes(:fixnum, table.get(1).to_h[[:cf1, 2013]])
 
     # Delete :title column of book 1
     table.delete 1, :title
@@ -257,6 +271,9 @@ class TestSchema < TestHBaseJRubyBase
     # Delete book 1
     table.delete 1
     assert_equal nil, table.get(1)
+
+    # Drop table for subsequent tests
+    table.drop!
   end
 end
 

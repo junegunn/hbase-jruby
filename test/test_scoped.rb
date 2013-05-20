@@ -149,19 +149,23 @@ class TestScoped < TestHBaseJRubyBase
 
     assert_instance_of HBase::Scoped, @table.scoped
 
+    get_cols = lambda do |hsh|
+      hsh.keys.map { |e| [e[0], e[1].decode(:string)].join ':' }
+    end
+
     # Test both for HBase::Table and HBase::Scoped
     [@table, @table.scoped].each do |table|
       # project
       project_cols = ['cf1:a', 'cf3:c']
       assert table.project(*project_cols).all? { |result|
-        result.to_hash.keys == project_cols
+        get_cols.call(result.to_h) == project_cols
       }
 
       # project: additive
-      assert_equal project_cols + ['cf3:d'], table.project(*project_cols).project('cf3:d').first.to_hash.keys.map(&:to_s)
+      assert_equal project_cols + ['cf3:d'], get_cols.call( table.project(*project_cols).project('cf3:d').first.to_h )
 
       # project: family
-      assert_equal %w[cf1:a cf3:c cf3:d cf3:e], table.project('cf1:a', 'cf3').first.to_hash.keys.map(&:to_s)
+      assert_equal %w[cf1:a cf3:c cf3:d cf3:e], get_cols.call( table.project('cf1:a', 'cf3').first.to_h )
 
       # filter: Hash
       #   to_a.length instead of count :)
@@ -189,16 +193,18 @@ class TestScoped < TestHBaseJRubyBase
       # filter: Java filter
       # Bug: https://issues.apache.org/jira/browse/HBASE-6954
       import org.apache.hadoop.hbase.filter.ColumnPaginationFilter
-      assert_equal 3, table.filter(ColumnPaginationFilter.new(3, 1)).first.to_hash.keys.length
+      assert_equal 3, table.filter(ColumnPaginationFilter.new(3, 1)).first.to_h.keys.length
 
       # filter: Java filter list
       import org.apache.hadoop.hbase.filter.FilterList
       import org.apache.hadoop.hbase.filter.ColumnRangeFilter
       assert_equal %w[cf2:b cf3:c],
-          table.filter(FilterList.new [
-             ColumnRangeFilter.new('a'.to_java_bytes, true, 'd'.to_java_bytes, true),
-             ColumnPaginationFilter.new(2, 1),
-          ]).first.to_hash.keys.map(&:to_s)
+          get_cols.call(
+            table.filter(FilterList.new [
+               ColumnRangeFilter.new('a'.to_java_bytes, true, 'd'.to_java_bytes, true),
+               ColumnPaginationFilter.new(2, 1),
+            ]).first.to_h
+          )
 
 
       # limit with filter
@@ -214,8 +220,8 @@ class TestScoped < TestHBaseJRubyBase
     insert.call
     [@table, @table.scoped].each do |table|
       # versions
-      assert table.all? { |result| result.to_hash_with_versions['cf1:a'].length == 2 }
-      assert table.versions(1).all? { |result| result.to_hash_with_versions['cf1:a'].length == 1 }
+      assert table.all? { |result| result.to_H[%w[cf1 a]].length == 2 }
+      assert table.versions(1).all? { |result| result.to_H[%w[cf1 a]].length == 1 }
     end
   end
 
@@ -257,12 +263,9 @@ class TestScoped < TestHBaseJRubyBase
       [r.fixnum(['cf1', 10]), r.fixnum(['cf1', 20])]
     }.all? { |e| e == [10, 20] }
 
-    hash = @table.get('rowkey').to_hash(
-      ['cf1', 1] => :fixnum,
-      ['cf1', 2] => :fixnum
-    )
-    assert_equal 1, hash[[:cf1, 1]]
-    assert_equal 2, hash[[:cf1, 2]]
+    hash = @table.get('rowkey').to_h
+    assert_equal 1, HBase::Util.from_bytes(:fixnum, hash[[:cf1, 1]])
+    assert_equal 2, HBase::Util.from_bytes(:fixnum, hash[[:cf1, 2]])
     assert_equal 3, HBase::Util.from_bytes(:fixnum, hash[[:cf1, 3]])
   end
 

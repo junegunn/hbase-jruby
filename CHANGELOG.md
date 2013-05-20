@@ -8,7 +8,8 @@ Changelog
   - You can omit column family names on predefined columns
   - Automatic type conversion for known columns
 - Incompatible changes
-  - *`Row#to_hash` and `Row#to_hash_with_versions` are now deprecated*. Use `to_h` and `to_h_with_versions` instead.
+  - *`Row#to_hash` and `Row#to_hash_with_versions` are now deprecated*. Use `to_h` and `to_H` instead without arguments.
+  - `HBase::ColumnKey` is removed. Use plain 2-element Arrays instead.
   - Enumerable classes (Table, Scoped, Row, ByteArray) now return Enumerator on each method when block not given
   - `Cell#value` can now return the correct data type if defined in the schema. For Java byte array, use `Cell#raw`.
   - `Row#[type|types]` methods no more take Array of columns as arguments

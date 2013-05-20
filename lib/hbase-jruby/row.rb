@@ -35,7 +35,7 @@ class Row
   # Only supports string column qualifiers
   # @return [Hash]
   def to_h
-    {}.tap do |ret|
+    HASH_TEMPLATE.clone.tap do |ret|
       @result.getNoVersionMap.each do |cf, cqmap|
         cqmap.each do |cq, val|
           f, q, t = @table.lookup_schema(cq.to_s)
@@ -45,10 +45,11 @@ class Row
       end
     end
   end
+  alias to_hash to_h
 
   # @return [Hash]
   def to_H
-    {}.tap do |ret|
+    HASH_TEMPLATE.clone.tap do |ret|
       @result.getMap.each do |cf, cqmap|
         cqmap.each do |cq, tsmap|
           f, q, t = @table.lookup_schema(cq.to_s)
@@ -64,6 +65,7 @@ class Row
       end
     end
   end
+  alias to_hash_with_versions to_H
 
   # Returns column values as byte arrays
   # @overload raw(column)
@@ -283,6 +285,22 @@ private
       Util.from_bytes type, v
     end
   end
+
+  HASH_TEMPLATE = {}.tap { |h|
+    h.instance_eval do
+      def [] key
+        # %w[cf x]
+        if key.is_a?(Array) && key.length == 2
+          key = [key[0].to_sym, ByteArray[key[1]]]
+        # %[cf:x]
+        elsif key.is_a?(String) && key.index(':')
+          cf, cq = key.split(':', 2)
+          key = [cf.to_sym, ByteArray[cq]]
+        end
+        super key
+      end
+    end
+  }
 
   # @param [HBase::Table] table
   # @param [org.apache.hadoop.hbase.client.Result] java_result

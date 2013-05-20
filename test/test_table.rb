@@ -36,28 +36,28 @@ class TestTable < TestHBaseJRubyBase
   def test_put_then_get
     # Single record put
     assert_equal 1, @table.put('row1',
-                               'cf1:a' => 2,
-                               'cf1:b' => 'b',
-                               'cf1:c' => 6.28,
-                               'cf1:d' => false,
-                               'cf1:f' => :bol,
-                               'cf1:g' => BigDecimal.new("456.123"),
-                               'cf1:byte'  => { :byte => 100 },
+                               'cf1:a'     => 2,
+                               'cf1:b'     => 'b',
+                               'cf1:c'     => 6.28,
+                               'cf1:d'     => false,
+                               'cf1:f'     => :bol,
+                               'cf1:g'     => BigDecimal.new("456.123"),
+                               'cf1:byte'  => { :byte  => 100 },
                                'cf1:short' => { :short => 200 },
-                               'cf1:int'   => { :int => 300 },
-                               'cf1:str1' => "Goodbye", 'cf1:str2' => "Cruel world")
+                               'cf1:int'   => { :int   => 300 },
+                               'cf1:str1'  => "Goodbye", 'cf1:str2' => "Cruel world")
     assert_equal 1, @table.put('row1',
-                               'cf1:a' => 1,
-                               'cf1:b' => 'a',
-                               'cf1:c' => 3.14,
-                               'cf1:d' => true,
-                               'cf1:f' => :sym,
-                               'cf1:g' => BigDecimal.new("123.456"),
-                               'cf1:byte'  => { :byte => 101 },
+                               'cf1:a'     => 1,
+                               'cf1:b'     => 'a',
+                               'cf1:c'     => 3.14,
+                               'cf1:d'     => true,
+                               'cf1:f'     => :sym,
+                               'cf1:g'     => BigDecimal.new("123.456"),
+                               'cf1:byte'  => { :byte  => 101 },
                                'cf1:short' => { :short => 201 },
-                               'cf1:int'   => { :int => 301 },
-                               'cf1:int2'  => { :int => 401 },
-                               'cf1:str1' => "Hello", 'cf1:str2' => "World")
+                               'cf1:int'   => { :int   => 301 },
+                               'cf1:int2'  => { :int   => 401 },
+                               'cf1:str1'  => "Hello", 'cf1:str2' => "World")
     # Batch put
     assert_equal 2, @table.put(
       'row2' => { 'cf1:a' => 2, 'cf1:b' => 'b', 'cf1:c' => 6.28 },
@@ -178,34 +178,34 @@ class TestTable < TestHBaseJRubyBase
     @table.put('row1', 'cf2:d' => 5)
     sleep 0.1
     @table.put('row1', 'cf2:d' => 6)
-    versions = @table.get('row1').to_hash_with_versions['cf2:d'].keys
+    versions = @table.get('row1').to_H[%w[cf2 d]].keys
     assert versions[0] > versions[1]
     assert versions[1] > versions[2]
 
     # Deletes a version (Fixnum and Time as timestamps)
     @table.delete('row1', 'cf2:d', versions[0], Time.at(versions[2] / 1000.0))
-    new_versions = @table.get('row1').to_hash_with_versions['cf2:d'].keys
+    new_versions = @table.get('row1').to_H[%w[cf2 d]].keys
     assert_equal new_versions, [versions[1]]
 
     # Deletes a column
     assert_equal 3, @table.get('row1').fixnum('cf2:c')
     @table.delete('row1', 'cf2:c')
-    assert_nil @table.get('row1').to_hash['cf2:c']
+    assert_nil @table.get('row1').to_h['cf2:c']
 
     # Deletes a column with empty qualifier
     assert_equal 0, @table.get('row1').fixnum('cf1')
     @table.delete('row1', 'cf1:')
     assert_equal 1, @table.get('row1').fixnum('cf1:a')
     assert_equal 2, @table.get('row1').fixnum('cf1:b')
-    assert_nil @table.get('row1').to_hash['cf1']
-    assert_nil @table.get('row1').to_hash['cf1:']
+    assert_nil @table.get('row1').to_h['cf1']
+    assert_nil @table.get('row1').to_h['cf1:']
 
     # Deletes a column family
     assert_equal 1, @table.get('row1').fixnum('cf1:a')
     assert_equal 2, @table.get('row1').fixnum('cf1:b')
     @table.delete('row1', 'cf1') # No trailing colon
-    assert_nil @table.get('row1').to_hash['cf1:a']
-    assert_nil @table.get('row1').to_hash['cf1:b']
+    assert_nil @table.get('row1').to_h['cf1:a']
+    assert_nil @table.get('row1').to_h['cf1:b']
 
     # Deletes a row
     @table.delete('row1')
@@ -217,7 +217,7 @@ class TestTable < TestHBaseJRubyBase
 
     @table.delete ['row2'], ['row3', 'cf1:a']
     assert_nil @table.get('row2')
-    assert_nil @table.get('row3').to_hash['cf1:a']
+    assert_nil @table.get('row3').to_h['cf1:a']
     assert_equal 2, @table.get('row3').fixnum('cf1:b')
   end
 

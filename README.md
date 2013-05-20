@@ -33,16 +33,10 @@ HBase.resolve_dependency! 'cdh4.2.1'
 hbase = HBase.new
 
 table = hbase[:book]
-table.create!({
-  cf1: {
-    bloomfilter: :row,
-  },
-  cf2: {
-    compression: :gz,
-    bloomfilter: :rowcol,
-    versions:    5
-  }
-}) unless table.exists?
+unless table.exists?
+  table.create! cf1: { bloomfilter: :row },
+                cf2: { bloomfilter: :rowcol, versions: 5 }
+end
 
 hbase.schema[:book] = {
   # Columns in cf1 family
@@ -308,6 +302,63 @@ extra = book.bigdecimal 'cf2:extra'
 ```ruby
 # Pass an array of row keys as the parameter
 books = table.get(['rowkey1', 'rowkey2', 'rowkey3'])
+```
+
+#### `to_h`
+
+`to_h` and `to_H` methods return the Hash representation of the row.
+If a column is defined in the schema, it is referenced using its quailifier in Symbol type.
+If a column is not defined, it is represented as a 2-element Array
+of column family Symbol and column qualifier as ByteArray.
+Even so, to make it easier to reference those columns, an extended Hash is returned
+with which you can also reference them with `FAMILY:QUALIFIER` notation or `[cf, cq]` array notation.
+
+```ruby
+table.put 1000 => {
+  title:      'Hello world', # Known column
+  comment100: 'foo',         # Known column
+  'cf2:extra' => 'bar',      # Unknown column
+  [:cf2, 10]  => 'foobar'    # Unknown column, non-string qualifier
+}
+
+book = table.get 10000
+hash = book.to_h
+  # {
+  #   :title => "Hello world",
+  #   [:cf2, HBase::ByteArray<0, 0, 0, 0, 0, 0, 0, 10>] =>
+  #       byte[102, 111, 111, 98, 97, 114]@6f28bb44,
+  #   :comment100 => "foo",
+  #   [:cf2, HBase::ByteArray<101, 120, 116, 114, 97>] =>
+  #       byte[98, 97, 114]@77190cfc}
+  # }
+
+hash['cf2:extra']
+  # byte[98, 97, 114]@77190cfc
+
+hash[%w[cf2 extra]]
+  # byte[98, 97, 114]@77190cfc
+
+hash[[:cf2, HBase::ByteArray['extra']]]
+  # byte[98, 97, 114]@77190cfc
+
+hash['cf2:extra'].to_s
+  # 'bar'
+
+# Columns with non-string qualifiers must be referenced using 2-element Array notation
+hash['cf2:10']
+  # nil
+hash[[:cf2, 10]]
+  # byte[102, 111, 111, 98, 97, 114]@6f28bb44
+
+hash_with_versions = book.to_H
+  # {
+  #   :title => {1369019227766 => "Hello world"},
+  #   [:cf2, HBase::ByteArray<0, 0, 0, 0, 0, 0, 0, 10>] =>
+  #       {1369019227766 => byte[102, 111, 111, 98, 97, 114]@6f28bb44},
+  #   :comment100 => {1369019227766 => "foo"},
+  #   [:cf2, HBase::ByteArray<101, 120, 116, 114, 97>]  =>
+  #       {1369019227766 => byte[98, 97, 114]@77190cfc}}
+  # }
 ```
 
 #### Intra-row scan

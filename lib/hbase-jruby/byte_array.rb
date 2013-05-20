@@ -154,6 +154,10 @@ class ByteArray
     Arrays.java_send(:hashCode, [Util::JAVA_BYTE_ARRAY_CLASS], @java)
   end
 
+  def inspect
+    "HBase::ByteArray<#{@java.to_a.join ', '}>"
+  end
+
 private
   def initialize_ *values
     @java = values.inject(Util::JAVA_BYTE_ARRAY_EMPTY) { |sum, value|
