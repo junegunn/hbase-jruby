@@ -11,18 +11,6 @@
 
     gem install hbase-jruby
 
-## Change in 0.3.0
-
-0.3.0 introduces the concept of table schema described as a Hash.
-
-Using table schema greatly simplifies the way you access data:
-- It allows you to omit column family names
-- Automatic type conversion when writing or reading data
-
-This document has been shortened focusing on this new way of accessing data.
-For old-school low-level APIs, refer to
-[the older versions of this document](https://github.com/junegunn/hbase-jruby/blob/b56e21f933f0b388aa5d4d708467273463b76d73/README.md).
-
 ## A quick example
 
 ```ruby
@@ -221,16 +209,21 @@ table.create! cf1: {},
 
 ### Defining table schema for easier data access
 
-HBase stores everything as simple Java byte arrays.
-So it's basically up to users to encode and decode data when accessing HBase,
-and that is a tedious and error-prone task.
-`hbase-jruby` introduces the concept of table schema, which simplifies accessing data in HBase.
+HBase stores everything as plain Java byte arrays. So it's completely up to
+users to encode and decode column values of various types into and from byte
+arrays, and that is a quite tedious and error-prone task.
+
+To remedy this situation, `hbase-jruby` implements the concept of table schema.
+
+Using table schema greatly simplifies the way you access data:
+- With schema, byte array conversion becomes automatic
+- It allows you to omit column family names (e.g. `:title` instead of `"cf1:title"`)
 
 We'll use the following schema throughout the examples.
 
 ```ruby
 hbase.schema = {
-  # Schema for book table
+  # Schema for `book` table
   book: {
     # Columns in cf1 family
     cf1: {
@@ -263,6 +256,7 @@ which have to be decoded manually.
 
 ```ruby
 # Putting a single row
+# - Row keys can be of any type, in this case, we use String type
 table.put 'rowkey1', title: "Hello World", year: 2013
 
 # Putting multiple rows
@@ -286,7 +280,8 @@ table.put 'rowkey1' => {
 book = table.get('rowkey1')
 
 # Rowkey
-rowkey = row.rowkey
+rowkey = row.rowkey         # Rowkey as raw Java byte array
+rowkey = row.rowkey :string # Rowkey as String
 
 # Access columns in schema
 title  = book[:title]
@@ -315,12 +310,15 @@ books = table.get(['rowkey1', 'rowkey2', 'rowkey3'])
 
 #### `to_h`
 
-`to_h` and `to_H` methods return the Hash representation of the row.
+`to_h` and `to_H` return the Hash representation of the row.
+(The latter returns all values with their timestamp)
+
 If a column is defined in the schema, it is referenced using its quailifier in Symbol type.
 If a column is not defined, it is represented as a 2-element Array
-of column family Symbol and column qualifier as ByteArray.
-Even so, to make it easier to reference those columns, an extended Hash is returned
-with which you can also reference them with `FAMILY:QUALIFIER` notation or `[cf, cq]` array notation.
+of column family in Symbol and column qualifier as ByteArray.
+Even so, to make it easier to reference those columns, an extended version of
+Hash is returned with which you can also reference them with `FAMILY:QUALIFIER`
+notation or `[cf, cq]` array notation.
 
 ```ruby
 table.put 1000 => {
@@ -372,7 +370,7 @@ hash_with_versions = book.to_H
 
 #### Intra-row scan
 
-Intra-row scan can be done with `each` method which yields `HBase::Cell` instances.
+Intra-row scan can be done using `each` method which yields `HBase::Cell` instances.
 
 ```ruby
 # Intra-row scan (all versions)
@@ -431,7 +429,8 @@ table.increment('rowkey1', reviews: 1)
 # Atomically increase two columns by one and five respectively
 table.increment('rowkey1', reviews: 1, stars: 5)
 
-# Increase column values of multiple rows. Atomicity is only guaranteed within each row.
+# Increase column values of multiple rows.
+# - Atomicity is only guaranteed within each row.
 table.increment 'rowkey1' => { reviews: 1, stars: 5 },
                 'rowkey2' => { reviews: 1, stars: 3 }
 ```
