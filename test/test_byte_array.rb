@@ -39,7 +39,7 @@ class TestByteArray < Test::Unit::TestCase
   end
 
   def test_concat
-    concat = HBase::ByteArray(100) + HBase::ByteArray(200)
+    concat = HBase::ByteArray(100) + HBase::ByteArray[200]
     assert_instance_of HBase::ByteArray, concat
     assert_equal 16, concat.to_java_bytes.to_a.length
 

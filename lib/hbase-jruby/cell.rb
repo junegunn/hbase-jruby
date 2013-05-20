@@ -7,7 +7,8 @@ class Cell
 
   # Creates a boxed object for a KeyValue object
   # @param [org.apache.hadoop.hbase.KeyValue] key_value
-  def initialize key_value
+  def initialize table, key_value
+    @table = table
     @java = key_value
     @ck   = nil
   end
@@ -16,14 +17,8 @@ class Cell
   # @param [Symbol] type The type of the rowkey.
   #   Can be one of :string, :symbol, :fixnum, :float, :short, :int, :bigdecimal, :boolean and :raw.
   # @return [String, byte[]]
-  def rowkey type = :string
+  def rowkey type = :raw
     Util.from_bytes type, @java.getRow
-  end
-
-  # Returns the ColumnKey object for the cell
-  # @return [ColumnKey]
-  def column_key
-    @ck ||= ColumnKey.new @java.getFamily, @java.getQualifier
   end
 
   # Returns the name of the column family of the cell
@@ -49,12 +44,17 @@ class Cell
   end
   alias ts timestamp
 
+  # Returns the value of the cell. If the column in not defined in the schema, returns Java byte array.
+  def value
+    _, _, type = @table.lookup_schema(cq)
+    Util.from_bytes(type, raw)
+  end
+
   # Returns the value of the cell as a Java byte array
   # @return [byte[]]
-  def value
+  def raw
     @java.getValue
   end
-  alias raw value
 
   # Returns the column value as a String
   # @return [String]
@@ -120,6 +120,17 @@ class Cell
   # @return [Fixnum] -1, 0, or 1
   def <=> other
     KeyValue.COMPARATOR.compare(@java, other.java)
+  end
+
+  # Checks if the cells are the same
+  # @param [HBase::Cell] other
+  def eql? other
+    (self <=> other) == 0
+  end
+  alias == eql?
+
+  def hash
+    @java.hasCode
   end
 
   # Returns a printable version of this cell

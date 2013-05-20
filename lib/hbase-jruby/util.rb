@@ -65,6 +65,41 @@ module Util
       end
     end
 
+    def to_typed_bytes type, val
+      return Util.to_bytes val if type.nil?
+
+      import_java_classes!
+      case type
+      when :string, :str, :symbol, :sym
+        val.to_s.to_java_bytes
+      when :byte
+        [val].to_java(Java::byte)
+      when :boolean, :bool
+        Bytes.to_bytes val
+      when :int
+        Bytes.java_send :toBytes, [Java::int], val
+      when :short
+        Bytes.java_send :toBytes, [Java::short], val
+      when :long, :fixnum
+        Bytes.java_send :toBytes, [Java::long], val
+      when :float, :double
+        Bytes.java_send :toBytes, [Java::double], val
+      when :bigdecimal
+        case val
+        when BigDecimal
+          Bytes.java_send :toBytes, [java.math.BigDecimal], val.to_java
+        when java.math.BigDecimal
+          Bytes.java_send :toBytes, [java.math.BigDecimal], val
+        else
+          raise ArgumentError, "not BigDecimal"
+        end
+      when :raw
+        val
+      else
+        raise ArgumentError, "invalid type: #{type}"
+      end
+    end
+
     # Returns Ruby object decoded from the byte array according to the given type
     # @param [Symbol, Class] type Type to convert to
     # @param [byte[]] val Java byte array
@@ -92,7 +127,7 @@ module Util
         Bytes.to_double val
       when :boolean, :bool
         Bytes.to_boolean val
-      when :raw
+      when :raw, nil
         val
       else
         raise ArgumentError, "Invalid type: #{type}"
@@ -113,8 +148,6 @@ module Util
     # @param [Object, Array, KeyValue] col
     def parse_column_name col
       case col
-      when ColumnKey
-        return col.cf.to_java_bytes, col.cq(:raw)
       when KeyValue
         return col.getFamily, col.getQualifier
       when Array
@@ -122,8 +155,9 @@ module Util
       when '', nil
         raise ArgumentError, "Column family not specified"
       else
-        cf, cq = KeyValue.parseColumn(col.to_s.to_java_bytes)
-        cq = JAVA_BYTE_ARRAY_EMPTY if cq.nil? && col.to_s[-1, 1] == ':'
+        col = col.to_s
+        cf, cq = KeyValue.parseColumn(col.to_java_bytes)
+        cq = JAVA_BYTE_ARRAY_EMPTY if cq.nil? && col[-1, 1] == ':'
         return cf, cq
       end
     end

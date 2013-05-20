@@ -54,21 +54,21 @@ class TestUtil < Test::Unit::TestCase
   end
 
   def test_parse_column_name
-    assert_equal ['abc', 'def'],  parse_to_str('abc:def')
+    assert_equal ['abc', 'def' ], parse_to_str('abc:def')
     assert_equal ['abc', 'def:'], parse_to_str('abc:def:')
-    assert_equal ['abc', ''],     parse_to_str('abc:')
-    assert_equal ['abc', nil],    parse_to_str('abc')
-    assert_equal ['abc', ':::'],  parse_to_str('abc::::')
+    assert_equal ['abc', ''    ], parse_to_str('abc:')
+    assert_equal ['abc', nil   ], parse_to_str('abc')
+    assert_equal ['abc', ':::' ], parse_to_str('abc::::')
 
-    assert_equal [:abc, :def],   parse_to_str([:abc, :def], :symbol)
-    assert_equal [123, 456],     parse_to_str([123, 456], :fixnum)
+    assert_equal [:abc,  :def ], parse_to_str([:abc, :def], :symbol)
+    assert_equal [123,   456  ], parse_to_str([123, 456], :fixnum)
     assert_equal ['abc', 'def'], parse_to_str(
                                    org.apache.hadoop.hbase.KeyValue.new(
                                      'rowkey'.to_java_bytes,
                                      'abc'.to_java_bytes,
                                      'def'.to_java_bytes))
 
-    assert_equal [:abc, :def],   parse_to_str(HBase::ColumnKey.new(:abc, :def), :symbol)
+    assert_equal [:abc, :def],   parse_to_str([:abc, :def], :symbol)
 
     assert_raise(ArgumentError) { Util.parse_column_name(nil) }
     assert_raise(ArgumentError) { Util.parse_column_name('') }

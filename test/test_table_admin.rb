@@ -205,8 +205,8 @@ class TestTableAdmin < TestHBaseJRubyBase
       rprops = @table.raw_properties
       assert_equal true.to_s,              rprops['DEFERRED_LOG_FLUSH']
       assert_equal false.to_s,             rprops['READONLY']
-      assert_equal (64 * 1024 ** 2).to_s,  rprops['MEMSTORE_FLUSHSIZE']
-      assert_equal (512 * 1024 ** 2).to_s, rprops['MAX_FILESIZE']
+      assert_equal((64 * 1024 ** 2).to_s,  rprops['MEMSTORE_FLUSHSIZE'])
+      assert_equal((512 * 1024 ** 2).to_s, rprops['MAX_FILESIZE'])
 
       # Column family properties
       cf = @table.families['cf']
@@ -278,7 +278,7 @@ class TestTableAdmin < TestHBaseJRubyBase
 
     @hbase.snapshots.each do |snapshot|
       assert_equal @table.name, snapshot[:table]
-      assert_match /hbase_jruby_test_snapshot[12]/, snapshot[:name]
+      assert_match(/hbase_jruby_test_snapshot[12]/, snapshot[:name])
     end
 
     @hbase.admin do |admin|

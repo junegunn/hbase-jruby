@@ -4,7 +4,7 @@ require 'java'
 # @!attribute [r] config
 #   @return [org.apache.hadoop.conf.Configuration]
 class HBase
-  attr_reader :config
+  attr_reader :config, :schema
 
   include Admin
 
@@ -61,6 +61,7 @@ class HBase
         end
       end
     @htable_pool = HTablePool.new @config, java.lang.Integer::MAX_VALUE
+    @schema = Schema.new
     @closed = false
   end
 
@@ -136,6 +137,20 @@ class HBase
       }
       Hash[props]
     }
+  end
+
+  # @param [Hash] hash
+  # @return [HBase::Schema]
+  def schema= hash
+    unless hash.is_a?(Hash)
+      raise ArgumentError, "invalid schema: Hash required"
+    end
+
+    schema = Schema.new
+    hash.each do |table, definition|
+      schema[table] = definition
+    end
+    @schema = schema
   end
 
 private

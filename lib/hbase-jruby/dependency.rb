@@ -16,7 +16,7 @@ class HBase
     'cdh4.1' => 'cdh4.1.4',
     'cdh3'   => 'cdh3u6',
     '0.95'   => '0.95.0',
-    '0.94'   => '0.94.6.1',
+    '0.94'   => '0.94.7',
     '0.92'   => '0.92.2',
   }
 
@@ -152,10 +152,6 @@ class HBase
           org.apache.hadoop.hbase.KeyValue
         ],
         HBase::Result => %w[
-          org.apache.hadoop.hbase.util.Bytes
-        ],
-        HBase::ColumnKey => %w[
-          java.util.Arrays
           org.apache.hadoop.hbase.util.Bytes
         ],
         HBase::Table => %w[

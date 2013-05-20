@@ -24,7 +24,7 @@ class Scoped
       if block_given?
         scanner = htable.getScanner(filtered_scan)
         scanner.each do |result|
-          cnt += 1 if yield(Row.send(:new, result))
+          cnt += 1 if yield(Row.send(:new, @table, result))
         end
       else
         scanner = htable.getScanner(filtered_scan_minimum)
@@ -53,11 +53,11 @@ class Scoped
     case rowkeys
     when Array
       htable.get(rowkeys.map { |rk| getify rk }).map { |result|
-        result.isEmpty ? nil : Row.new(result)
+        result.isEmpty ? nil : Row.send(:new, @table, result)
       }
     else
       result = htable.get(getify rowkeys)
-      result.isEmpty ? nil : Row.new(result)
+      result.isEmpty ? nil : Row.send(:new, @table, result)
     end
   end
 
@@ -67,17 +67,15 @@ class Scoped
   def each
     check_closed
 
-    if block_given?
-      begin
-        scanner = htable.getScanner(filtered_scan)
-        scanner.each do |result|
-          yield Row.send(:new, result)
-        end
-      ensure
-        scanner.close if scanner
+    return enum_for(:each) unless block_given?
+
+    begin
+      scanner = htable.getScanner(filtered_scan)
+      scanner.each do |result|
+        yield Row.send(:new, @table, result)
       end
-    else
-      self
+    ensure
+      scanner.close if scanner
     end
   end
 
@@ -208,7 +206,10 @@ class Scoped
         end
       end
     end
-    spawn :@project, @project + columns
+    spawn :@project, @project + columns.map { |c|
+      cf, cq, type = @table.lookup_schema(c)
+      cf ? [cf, cq] : c
+    }
   end
 
   # Returns an HBase::Scoped object with the specified version number limit.
@@ -408,10 +409,10 @@ private
     }
   end
 
-  def filter_for cf, cq, val
+  def filter_for cf, cq, type, val
     case val
     when Range
-      min, max = [val.begin, val.end].map { |k| Util.to_bytes k }
+      min, max = [val.begin, val.end].map { |k| Util.to_typed_bytes type, k }
       FilterList.new(FilterList::Operator::MUST_PASS_ALL, [
         SingleColumnValueFilter.new(
           cf, cq,
@@ -440,7 +441,7 @@ private
               CompareFilter::CompareOp::NOT_EQUAL
             else
               if val.length == 1
-                return filter_for(cf, cq, Util.to_bytes(val))
+                return filter_for(cf, cq, nil, Util.to_typed_bytes(type, val))
               else
                 raise ArgumentError, "Unknown operator: #{op}"
               end
@@ -456,11 +457,11 @@ private
                 FilterList::Operator::MUST_PASS_ONE
               end,
               v.map { |vv|
-                SingleColumnValueFilter.new(cf, cq, operator, Util.to_bytes(vv))
+                SingleColumnValueFilter.new(cf, cq, operator, Util.to_typed_bytes(type, vv))
               }
             )
           else
-            SingleColumnValueFilter.new(cf, cq, operator, Util.to_bytes(v))
+            SingleColumnValueFilter.new(cf, cq, operator, Util.to_typed_bytes(type, v))
           end
         }
       )
@@ -474,7 +475,7 @@ private
       SingleColumnValueFilter.new(
         cf, cq,
         CompareFilter::CompareOp::EQUAL,
-        Util.to_bytes(val))
+        Util.to_typed_bytes(type, val))
     end
   end
 
@@ -593,14 +594,14 @@ private
       case f
       when Hash
         f.map { |col, val|
-          cf, cq = Util.parse_column_name col
+          cf, cq, type = @table.lookup_and_parse col
 
           case val
           when Array
             FilterList.new(FilterList::Operator::MUST_PASS_ONE,
-              val.map { |v| filter_for cf, cq, v })
+              val.map { |v| filter_for cf, cq, type, v })
           else
-            filter_for cf, cq, val
+            filter_for cf, cq, type, val
           end
         }.flatten
       when FilterBase, FilterList
@@ -620,6 +621,12 @@ private
     else
       [val]
     end
+  end
+
+  # @private
+  def typed_bytes col, v
+    _, _, type = @table.lookup_schema(col)
+    Util.to_typed_bytes(type || :raw, v)
   end
 
   def check_closed

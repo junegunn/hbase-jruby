@@ -2,6 +2,7 @@ class HBase
 class << self
   # Shortcut method to HBase::ByteArray.new
   # @param [*Object] values
+  # @return [HBase::ByteArray]
   def ByteArray *values
     ByteArray.new(*values)
   end
@@ -15,6 +16,13 @@ class ByteArray
   alias to_java_bytes java
 
   include Enumerable
+
+  # Shortcut method to HBase::ByteArray.new
+  # @param [*Object] values
+  # @return [HBase::ByteArray]
+  def self.[] *values
+    ByteArray.new(*values)
+  end
 
   # Initializes ByteArray instance with the given objects,
   # each converted to its byte array representation
@@ -30,16 +38,14 @@ class ByteArray
   end
 
   def each
-    if block_given?
-      @java.to_a.each { |byte| yield byte }
-    else
-      self
-    end
+    return enum_for(:each) unless block_given?
+    @java.to_a.each { |byte| yield byte }
   end
 
   # Checks if the two byte arrays are the same
   # @param [HBase::ByteArray] other
   def eql? other
+    other = other_as_byte_array other
     Arrays.equals(@java, other.java)
   end
   alias == eql?
@@ -47,6 +53,7 @@ class ByteArray
   # Compares two ByteArray objects
   # @param [HBase::ByteArray] other
   def <=> other
+    other = other_as_byte_array other
     Bytes.compareTo(@java, other.java)
   end
 
@@ -147,11 +154,24 @@ class ByteArray
     Arrays.java_send(:hashCode, [Util::JAVA_BYTE_ARRAY_CLASS], @java)
   end
 
+  def inspect
+    "HBase::ByteArray<#{@java.to_a.join ', '}>"
+  end
+
 private
   def initialize_ *values
     @java = values.inject(Util::JAVA_BYTE_ARRAY_EMPTY) { |sum, value|
       Bytes.add sum, Util.to_bytes(value)
     }
+  end
+
+  def other_as_byte_array other
+    case other
+    when ByteArray
+      other
+    else
+      ByteArray[other]
+    end
   end
 end#ByteArray
 end#HBase
