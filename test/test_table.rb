@@ -170,6 +170,15 @@ class TestTable < TestHBaseJRubyBase
     @table.increment('row1', 'cf1:counter' => 4, 'cf1:counter2' => 100)
     assert_equal 8,   @table.get('row1').fixnum('cf1:counter')
     assert_equal 200, @table.get('row1').fixnum('cf1:counter2')
+
+    # Multi-row multi-column increment
+    @table.put('row2', 'cf1:counter' => 1, 'cf1:counter2' => 100)
+    @table.increment 'row1' => { 'cf1:counter' => 4, 'cf1:counter2' => 100 },
+                     'row2' => { 'cf1:counter' => 1, 'cf1:counter2' => 100 }
+    assert_equal 12,  @table.get('row1').fixnum('cf1:counter')
+    assert_equal 300, @table.get('row1').fixnum('cf1:counter2')
+    assert_equal 2,   @table.get('row2').fixnum('cf1:counter')
+    assert_equal 200, @table.get('row2').fixnum('cf1:counter2')
   end
 
   def test_delete

@@ -189,10 +189,6 @@ class TestSchema < TestHBaseJRubyBase
 
     # Get data (rowkey: 1)
     book = table.get 1
-    puts book[:title]
-    puts book[:author]
-    puts book.to_h      # Convert to simple Hash
-    puts book.to_H      # Hash with all versions of data fetched
 
     assert_equal data, book.to_h
     assert_equal data[:title], book['title']

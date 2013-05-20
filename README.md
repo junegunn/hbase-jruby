@@ -28,16 +28,13 @@ For old-school low-level APIs, refer to
 ```ruby
 require 'hbase-jruby'
 
+# Load required JAR files from CDH distribution using Maven
 HBase.resolve_dependency! 'cdh4.2.1'
 
+# Connect to HBase on localhost
 hbase = HBase.new
 
-table = hbase[:book]
-unless table.exists?
-  table.create! cf1: { bloomfilter: :row },
-                cf2: { bloomfilter: :rowcol, versions: 5 }
-end
-
+# Define table schema for easier data access
 hbase.schema = {
   book: {
     # Columns in cf1 family
@@ -60,6 +57,13 @@ hbase.schema = {
     }
   }
 }
+
+# Create book table with two column families
+table = hbase[:book]
+unless table.exists?
+  table.create! cf1: { min_versions: 2 },
+                cf2: { bloomfilter: :rowcol, versions: 5 }
+end
 
 # PUT
 table.put 1 => {
@@ -95,7 +99,7 @@ table.range(0..100)
      .each do |book|
 
   # Update columns
-  table.put book.rowkey => { price: book[:price] + BigDecimal('1') }
+  table.put book.rowkey, price: book[:price] + BigDecimal('1')
 
   # Atomic increment
   table.increment book.rowkey, reviews: 1, stars: 5
@@ -426,6 +430,10 @@ table.increment('rowkey1', reviews: 1)
 
 # Atomically increase two columns by one and five respectively
 table.increment('rowkey1', reviews: 1, stars: 5)
+
+# Increase column values of multiple rows. Atomicity is only guaranteed within each row.
+table.increment 'rowkey1' => { reviews: 1, stars: 5 },
+                'rowkey2' => { reviews: 1, stars: 3 }
 ```
 
 ### SCAN
@@ -437,6 +445,9 @@ table.increment('rowkey1', reviews: 1, stars: 5)
 table.each do |row|
   p row.to_h
 end
+
+# Returns Enumerator when block is not given
+table.each.with_index.each_slice(10).to_a
 ```
 
 ## Scoped access

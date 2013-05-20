@@ -165,10 +165,20 @@ class Table
   #   @param [Hash] column_by_hash Column expression to increment amount pairs
   #   @example
   #     table.increment('a000', 'cf1:col1' => 1, 'cf1:col2' => 2)
+  # @overload increment(inc_spec)
+  #   Increase values of multiple columns from multiple rows.
+  #   @param [Hash] inc_spec { rowkey => { col => by } }
+  #   @example
+  #     table.increment 'a000' => { 'cf1:col1' => 1, 'cf1:col2' => 2 },
+  #                     'a001' => { 'cf1:col1' => 3, 'cf1:col2' => 4 }
   def increment rowkey, *args
     check_closed
 
-    if args.first.is_a?(Hash)
+    if args.empty? && rowkey.is_a?(Hash)
+      rowkey.each do |key, spec|
+        increment key, spec
+      end
+    elsif args.first.is_a?(Hash)
       cols = args.first
       htable.increment Increment.new(Util.to_bytes rowkey).tap { |inc|
         cols.each do |col, by|
