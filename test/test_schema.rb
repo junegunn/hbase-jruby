@@ -27,6 +27,7 @@ class TestSchema < TestHBaseJRubyBase
 
         # cf3:f is a 8-byte integer
         :cf3 => { :f => :fixnum },
+        'cf3:g' => :float
       }
     }
 
@@ -98,6 +99,10 @@ class TestSchema < TestHBaseJRubyBase
     assert_equal 2, @table.filter(      'a' => 50..110).count
     assert_equal 2, @table.filter(       :a => 50..110).count
     assert_equal 1, @table.filter(:a => { :gt => 150 }).count
+
+    # cf3:g
+    @table.put   3,    :g => 3.14
+    assert_equal 3.14, @table.get(3)[:g]
   end
 
   def test_schema_readme
