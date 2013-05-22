@@ -108,13 +108,18 @@ class TestSchema < TestHBaseJRubyBase
     assert_equal 2, @table.filter(       :a => 50..110).count
     assert_equal 1, @table.filter(:a => { :gt => 150 }).count
 
-    # cf3:g
+    # cf:g (automatic type conversion)
     @table.put   3,    :g => 3.14
     assert_equal 3.14, @table.get(3)[:g]
+    @table.put   3,    :g => 314
+    assert_equal 314,  @table.get(3)[:g]
 
-    # cf:g (automatic type conversion)
-    @table.put 3, :g => 314
-    assert_equal 314, @table.get(3)[:g]
+    # cf3:g vs. cf2:g
+    @table.put   4,    :g => 3.14, 'cf2:g' => 'String'
+    assert_equal 3.14,     @table.get(4)[:g]
+    assert_equal 'String', @table.get(4)['cf2:g'].to_s
+    assert_equal 3.14,     @table.get(4).to_h[:g]
+    assert_equal 'String', @table.get(4).to_h['cf2:g'].to_s
   end
 
   def test_schema_readme
