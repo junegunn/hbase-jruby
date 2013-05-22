@@ -1,6 +1,12 @@
 Changelog
 =========
 
+0.3.1
+-----
+- Fixed a bug in `'cf:cq' => :type` shortcut schema definition
+- Added schema data type validation
+- Fixed reference to ambiguous column names
+
 0.3.0
 -----
 - Easier data access with table schema
