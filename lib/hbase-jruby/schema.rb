@@ -1,4 +1,5 @@
 require 'forwardable'
+require 'set'
 
 class HBase
 class Schema
@@ -43,7 +44,10 @@ class Schema
 
       # Family => { Column => Type }
       cols.each do |cq, type|
-        raise ArgumentError, "invalid schema" unless type.is_a?(Symbol)
+        type = type.to_sym
+        unless KNOWN_TYPES.include? type
+          raise ArgumentError, "invalid schema: unknown type: #{type}"
+        end
 
         # Pattern
         case cq
@@ -110,6 +114,17 @@ private
     }
   end
 
+  KNOWN_TYPES = Set[
+    :string, :str, :symbol, :sym,
+    :byte,
+    :boolean, :bool,
+    :int,
+    :short,
+    :long, :fixnum,
+    :float, :double,
+    :bigdecimal,
+    :raw
+  ]
 end
 end
 
