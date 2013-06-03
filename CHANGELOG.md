@@ -1,6 +1,10 @@
 Changelog
 =========
 
+0.3.2
+-----
+- Added CDH4.3 dependency profile
+
 0.3.1
 -----
 - Fixed a bug in `'cf:cq' => :type` shortcut schema definition

@@ -17,7 +17,7 @@
 require 'hbase-jruby'
 
 # Load required JAR files from CDH distribution using Maven
-HBase.resolve_dependency! 'cdh4.2.1'
+HBase.resolve_dependency! 'cdh4.3.0'
 
 # Connect to HBase on localhost
 hbase = HBase.new
@@ -115,6 +115,7 @@ Call `HBase.resolve_dependency!` helper method passing one of the arguments list
 
 | Argument   | Dependency               | Default version | Required executable |
 | ---------- | ------------------------ | --------------- | ------------------- |
+| cdh4.3[.*] | Cloudera CDH4.3          | cdh4.3.0        | mvn                 |
 | cdh4.2[.*] | Cloudera CDH4.2          | cdh4.2.1        | mvn                 |
 | cdh4.1[.*] | Cloudera CDH4.1          | cdh4.1.4        | mvn                 |
 | cdh3[u*]   | Cloudera CDH3            | cdh3u6          | mvn                 |
@@ -131,8 +132,8 @@ Call `HBase.resolve_dependency!` helper method passing one of the arguments list
 
 ```ruby
 # Load JAR files from CDH4 using Maven
-HBase.resolve_dependency! 'cdh4.2.1'
-HBase.resolve_dependency! 'cdh4.1.3'
+HBase.resolve_dependency! 'cdh4.3.0'
+HBase.resolve_dependency! 'cdh4.2'
 
 # Load JAR files of HBase 0.94.x using Maven
 HBase.resolve_dependency! '0.94.7'
