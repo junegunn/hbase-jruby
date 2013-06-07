@@ -27,14 +27,15 @@ hbase.schema = {
   book: {
     # Columns in cf1 family
     cf1: {
-      title:    :string,
+      title:    :string,     # String (UTF-8)
       author:   :string,
       category: :string,
-      year:     :short,
-      pages:    :fixnum,
-      price:    :bigdecimal,
-      weight:   :float,
-      in_print: :boolean
+      year:     :short,      # Short integer (2-byte)
+      pages:    :fixnum,     # Long integer (8-byte)
+      price:    :bigdecimal, # BigDecimal
+      weight:   :float,      # Double-precision floating-point number
+      in_print: :boolean,    # Boolean (true | false)
+      image:    :raw         # Java byte array; no automatic type conversion
     },
     # Columns in cf2 family
     cf2: {
@@ -63,6 +64,7 @@ table.put 1 => {
   price:     BigDecimal('21.50'),
   weight:    3.0,
   in_print:  true,
+  image:     File.open('thumbnail.png', 'rb') { |f| f.read }.to_java_bytes,
   summary:   'A wide-ranging, comparative study of mythology and religion',
   reviews:   52,
   stars:     226,

@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# encoding: utf-8
 
 $LOAD_PATH.unshift File.expand_path('..', __FILE__)
 require 'helper'
@@ -180,7 +181,8 @@ class TestSchema < TestHBaseJRubyBase
         :pages    => :fixnum,
         :price    => :bigdecimal,
         :weight   => :float,
-        :in_print => :boolean
+        :in_print => :boolean,
+        :image    => :raw
       },
       # Columns in cf2 family
       :cf2 => {
@@ -201,6 +203,7 @@ class TestSchema < TestHBaseJRubyBase
       :price    => BigDecimal('21.50'),
       :weight   => 3.0,
       :in_print => true,
+      :image    => File.open(__FILE__, 'rb') { |f| f.read }.to_java_bytes, # 안녕?
       :summary  => 'A wide-ranging, comparative study of mythology and religion',
       :reviews  => 52,
       :stars    => 226,
@@ -208,13 +211,20 @@ class TestSchema < TestHBaseJRubyBase
       :comment2 => 'Rewarding purchase'
     }
     table.put 1, data
+    # Since we can't directly compare java byte arrays
+    data[:image] = HBase::ByteArray[ data[:image] ]
 
     # Get data (rowkey: 1)
     book = table.get 1
 
-    assert_equal data, book.to_h
-    assert_equal data[:title], book['title']
+    assert_equal data,            book.to_h.tap { |h| h[:image] = HBase::ByteArray[ h[:image] ] }
+    assert_equal data[:title],    book['title']
     assert_equal data[:comment2], book['comment2']
+
+    assert HBase::Util.java_bytes?(book[:image])
+    if defined?(Encoding) # --1.8
+      assert_equal Encoding::ASCII_8BIT, book[:image].to_s.encoding
+    end
 
     assert_equal true, book.to_H.values.map(&:keys).flatten.all? { |e| e.is_a? Fixnum }
 
