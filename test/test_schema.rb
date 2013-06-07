@@ -178,7 +178,7 @@ class TestSchema < TestHBaseJRubyBase
         :author   => :string,
         :category => :string,
         :year     => :short,
-        :pages    => :fixnum,
+        :pages    => :int,
         :price    => :bigdecimal,
         :weight   => :float,
         :in_print => :boolean,

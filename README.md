@@ -24,6 +24,7 @@ hbase = HBase.new
 
 # Define table schema for easier data access
 hbase.schema = {
+  # Schema for `book` table
   book: {
     # Columns in cf1 family
     cf1: {
@@ -31,7 +32,7 @@ hbase.schema = {
       author:   :string,
       category: :string,
       year:     :short,      # Short integer (2-byte)
-      pages:    :fixnum,     # Long integer (8-byte)
+      pages:    :int,        # Integer (4-byte)
       price:    :bigdecimal, # BigDecimal
       weight:   :float,      # Double-precision floating-point number
       in_print: :boolean,    # Boolean (true | false)
@@ -39,9 +40,9 @@ hbase.schema = {
     },
     # Columns in cf2 family
     cf2: {
-      summary: :string,
-      reviews: :fixnum,
-      stars:   :fixnum,
+      summary:  :string,
+      reviews:  :fixnum,     # Long integer (8-byte)
+      stars:    :fixnum,
       /^comment\d+/ => :string
     }
   }
@@ -230,20 +231,21 @@ hbase.schema = {
   book: {
     # Columns in cf1 family
     cf1: {
-      title:    :string,
+      title:    :string,     # String (UTF-8)
       author:   :string,
       category: :string,
-      year:     :short,
-      pages:    :fixnum,
-      price:    :bigdecimal,
-      weight:   :float,
-      in_print: :boolean
+      year:     :short,      # Short integer (2-byte)
+      pages:    :int,        # Integer (4-byte)
+      price:    :bigdecimal, # BigDecimal
+      weight:   :float,      # Double-precision floating-point number
+      in_print: :boolean,    # Boolean (true | false)
+      image:    :raw         # Java byte array; no automatic type conversion
     },
     # Columns in cf2 family
     cf2: {
-      summary: :string,
-      reviews: :fixnum,
-      stars:   :fixnum,
+      summary:  :string,
+      reviews:  :fixnum,     # Long integer (8-byte)
+      stars:    :fixnum,
       /^comment\d+/ => :string
     }
   }
