@@ -999,8 +999,24 @@ you can then use the special Hash representation of integers.
 table.put({ int: 12345 }, 'cf1:a' => { byte: 100 },   # 1-byte integer
                           'cf1:b' => { short: 200 },  # 2-byte integer
                           'cf1:c' => { int: 300 },    # 4-byte integer
-                          'cf1:4' => 400)             # Ordinary 8-byte integer
+                          'cf1:d' => 400)             # Ordinary 8-byte integer
 
+row = table.get(int: 12345)
+```
+
+The use of these Hash-notations can be minimized if we define table schema as follows.
+
+```ruby
+hbase.schema[table.name] = {
+  cf1: {
+    a: :byte,
+    b: :short,
+    c: :int,
+    d: :fixnum
+  }
+}
+
+table.put({ int: 12345 }, a: 100, b: 200, c: 300, d: 400)
 row = table.get(int: 12345)
 ```
 
