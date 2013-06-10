@@ -623,12 +623,6 @@ private
     end
   end
 
-  # @private
-  def typed_bytes col, v
-    _, _, type = @table.lookup_schema(col)
-    Util.to_typed_bytes(type || :raw, v)
-  end
-
   def check_closed
     raise RuntimeError, "HBase connection is already closed" if @table.closed?
   end

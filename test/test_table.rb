@@ -230,6 +230,68 @@ class TestTable < TestHBaseJRubyBase
     assert_equal 2, @table.get('row3').fixnum('cf1:b')
   end
 
+  def test_delete_advanced
+    @table.put('row1', 'cf1' => 0, 'cf1:a' => 1, 'cf1:b' => 2, 'cf2:c' => 3, 'cf2:d' => 4)
+    @table.delete('row1', 'cf1:', 'cf1:b', 'cf2')
+    assert_equal 1, @table.get('row1').to_h.keys.length
+    assert_equal 1, @table.get('row1').fixnum('cf1:a')
+
+    ts = Time.now
+    @table.put('drow2', 'cf1:a' => { 1000 => 1, 2000 => 2, 3000 => 3 },
+                        'cf1:b' => { 4000 => 4, 5000 => 5, 6000 => 6 },
+                        'cf2:c' => 3, 'cf2:d' => 4, 'cf3:e' => 5)
+    @table.delete('drow2', 'cf1:a', 1000, Time.at(2),
+                           'cf2:c',
+                           'cf1:b', 5000,
+                           'cf3')
+
+    assert_equal 3, @table.get('drow2').to_h.keys.length
+
+    assert_equal 1, @table.get('drow2').to_H['cf1:a'].length
+    assert_equal 2, @table.get('drow2').to_H['cf1:b'].length
+    assert_equal 3000, @table.get('drow2').to_H['cf1:a'].keys.first
+    assert_equal [6000, 4000], @table.get('drow2').to_H['cf1:b'].keys
+  end
+
+  def test_delete_advanced_with_schema
+    @hbase.schema[@table.name] = {
+      :cf1 => {
+        :a => :int,
+        :b => :short,
+      },
+      :cf2 => {
+        :c => :long,
+        :d => :byte
+      },
+      :cf3 => {
+        :e => :fixnum
+      }
+    }
+    @table.put('row1', 'cf1' => 0, :a => 1, :b => 2, :c => 3, :d => 4)
+    @table.delete('row1', 'cf1:', :b, 'cf2')
+    assert_equal 1, @table.get('row1').to_h.keys.length
+    assert_equal 1, @table.get('row1').to_h[:a]
+    assert_equal 1, @table.get('row1').int(:a)
+
+    ts = Time.now
+    @table.put('drow3', :a => { 1000 => 1, 2000 => 2, 3000 => 3 },
+                        :b => { 4000 => 4, 5000 => 5, 6000 => 6 },
+                        :c => 3,
+                        :d => 4,
+                        :e => 5)
+    @table.delete('drow3', :a, 1000, Time.at(2),
+                           :c,
+                           [:cf1, :b], 5000,
+                           'cf3')
+
+    assert_equal 3, @table.get('drow3').to_h.keys.length
+
+    assert_equal 1, @table.get('drow3').to_H[:a].length
+    assert_equal 2, @table.get('drow3').to_H[:b].length
+    assert_equal 3000, @table.get('drow3').to_H[:a].keys.first
+    assert_equal [6000, 4000], @table.get('drow3').to_H[:b].keys
+  end
+
   def test_delete_row
     @table.put(1 => { 'cf1:a' => 1 }, 's' => { 'cf1:a' => 2 }, { :short => 3 } => { 'cf1:a' => 3 })
 
@@ -244,6 +306,66 @@ class TestTable < TestHBaseJRubyBase
     assert_equal 2,   @table.get('s').fixnum('cf1:a')
     assert_equal nil, @table.get({ :short => 3 })
     assert_equal 1,   @table.count
+  end
+
+  def test_check_and_put
+    @hbase.schema[@table.name] = {
+      :cf1 => {
+        :a => :short,
+        :b => :short,
+        :c => :short
+      }
+    }
+
+    [
+      # Without schema
+      [1, 'cf1:a', 'cf1:b', 'cf1:c'],
+    # [2, 'cf1:a', 'cf1:b', 'cf1:c'],
+      # With schema
+      [1, :a, :b, :c],
+    # [2, :a, :b, :c],
+    ].each do |args|
+      @table.delete_row 1
+      @table.put 1, 'cf1:a' => 100
+
+      rk, a, b, c = args
+
+      # not nil
+      assert_equal false, @table.check(1, a => 200).put(b => 300)
+      assert_equal nil, @table.get(rk).short(b)
+
+      assert_equal true, @table.check(1, a => 100).put(b => 300)
+      assert_equal 300, @table.get(rk).short(b)
+
+      # nil
+      assert_equal false, @table.check(1, a => nil).put(c => 300)
+      assert_equal nil, @table.get(rk).short(c)
+
+      assert_equal true, @table.check(1, c => nil).put(c => 300)
+      assert_equal 300, @table.get(rk).short(c)
+    end
+  end
+
+  def test_check_and_delete
+    ts = Time.now
+    @table.put 1, 'cf1:a' => 100, 'cf1:b' => 200,
+      'cf1:c' => { ts => 300, (ts - 1000) => 400, (ts - 2000).to_i => 500 },
+      'cf2:d' => 1000
+    assert_equal 3, @table.get(1).to_H['cf1:c'].length
+
+    assert_equal false, @table.check(1, 'cf1:a' => 200).delete('cf1:b')
+    assert_equal 200, @table.get(1).fixnum('cf1:b')
+
+    assert_equal true, @table.check(1, 'cf1:a' => 100).delete('cf1:b')
+    assert_equal nil, @table.get(1).fixnum('cf1:b')
+
+    assert_equal true, @table.check(1, 'cf1:a' => 100).delete('cf1:c', ts, (ts - 2000).to_i, 'cf2')
+    assert_equal 1, @table.get(1).to_H['cf1:c'].length
+    assert_equal (ts - 1000).to_i * 1000, @table.get(1).to_H['cf1:c'].keys.first / 1000 * 1000
+    assert_equal nil, @table.get(1).fixnum('cf2:d')
+
+    assert_equal true, @table.check(1, 'cf1:a' => 100).delete
+    assert_equal nil, @table.get(1)
   end
 end
 

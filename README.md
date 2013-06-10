@@ -56,7 +56,7 @@ unless table.exists?
 end
 
 # PUT
-table.put 1 => {
+table.put 1,
   title:     'The Golden Bough: A Study of Magic and Religion',
   author:    'Sir James G. Frazer',
   category:  'Occult',
@@ -71,7 +71,6 @@ table.put 1 => {
   stars:     226,
   comment1:  'A must-have',
   comment2:  'Rewarding purchase'
-}
 
 # GET
 book     = table.get(1)
@@ -95,8 +94,8 @@ table.range(0..100)
   # Atomic increment
   table.increment book.rowkey, reviews: 1, stars: 5
 
-  # Delete a column
-  table.delete book.rowkey, :comment1
+  # Delete two columns
+  table.delete book.rowkey, :comment1, :comment2
 end
 
 # Delete row
@@ -270,13 +269,12 @@ table.put 'rowkey1' => { title: 'foo',    year: 2013 },
           'rowkey3' => { title: 'foobar', year: 2015 }
 
 # Putting values with timestamps
-table.put 'rowkey1' => {
-    title: {
-      1353143856665 => "Hello world",
-      1352978648642 => "Goodbye world"
-    },
-    year: 2013
-  }
+table.put 'rowkey1',
+  title: {
+    1353143856665 => "Hello world",
+    1352978648642 => "Goodbye world"
+  },
+  year: 2013
 ```
 
 ### GET
@@ -326,12 +324,11 @@ Hash is returned with which you can also reference them with `FAMILY:QUALIFIER`
 notation or `[cf, cq]` array notation.
 
 ```ruby
-table.put 1000 => {
+table.put 1000,
   title:      'Hello world', # Known column
   comment100: 'foo',         # Known column
   'cf2:extra' => 'bar',      # Unknown column
   [:cf2, 10]  => 'foobar'    # Unknown column, non-string qualifier
-}
 
 book = table.get 10000
 hash = book.to_h
@@ -393,26 +390,35 @@ cells = row.to_a
 ### DELETE
 
 ```ruby
-# Deletes a row
+# Delete a row
 table.delete('rowkey1')
 
-# Deletes all columns in the specified column family
+# Delete all columns in the specified column family
 table.delete('rowkey1', :cf1)
 
-# Deletes a column
+# Delete a column
 table.delete('rowkey1', :author)
 
-# Deletes a column with empty qualifier.
+# Delete multiple columns
+table.delete('rowkey1', :author, :title, :image)
+
+# Delete a column with empty qualifier.
 # (!= deleing the entire columns in the family. See the trailing colon.)
 table.delete('rowkey1', 'cf1:')
 
-# Deletes a version of a column
+# Delete a version of a column
 table.delete('rowkey1', :author, 1352978648642)
 
-# Deletes multiple versions of a column
+# Delete multiple versions of a column
 table.delete('rowkey1', :author, 1352978648642, 1352978649642)
 
-# Batch delete
+# Delete multiple versions of multiple columns
+# - Two versions of :author
+# - One version of :title
+# - All versions of :image
+table.delete('rowkey1', :author, 1352978648642, 1352978649642, :title, 1352978649642, :image)
+
+# Batch delete; combination of aforementioned arguments each given as an Array
 table.delete(['rowkey1'], ['rowkey2'], ['rowkey3', :author, 1352978648642, 135297864964])
 ```
 
@@ -423,6 +429,13 @@ In that case, use simpler `delete_row` method.
 table.delete_row 'rowkey1'
 
 table.delete_row 'rowkey1', 'rowkey2', 'rowkey3'
+```
+
+### Checked PUT and DELETE
+
+```ruby
+table.check(:rowkey, in_print: false).put(in_print: true)
+table.check(:rowkey, in_print: false).delete(:price)
 ```
 
 ### Atomic increment of column values
