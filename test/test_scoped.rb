@@ -278,12 +278,35 @@ class TestScoped < TestHBaseJRubyBase
     }
   end
 
-  def test_null_value
+  def test_empty_value
     10.times do |i|
-      @table.put i, 'cf1:nil' => i % 2 == 0 ? nil : true
+      @table.put i, 'cf1:empty' => i % 2 == 0 ? '' : true
     end
     assert_equal 10, @table.count
-    assert_equal 5, @table.filter('cf1:nil' => nil).count
+    assert_equal 5, @table.filter('cf1:empty' => '').count
+  end
+
+  def test_null_filter
+    10.times do |i|
+      if i % 2 == 0
+        @table.put i, 'cf1:col1' => true
+      else
+        @table.put i, 'cf1:col2' => true
+      end
+    end
+    20.times do |i|
+      @table.put i + 10, 'cf1:col1' => 100, 'cf1:col2' => 100
+    end
+
+    assert_equal 30, @table.count
+    assert_equal 30, @table.filter('cf1:what' => nil).count
+    assert_equal  5, @table.filter('cf1:col1' => nil).count
+    assert_equal  5, @table.filter('cf1:col2' => nil).count
+    assert_equal  5, @table.filter('cf1:col1' => true).count
+    assert_equal  5, @table.filter('cf1:col2' => true).count
+    assert_equal 20, @table.filter('cf1:col1' => 90..100).count
+    assert_equal 20, @table.filter('cf1:col2' => 100..102).count
+    assert_equal 10, @table.filter('cf1:col1' => { :ne => 100 }).count
   end
 
   def test_scoped_get_intra_row_scan

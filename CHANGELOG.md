@@ -1,6 +1,21 @@
 Changelog
 =========
 
+0.3.3
+-----
+
+0.3.3 changes the way null values are handled, and introduces interface for CAS operations.
+It is strongly advised that you upgrade to 0.3.3 since it contains important fixes.
+
+- [PUT will not store null values](https://github.com/junegunn/hbase-jruby/issues/15)
+- `filter(column: nil)` will match rows without the column
+- `filter(column: value)` will *NOT* match rows without the column
+  - However, `filter(column: { ne: value })` *WILL* match rows without the column
+- [Added `HBase::Table#check` method for check-and-put and check-and-delete operations](https://github.com/junegunn/hbase-jruby/issues/14)
+  - `bool = table.check(1, in_print: false).delete(:price)`
+  - `bool = table.check(1, in_print: true).put(price: 100)`
+- Fix: invalid count when filter is used
+
 0.3.2
 -----
 - Added CDH4.3 dependency profile

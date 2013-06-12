@@ -66,6 +66,7 @@ module Util
     end
 
     def to_typed_bytes type, val
+      return nil               if val.nil?
       return Util.to_bytes val if type.nil?
 
       import_java_classes!
@@ -75,7 +76,7 @@ module Util
       when :byte
         [val].to_java(Java::byte)
       when :boolean, :bool
-        Bytes.to_bytes val
+        Bytes.java_send :toBytes, [Java::boolean], val
       when :int
         Bytes.java_send :toBytes, [Java::int], val
       when :short
