@@ -69,11 +69,17 @@ class Table
   def put *args
     check_closed
 
-    return put(args.first => args.last) if args.length == 2
-
-    puts = args.first.map { |rowkey, props| putify rowkey, props }
-    htable.put puts
-    puts.length
+    case args.length
+    when 1
+      puts = args.first.map { |rowkey, props| make_put rowkey, props }
+      htable.put puts
+      puts.length
+    when 2
+      htable.put make_put(*args)
+      1
+    else
+      raise ArgumentError, 'invalid number of arguments'
+    end
   end
 
   # Deletes data
@@ -83,31 +89,31 @@ class Table
   #   @return [nil]
   #   @example
   #     table.delete('a000')
-  # @overload delete(rowkey, column_family)
-  #   Deletes columns with the given column family from the row
+  # @overload delete(rowkey, *extra)
+  #   Deletes columns in the row.
   #   @param [Object] rowkey
-  #   @param [String] column_family
+  #   @param [*Object] extra [Family|Qualifier [Timestamp ...]] ...
   #   @return [nil]
   #   @example
-  #     table.delete('a000', 'cf1')
-  # @overload delete(rowkey, column)
-  #   Deletes a column
-  #   @param [Object] rowkey
-  #   @param [String, Array] column Column expression in String "FAMILY:QUALIFIER", or in Array [FAMILY, QUALIFIER]
-  #   @return [nil]
-  #   @example
+  #     # A column (with schema)
+  #     table.delete('a000', :title)
+  #     # Two columns (with schema)
+  #     table.delete('a000', :title, :author)
+  #     # A column (without schema)
   #     table.delete('a000', 'cf1:col1')
-  # @overload delete(rowkey, column, *timestamps)
-  #   Deletes specified versions of a column
-  #   @param [Object] rowkey
-  #   @param [String, Array] column Column expression in String "FAMILY:QUALIFIER", or in Array [FAMILY, QUALIFIER]
-  #   @param [*Fixnum] timestamps Timestamps.
-  #   @return [nil]
-  #   @example
-  #     table.delete('a000', 'cf1:col1', 1352978648642)
+  #     # Columns in cf1 family
+  #     table.delete('a000', 'cf1')
+  #     # A version
+  #     table.delete('a000', :author, 1352978648642)
+  #     # Two versions
+  #     table.delete('a000', :author, 1352978648642, 1352978647642)
+  #     # Combination of columns and versions
+  #     table.delete('a000', :author, 1352978648642, 1352978647642,
+  #                          :title,
+  #                          :image, 1352978648642)
   # @overload delete(*delete_specs)
   #   Batch deletion
-  #   @param [Array<Array>] delete_specs
+  #   @param [*Array] delete_specs
   #   @return [nil]
   #   @example
   #     table.delete(
@@ -120,25 +126,7 @@ class Table
 
     specs = args.first.is_a?(Array) ? args : [args]
 
-    htable.delete specs.map { |spec|
-      rowkey, cfcq, *ts = spec
-      if cfcq
-        cf, cq, _ = lookup_and_parse cfcq
-      end
-
-      Delete.new(Util.to_bytes rowkey).tap { |del|
-        if !ts.empty?
-          ts.each do |t|
-            del.deleteColumn cf, cq, time_to_long(t)
-          end
-        elsif cq
-          # Delete all versions
-          del.deleteColumns cf, cq
-        elsif cf
-          del.deleteFamily cf
-        end
-      }
-    }
+    htable.delete specs.map { |spec| spec.empty? ? nil : make_delete(*spec) }.compact
   end
 
   # Delete rows.
@@ -207,10 +195,28 @@ class Table
     Scoped.send(:new, self)
   end
 
+  # Returns CheckedOperation instance for check-and-put and check-and-delete
+  # @param [Object] rowkey
+  # @param [Hash] cond
+  # @return [HBase::Table::CheckedOperation]
+  def check rowkey, cond
+    raise ArgumentError, 'invalid check condition' unless cond.length == 1
+    col, val = cond.first
+
+    cf, cq, type = lookup_and_parse(col)
+
+    # If the passed value is null, the check is for the lack of column
+    CheckedOperation.new self, Util.to_bytes(rowkey),
+      cf, cq,
+      (val.nil? ? nil : Util.to_typed_bytes(type, val))
+  end
+
+  # @private
   def lookup_schema col
     @hbase.schema.lookup @name_sym, col
   end
 
+  # @private
   def lookup_and_parse col
     @hbase.schema.lookup_and_parse @name_sym, col
   end
@@ -228,9 +234,11 @@ private
     raise RuntimeError, "HBase connection is already closed" if @hbase.closed?
   end
 
-  def putify rowkey, props
+  def make_put rowkey, props
     Put.new(Util.to_bytes rowkey).tap { |put|
       props.each do |col, val|
+        next if val.nil?
+
         cf, cq, type = lookup_and_parse col
 
         case val
@@ -243,12 +251,48 @@ private
             # Types: :byte, :short, :int, ...
             else
               put.add cf, cq, Util.to_typed_bytes(t, v)
-            end
+            end unless v.nil?
           end
         else
           put.add cf, cq, Util.to_typed_bytes(type, val)
         end
       end
+      raise ArgumentError, "no column to put" if put.empty?
+    }
+  end
+
+  def make_delete rowkey, *extra
+    Delete.new(Util.to_bytes rowkey).tap { |del|
+      cf = cq = nil
+      prcd = false
+
+      prc = lambda do
+        unless prcd
+          if cq
+            # Delete all versions
+            del.deleteColumns cf, cq
+          elsif cf
+            del.deleteFamily cf
+          end
+        end
+      end
+
+      extra.each do |x|
+        case x
+        when Fixnum, Time
+          if cq
+            del.deleteColumn cf, cq, time_to_long(x)
+            prcd = true
+          else
+            raise ArgumentError, 'qualifier not given'
+          end
+        else
+          prc.call
+          cf, cq, _ = lookup_and_parse x
+          prcd = false
+        end
+      end
+      prc.call
     }
   end
 end#Table

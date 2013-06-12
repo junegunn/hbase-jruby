@@ -229,25 +229,34 @@ class TestSchema < TestHBaseJRubyBase
     assert_equal true, book.to_H.values.map(&:keys).flatten.all? { |e| e.is_a? Fixnum }
 
     # Scan table
+    assert_equal 1890, table.range(0..100).first[:year]
+    assert_equal 2, table.range(0..100).first.raw(:year).length
+    assert_equal 1, table.range(0..100).filter(:year => 1890).to_a.length
+    assert_equal 1, table.range(0..100).filter(:year => 1890).count
+    assert_equal 1, table.range(0..100).filter(:year => 1880...1900).count
+    cnt = 0
     table.range(0..100).
           filter(:year     => 1880...1900,
                  :in_print => true,
                  :category => ['Comics', 'Fiction', /cult/i],
                  :price    => { :lt => BigDecimal('30.00') },
                  :summary  => /myth/i).
-          project(:cf1, :reviews).
+          project(:cf1, :reviews, :summary).
           each do |book|
 
-      assert_equal data[:title], book[:title]
+      assert_equal data[:title],   book[:title]
       assert_equal data[:reviews], book[:reviews]
-      assert_equal nil, book[:summary]
+      assert_equal data[:summary], book[:summary]
+      assert_equal nil,            book[:comment1]
 
       # Update price
       table.put book.rowkey => { :price => book[:price] + BigDecimal('1') }
 
       # Atomic increment
       table.increment book.rowkey, :reviews => 1, :stars => 5
+      cnt += 1
     end
+    assert_equal 1, cnt
 
     assert_equal data[:price]   + 1.0, table.get(1)[:price]
     assert_equal data[:reviews] + 1,   table.get(1)[:reviews]
@@ -302,6 +311,48 @@ class TestSchema < TestHBaseJRubyBase
 
     # Drop table for subsequent tests
     table.drop!
+  end
+
+  def test_schema_nil_values
+    @hbase.schema[@table.name] = {
+      :cf1 => {
+        :a => :fixnum,
+        :b => :string,
+        :c => :short,
+        :d => :string
+      }
+    }
+
+    assert_raise(ArgumentError) {
+      @table.put 1, :a => nil, :b => nil, :c => nil, 'cf1:z' => nil
+    }
+    @table.put 1, :a => nil, :b => nil, :c => nil, :d => 'yo', 'cf1:z' => 1000
+    h = @table.get(1).to_h
+    assert !h.has_key?(:a)
+    assert !h.has_key?(:b)
+    assert !h.has_key?(:c)
+    assert h.has_key?(:d)
+
+    assert_equal nil,  h[:a]
+    assert_equal nil,  h[:b]
+    assert_equal nil,  h[:c]
+    assert_equal 'yo', h[:d]
+    assert_equal 1000, HBase::Util.from_bytes(:fixnum, h['cf1:z'])
+  end
+
+  def test_schema_delete
+    @hbase.schema[@table.name] = {
+      :cf1 => { :a => :fixnum }
+    }
+
+    @table.put 1, :a => 100
+    assert_equal 100, @table.get(1)[:a]
+    assert_equal 100, @table.get(1)['cf1:a']
+
+    @hbase.schema.delete @table.name
+    assert_equal nil,  @table.get(1)[:a]
+    assert_equal true, HBase::Util.java_bytes?(@table.get(1)['cf1:a'])
+    assert_equal 100,  HBase::Util.from_bytes(:fixnum, @table.get(1)['cf1:a'])
   end
 end
 
