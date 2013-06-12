@@ -416,11 +416,13 @@ private
       FilterList.new(FilterList::Operator::MUST_PASS_ALL, [
         SingleColumnValueFilter.new(
           cf, cq,
-          CompareFilter::CompareOp::GREATER_OR_EQUAL, min),
+          CompareFilter::CompareOp::GREATER_OR_EQUAL, min
+        ).tap { |f| f.setFilterIfMissing(true) },
         SingleColumnValueFilter.new(
           cf, cq,
           (val.exclude_end? ? CompareFilter::CompareOp::LESS :
-                              CompareFilter::CompareOp::LESS_OR_EQUAL), max)
+                              CompareFilter::CompareOp::LESS_OR_EQUAL), max
+        ).tap { |f| f.setFilterIfMissing(true) }
       ])
     when Hash
       FilterList.new(FilterList::Operator::MUST_PASS_ALL,
@@ -457,11 +459,15 @@ private
                 FilterList::Operator::MUST_PASS_ONE
               end,
               v.map { |vv|
-                SingleColumnValueFilter.new(cf, cq, operator, Util.to_typed_bytes(type, vv))
+                SingleColumnValueFilter.new(cf, cq, operator, Util.to_typed_bytes(type, vv)).tap { |f|
+                  f.setFilterIfMissing( op != :ne )
+                }
               }
             )
           else
-            SingleColumnValueFilter.new(cf, cq, operator, Util.to_typed_bytes(type, v))
+            SingleColumnValueFilter.new(cf, cq, operator, Util.to_typed_bytes(type, v)).tap { |f|
+              f.setFilterIfMissing( op != :ne )
+            }
           end
         }
       )
@@ -470,12 +476,21 @@ private
         cf, cq,
         CompareFilter::CompareOp::EQUAL,
         RegexStringComparator.new(val.to_s)
+      ).tap { |f| f.setFilterIfMissing(true) }
+    when nil
+      # - has value < '' -> not ok
+      # - no value       -> ok
+      SingleColumnValueFilter.new(
+        cf, cq,
+        CompareFilter::CompareOp::LESS,
+        HBase::Util::JAVA_BYTE_ARRAY_EMPTY
       )
     else
       SingleColumnValueFilter.new(
         cf, cq,
         CompareFilter::CompareOp::EQUAL,
-        Util.to_typed_bytes(type, val))
+        Util.to_typed_bytes(type, val)
+      ).tap { |f| f.setFilterIfMissing(true) }
     end
   end
 
@@ -554,12 +569,8 @@ private
 
       # A filter that will only return the first KV from each row
       # A filter that will only return the key component of each KV
-      filters = [FirstKeyOnlyFilter.new, KeyOnlyFilter.new]
-      if flist = scan.getFilter
-        filters.each do |filter|
-          flist.addFilter filter
-        end
-      else
+      unless scan.getFilter
+        filters = [FirstKeyOnlyFilter.new, KeyOnlyFilter.new]
         scan.setFilter FilterList.new(filters)
       end
     end

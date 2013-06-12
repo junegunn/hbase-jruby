@@ -308,6 +308,11 @@ class TestTable < TestHBaseJRubyBase
     assert_equal 1,   @table.count
   end
 
+  def test_check
+    assert_raise(ArgumentError) { @table.check(1, :a => 1, :b => 2) }
+    assert_raise(ArgumentError) { @table.check(1) }
+  end
+
   def test_check_and_put
     @hbase.schema[@table.name] = {
       :cf1 => {
@@ -331,41 +336,64 @@ class TestTable < TestHBaseJRubyBase
       rk, a, b, c = args
 
       # not nil
-      assert_equal false, @table.check(1, a => 200).put(b => 300)
+      assert_equal false, @table.check(rk, a => 200).put(b => 300)
       assert_equal nil, @table.get(rk).short(b)
 
-      assert_equal true, @table.check(1, a => 100).put(b => 300)
+      assert_equal true, @table.check(rk, a => 100).put(b => 300)
       assert_equal 300, @table.get(rk).short(b)
 
       # nil
-      assert_equal false, @table.check(1, a => nil).put(c => 300)
+      assert_equal false, @table.check(rk, a => nil).put(c => 300)
       assert_equal nil, @table.get(rk).short(c)
 
-      assert_equal true, @table.check(1, c => nil).put(c => 300)
+      assert_equal true, @table.check(rk, c => nil).put(c => 300)
       assert_equal 300, @table.get(rk).short(c)
     end
   end
 
   def test_check_and_delete
-    ts = Time.now
-    @table.put 1, 'cf1:a' => 100, 'cf1:b' => 200,
-      'cf1:c' => { ts => 300, (ts - 1000) => 400, (ts - 2000).to_i => 500 },
-      'cf2:d' => 1000
-    assert_equal 3, @table.get(1).to_H['cf1:c'].length
+    @hbase.schema[@table.name] = {
+      :cf1 => {
+        :a => :short,
+        :b => :short,
+        :c => :short
+      }
+    }
 
-    assert_equal false, @table.check(1, 'cf1:a' => 200).delete('cf1:b')
-    assert_equal 200, @table.get(1).fixnum('cf1:b')
+    [
+      ['cf1:a', 'cf1:b', 'cf1:c', 'cf2:d'],
+      [:a, :b, :c, :d]
+    ].each do |abcd|
+      a, b, c, d = abcd
 
-    assert_equal true, @table.check(1, 'cf1:a' => 100).delete('cf1:b')
-    assert_equal nil, @table.get(1).fixnum('cf1:b')
+      rk = (Time.now.to_f * 1000).to_i
+      ts = Time.now
+      @table.put rk, a => 100, b => 200,
+        c => { ts => 300, (ts - 1000) => 400, (ts - 2000).to_i => 500 },
+        d => 1000
+      assert_equal 3, @table.get(rk).to_H[:c].length
 
-    assert_equal true, @table.check(1, 'cf1:a' => 100).delete('cf1:c', ts, (ts - 2000).to_i, 'cf2')
-    assert_equal 1, @table.get(1).to_H['cf1:c'].length
-    assert_equal (ts - 1000).to_i * 1000, @table.get(1).to_H['cf1:c'].keys.first / 1000 * 1000
-    assert_equal nil, @table.get(1).fixnum('cf2:d')
+      assert_equal false, @table.check(rk, a => 200).delete(b)
+      assert_equal 200, @table.get(rk)[b]
 
-    assert_equal true, @table.check(1, 'cf1:a' => 100).delete
-    assert_equal nil, @table.get(1)
+      assert_equal true, @table.check(rk, a => 100).delete(b)
+      assert_equal nil, @table.get(rk)[b]
+
+      assert_equal true, @table.check(rk, a => 100).delete(c, ts, (ts - 2000).to_i, 'cf2')
+      assert_equal 1, @table.get(rk).to_H[:c].length
+      assert_equal (ts - 1000).to_i, @table.get(rk).to_H[:c].keys.first / 1000
+      assert_equal nil, @table.get(rk)[d]
+
+      assert_equal true, @table.check(rk, a => 100).delete
+      assert_equal nil, @table.get(rk)
+
+      @table.delete rk
+
+      @hbase.schema[@table.name] = {
+        :cf1 => { :a => :fixnum, :b => :fixnum, :c => :fixnum },
+        :cf2 => { :d => :fixnum }
+      }
+    end
   end
 end
 

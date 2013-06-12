@@ -80,12 +80,12 @@ as_hash  = book.to_h
 
 # SCAN
 table.range(0..100)
+     .project(:cf1, :reviews, :summary)
      .filter(year:     1880...1900,
              in_print: true,
              category: ['Comics', 'Fiction', /cult/i],
              price:    { lt: BigDecimal('30.00') },
              summary:  /myth/i)
-     .project(:cf1, :reviews)
      .each do |book|
 
   # Update columns
@@ -434,8 +434,14 @@ table.delete_row 'rowkey1', 'rowkey2', 'rowkey3'
 ### Checked PUT and DELETE
 
 ```ruby
-table.check(:rowkey, in_print: false).put(in_print: true)
-table.check(:rowkey, in_print: false).delete(:price)
+table.check(:rowkey, in_print: false)
+     .put(in_print: true, price: BigDecimal('10.0'))
+
+table.check(:rowkey, in_print: false)
+     .delete(:price, :image)
+       # Takes the same parameters as those of HBase::Table#delete
+       # except for the first rowkey
+       #   https://github.com/junegunn/hbase-jruby#delete
 ```
 
 ### Atomic increment of column values
@@ -584,8 +590,11 @@ table.range(nil, 1000).
         year: 2013,
 
         # Range of numbers or characters: Checks if the value falls within the range
-        weight: 2.0..4.0
+        weight: 2.0..4.0,
         author: 'A'..'C'
+
+        # Will match rows *without* price column
+        price: nil,
 
         # Regular expression: Checks if the value matches the regular expression
         summary: /classic$/i,

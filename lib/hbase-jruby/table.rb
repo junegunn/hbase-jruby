@@ -200,11 +200,12 @@ class Table
   # @param [Hash] cond
   # @return [HBase::Table::CheckedOperation]
   def check rowkey, cond
-    raise ArgumentError, "invalid check condition" unless cond.length == 1
+    raise ArgumentError, 'invalid check condition' unless cond.length == 1
     col, val = cond.first
 
     cf, cq, type = lookup_and_parse(col)
 
+    # If the passed value is null, the check is for the lack of column
     CheckedOperation.new self, Util.to_bytes(rowkey),
       cf, cq,
       (val.nil? ? nil : Util.to_typed_bytes(type, val))
@@ -236,6 +237,8 @@ private
   def make_put rowkey, props
     Put.new(Util.to_bytes rowkey).tap { |put|
       props.each do |col, val|
+        next if val.nil?
+
         cf, cq, type = lookup_and_parse col
 
         case val
@@ -248,12 +251,13 @@ private
             # Types: :byte, :short, :int, ...
             else
               put.add cf, cq, Util.to_typed_bytes(t, v)
-            end
+            end unless v.nil?
           end
         else
           put.add cf, cq, Util.to_typed_bytes(type, val)
         end
       end
+      raise ArgumentError, "no column to put" if put.empty?
     }
   end
 
