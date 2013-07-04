@@ -109,5 +109,23 @@ class TestHBase < TestHBaseJRubyBase
     assert_raise(RuntimeError) { hbase2[TABLE] }
     assert_raise(RuntimeError) { table.htable  }
   end
+
+  def test_reset_pool
+    hbase2 = HBase.new @hbase.config
+    table  = hbase2[TABLE]
+
+    htable = table.htable
+    assert_equal htable, table.htable
+    assert_equal htable, hbase2[TABLE.to_sym].htable
+
+    assert_nil hbase2.reset_table_pool
+
+    assert_not_equal htable, table.htable
+    assert_not_equal htable, hbase2[TABLE].htable
+
+    htable = table.htable
+    assert_equal htable, table.htable
+    assert_equal htable, hbase2[TABLE.to_sym].htable
+  end
 end
 

@@ -4,6 +4,7 @@ Changelog
 0.3.4
 -----
 - Cleanup all thread-local (fiber-local) HTable references when connection is closed
+- Added `HBase#reset_table_pool` method for recreating HTable pool
 
 0.3.3
 -----

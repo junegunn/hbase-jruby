@@ -88,15 +88,8 @@ class HBase
     @mutex.synchronize do
       unless @closed
         @closed = true
-
-        # Close all the HTable instances in the pool
-        @htable_pool.close
+        close_table_pool
         HConnectionManager.deleteConnection(@config, true)
-
-        # Cleanup thread-local references
-        @threads.each do |thr|
-          thr[:hbase_jruby].delete self
-        end
       end
     end
   end
@@ -161,6 +154,16 @@ class HBase
       schema[table] = definition
     end
     @schema = schema
+ end
+
+  # Reset underlying HTablePool
+  # @return [nil]
+  def reset_table_pool
+    @mutex.synchronize do
+      close_table_pool
+      @htable_pool = HTablePool.new @config, java.lang.Integer::MAX_VALUE
+    end
+    nil
   end
 
 private
@@ -168,6 +171,16 @@ private
     @mutex.synchronize do
       check_closed
       @threads << t
+    end
+  end
+
+  def close_table_pool
+    # Close all the HTable instances in the pool
+    @htable_pool.close
+
+    # Cleanup thread-local references
+    @threads.each do |thr|
+      thr[:hbase_jruby].delete self
     end
   end
 
