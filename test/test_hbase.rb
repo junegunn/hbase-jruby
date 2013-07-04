@@ -71,5 +71,43 @@ class TestHBase < TestHBaseJRubyBase
     hbase2 = HBase.new @hbase.config
     assert_equal @hbase.config, hbase2.config
   end
+
+  def test_thread_local_cleanup
+    # Open a new connection
+    hbase2 = HBase.new @hbase.config
+
+    # Thread-local htable cache is empty
+    assert_nil Thread.current[:hbase_jruby][hbase2]
+
+    table = hbase2[TABLE]
+    assert_nil Thread.current[:hbase_jruby][hbase2]
+
+    table.htable
+    # Thread-local htable cache has now been created
+    assert Thread.current[:hbase_jruby][hbase2][TABLE]
+
+    threads = 4.times.map { |i|
+      Thread.new {
+        ht = hbase2[TABLE].htable
+      }
+    }
+    threads.each do |t|
+      t.join
+      assert t[:hbase_jruby][hbase2][TABLE]
+    end
+
+    # Now close the connection
+    hbase2.close
+
+    # Threads-local htable cache deleted
+    assert_nil Thread.current[:hbase_jruby][hbase2]
+    threads.each do |t|
+      assert_nil t[:hbase_jruby][hbase2]
+    end
+
+    # Connection is already closed
+    assert_raise(RuntimeError) { hbase2[TABLE] }
+    assert_raise(RuntimeError) { table.htable  }
+  end
 end
 

@@ -48,8 +48,6 @@ class Scoped
   #   @param [Array<Object>] *rowkeys Rowkeys
   #   @return [Array<HBase::Row>]
   def get rowkeys
-    check_closed
-
     case rowkeys
     when Array
       htable.get(rowkeys.map { |rk| getify rk }).map { |result|
@@ -65,8 +63,6 @@ class Scoped
   # @yield [row] Yields each row in the scope
   # @yieldparam [HBase::Row] row
   def each
-    check_closed
-
     return enum_for(:each) unless block_given?
 
     begin

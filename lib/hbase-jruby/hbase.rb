@@ -1,4 +1,6 @@
 require 'java'
+require 'set'
+require 'thread'
 
 # @author Junegunn Choi <junegunn.c@gmail.com>
 # @!attribute [r] config
@@ -61,8 +63,10 @@ class HBase
         end
       end
     @htable_pool = HTablePool.new @config, java.lang.Integer::MAX_VALUE
-    @schema = Schema.new
-    @closed = false
+    @threads = Set.new
+    @mutex   = Mutex.new
+    @schema  = Schema.new
+    @closed  = false
   end
 
   # Returns an HBaseAdmin object for administration
@@ -70,10 +74,10 @@ class HBase
   # @yieldparam [org.apache.hadoop.hbase.client.HBaseAdmin] admin
   # @return [org.apache.hadoop.hbase.client.HBaseAdmin]
   def admin
-    check_closed
     if block_given?
       with_admin { |admin| yield admin }
     else
+      check_closed
       HBaseAdmin.new @config
     end
   end
@@ -81,13 +85,19 @@ class HBase
   # Closes HTablePool and connection
   # @return [nil]
   def close
-    unless @closed
-      @htable_pool.close
-      HConnectionManager.deleteConnection(@config, true)
-      if Thread.current[:hbase_jruby]
-        Thread.current[:hbase_jruby].delete(self)
+    @mutex.synchronize do
+      unless @closed
+        @closed = true
+
+        # Close all the HTable instances in the pool
+        @htable_pool.close
+        HConnectionManager.deleteConnection(@config, true)
+
+        # Cleanup thread-local references
+        @threads.each do |thr|
+          thr[:hbase_jruby].delete self
+        end
       end
-      @closed = true
     end
   end
 
@@ -118,7 +128,7 @@ class HBase
   def table table_name
     check_closed
 
-    ht = HBase::Table.send :new, self, @config, @htable_pool, table_name
+    ht = HBase::Table.send :new, self, @config, table_name
 
     if block_given?
       yield ht
@@ -154,6 +164,17 @@ class HBase
   end
 
 private
+  def register_thread t
+    @mutex.synchronize do
+      check_closed
+      @threads << t
+    end
+  end
+
+  def get_htable name
+    @htable_pool.get_table name
+  end
+
   def check_closed
     raise RuntimeError, "Connection already closed" if closed?
   end

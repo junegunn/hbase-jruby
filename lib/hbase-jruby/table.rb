@@ -22,8 +22,11 @@ class Table
 
     # [:hbase_jruby][HBase connection][Table name]
     local_vars = Thread.current[:hbase_jruby] ||= {}
-    local_htables = local_vars[@hbase] ||= {}
-    local_htables[@name] ||= @pool.get_table(@name)
+    unless local_htables = local_vars[@hbase]
+      @hbase.send :register_thread, Thread.current
+      local_htables = local_vars[@hbase] = {}
+    end
+    local_htables[@name] ||= @hbase.send :get_htable, @name
   end
 
   # @deprecated
@@ -67,8 +70,6 @@ class Table
   #   @param [Hash<Hash>] data Data to put indexed by rowkeys
   #   @return [Fixnum] Number of puts succeeded
   def put *args
-    check_closed
-
     case args.length
     when 1
       puts = args.first.map { |rowkey, props| make_put rowkey, props }
@@ -122,8 +123,6 @@ class Table
   #       ['a002', 'cf1'],
   #       ['a003'])
   def delete *args
-    check_closed
-
     specs = args.first.is_a?(Array) ? args : [args]
 
     htable.delete specs.map { |spec| spec.empty? ? nil : make_delete(*spec) }.compact
@@ -133,8 +132,6 @@ class Table
   # @param [*Object] rowkeys List of rowkeys of rows to delete
   # @return [nil]
   def delete_row *rowkeys
-    check_closed
-
     htable.delete rowkeys.map { |rk| Delete.new(Util.to_bytes rk) }
   end
 
@@ -160,8 +157,6 @@ class Table
   #     table.increment 'a000' => { 'cf1:col1' => 1, 'cf1:col2' => 2 },
   #                     'a001' => { 'cf1:col1' => 3, 'cf1:col2' => 4 }
   def increment rowkey, *args
-    check_closed
-
     if args.empty? && rowkey.is_a?(Hash)
       rowkey.each do |key, spec|
         increment key, spec
@@ -222,10 +217,9 @@ class Table
   end
 
 private
-  def initialize hbase, config, htable_pool, name
+  def initialize hbase, config, name
     @hbase    = hbase
     @config   = config
-    @pool     = htable_pool
     @name     = name.to_s
     @name_sym = name.to_sym
   end

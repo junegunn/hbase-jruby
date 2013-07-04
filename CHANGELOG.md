@@ -1,6 +1,10 @@
 Changelog
 =========
 
+0.3.4
+-----
+- Cleanup all thread-local (fiber-local) HTable references when connection is closed
+
 0.3.3
 -----
 
