@@ -86,9 +86,17 @@ class TestScoped < TestHBaseJRubyBase
     rescue NotImplementedError
     end
 
+    # Filters
+    assert_equal 1,  @table.filter('cf1:a' => 135).count
+    assert_equal 1,  @table.filter('cf2:b' => 135).count
+    assert_equal 10, @table.filter('cf1:a' => 131..140).count
+    assert_equal 10, @table.filter('cf2:b' => 131..140).count
+
     # Start key ~ Stop key (inclusive) + filters
     assert_equal 10,  @table.range(111..150).filter('cf1:a' => 131..140).count
+    assert_equal 10,  @table.range(111..150).filter('cf2:b' => 131..140).count
     assert_equal 9,   @table.range(111..150).filter('cf1:a' => 131...140).count
+    assert_equal 9,   @table.range(111..150).filter('cf2:b' => 131...140).count
     assert_equal 2,   @table.range(111..150).filter('cf1:a' => 131...140, 'cf2:b' => 132..133).count
 
     # Count with block

@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.3.5
+-----
+- Improved `Scoped#count` method
+  - KeyOnlyFilter turned out to be compatible with SingleColumnValueFilter
+
 0.3.4
 -----
 - Cleanup all thread-local (fiber-local) HTable references when connection is closed

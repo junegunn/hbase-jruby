@@ -563,12 +563,21 @@ private
       scan.cache_blocks = false
       scan.setMaxVersions 1
 
-      # A filter that will only return the first KV from each row
-      # A filter that will only return the key component of each KV
-      unless scan.getFilter
-        filters = [FirstKeyOnlyFilter.new, KeyOnlyFilter.new]
-        scan.setFilter FilterList.new(filters)
+      # FirstKeyOnlyFilter: A filter that will only return the first KV from each row-
+      # - Not compatible with SingleColumnValueFilter
+      # KeyOnlyFilter: A filter that will only return the key component of each KV
+      # - Compatible with SingleColumnValueFilter
+      ko = KeyOnlyFilter.new
+      if flist = scan.getFilter
+        if flist.is_a?(FilterList)
+          flist.addFilter ko
+        else
+          flist = FilterList.new([flist, ko])
+        end
+      else
+        flist = FilterList.new([ko, FirstKeyOnlyFilter.new])
       end
+      scan.setFilter flist
     end
   end
 
