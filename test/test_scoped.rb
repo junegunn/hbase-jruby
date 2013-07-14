@@ -91,6 +91,7 @@ class TestScoped < TestHBaseJRubyBase
     assert_equal 1,  @table.filter('cf2:b' => 135).count
     assert_equal 10, @table.filter('cf1:a' => 131..140).count
     assert_equal 10, @table.filter('cf2:b' => 131..140).count
+    assert_equal 10, @table.project(:prefix => 'a').filter('cf2:b' => 131..140).count
 
     # Start key ~ Stop key (inclusive) + filters
     assert_equal 10,  @table.range(111..150).filter('cf1:a' => 131..140).count
