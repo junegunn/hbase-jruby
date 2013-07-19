@@ -81,10 +81,21 @@ class TestScoped < TestHBaseJRubyBase
     assert_equal 10,  @table.range(111..120).count
 
     # Start key ~ Stop key (inclusive) + limit
-    begin
-      assert_equal 5, @table.range(111..120).limit(5).count
-    rescue NotImplementedError
-    end
+    assert_equal 5,  @table.range(111..120).limit(5).count
+    assert_equal 5,  @table.range(111..120).limit(5).to_a.count
+    assert_equal 10, @table.range(111..120).limit(5).limit(nil).to_a.count
+    scoped = @table.range(111..120).limit(5)
+    assert_equal 5,  scoped.count
+
+    # Scan.setCaching should be called when setMaxResultSize is not implemented
+    done = false
+    scoped.with_java_scan { |scan|
+      assert scan.respond_to?(:setMaxResultSize) || scan.caching == 5
+      done = true
+    }.count
+    assert done
+
+    assert_equal 10, scoped.limit(nil).count
 
     # Filters
     assert_equal 1,  @table.filter('cf1:a' => 135).count

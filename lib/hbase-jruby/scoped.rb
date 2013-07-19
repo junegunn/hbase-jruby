@@ -23,12 +23,12 @@ class Scoped
     begin
       if block_given?
         scanner = htable.getScanner(filtered_scan)
-        scanner.each do |result|
+        iterate(scanner) do |result|
           cnt += 1 if yield(Row.send(:new, @table, result))
         end
       else
         scanner = htable.getScanner(filtered_scan_minimum)
-        scanner.each { cnt += 1 }
+        iterate(scanner) { |r| cnt += 1 }
       end
     ensure
       scanner.close if scanner
@@ -67,7 +67,7 @@ class Scoped
 
     begin
       scanner = htable.getScanner(filtered_scan)
-      scanner.each do |result|
+      iterate(scanner) do |result|
         yield Row.send(:new, @table, result)
       end
     ensure
@@ -158,10 +158,12 @@ class Scoped
   end
 
   # Returns an HBase::Scoped object with the specified row number limit
-  # @param [Fixnum] rows Sets the maximum number of rows to return from scan
+  # @param [Fixnum|nil] rows Sets the maximum number of rows to return from scan
   # @return [HBase::Scoped] HBase::Scoped object with the specified row number limit
   def limit rows
-    raise ArgumentError, "Invalid limit. Must be a non-negative integer." unless rows.is_a?(Fixnum) && rows >= 0
+    unless (rows.is_a?(Fixnum) && rows >= 0) || rows.nil?
+      raise ArgumentError, "Invalid limit. Must be a non-negative integer or nil."
+    end
     spawn :@limit, rows
   end
 
@@ -259,6 +261,7 @@ private
     @batch    = nil
     @caching  = nil
     @limit    = nil
+    @mlimit   = nil
     @trange   = nil
     @scan_cbs = []
     @get_cbs  = []
@@ -523,11 +526,13 @@ private
 
       # Limit
       if @limit
-        # setMaxResultSize not implemented in 0.92
+        # setMaxResultSize not yet implemented in 0.94
         if scan.respond_to?(:setMaxResultSize)
           scan.setMaxResultSize(@limit)
+          @mlimit = nil
         else
-          raise NotImplementedError, 'Scan.setMaxResultSize not implemented'
+          @mlimit = @limit
+          scan.caching = [@mlimit, @caching].compact.min
         end
       end
 
@@ -641,6 +646,19 @@ private
 
   def check_closed
     raise RuntimeError, "HBase connection is already closed" if @table.closed?
+  end
+
+  def iterate scanner
+    if @limit && @mlimit
+      scanner.each_with_index do |result, idx|
+        yield result
+        break if idx == @mlimit - 1
+      end
+    else
+      scanner.each do |result|
+        yield result
+      end
+    end
   end
 end#Scoped
 end#HBase
