@@ -5,6 +5,10 @@ Changelog
 -----
 - Improved `Scoped#count` method
   - KeyOnlyFilter turned out to be compatible with SingleColumnValueFilter
+  - Now takes an optional Hash: `scoped.count(cache_blocks: false, caching: 100)`
+  - Changed not to disable server-side block caching by default
+- Supports `Scoped#limit` even when `Scan.setMaxResultSize` is not implemented
+  - `Scoped#limit(nil)` will remove the previously set value
 
 0.3.4
 -----

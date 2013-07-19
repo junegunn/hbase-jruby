@@ -710,11 +710,17 @@ end
 # Scoped COUNT
 #   When counting the number of rows, use `HTable::Scoped#count`
 #   instead of just iterating through the scope, as it internally
-#   minimizes amount of data fetched with KeyOnlyFilter
+#   minimizes the amount of data transfer using KeyOnlyFilter
+#   (and FirstKeyOnlyFilter when no filter is set)
 scoped.count
 
 # This should be even faster as it dramatically reduces the number of RPC calls
-scoped.caching(5000).count
+scoped.caching(1000).count
+
+# count method takes an options Hash:
+# - :caching (default: nil)
+# - :cache_blocks (default: true)
+scoped.count(caching: 5000, cache_blocks: false)
 ```
 
 ## Basic aggregation using coprocessor
