@@ -16,22 +16,29 @@ class Scoped
     Scoped.send(:new, @table)
   end
 
-  # Number of rows in the scope
+  # Count the number of rows in the scope
   # @return [Fixnum, Bignum] The number of rows in the scope
-  def count
+  # @param [Hash] options Counting options
+  # @option options [Fixnum|nil] :caching The number of rows for caching that will be passed to scanners.
+  #   Use higher values for faster scan.
+  # @option options [Boolean] :cache_blocks Whether blocks should be cached for this scan
+  def count options = {}
+    options = { :caching      => nil,
+                :cache_blocks => true }.merge(options)
+
+    scan = block_given? ? filtered_scan : filtered_scan_minimum
+    scan.cache_blocks = options[:cache_blocks]
+    if options[:caching] && (@mlimit.nil? || options[:caching] < @mlimit)
+      scan.caching = options[:caching]
+    end
+
     cnt = 0
-    begin
-      if block_given?
-        scanner = htable.getScanner(filtered_scan)
-        iterate(scanner) do |result|
-          cnt += 1 if yield(Row.send(:new, @table, result))
-        end
-      else
-        scanner = htable.getScanner(filtered_scan_minimum)
-        iterate(scanner) { |r| cnt += 1 }
+    if block_given?
+      iterate(scan) do |result|
+        cnt += 1 if yield(Row.send(:new, @table, result))
       end
-    ensure
-      scanner.close if scanner
+    else
+      iterate(scan) { |r| cnt += 1 }
     end
     cnt
   end
@@ -65,13 +72,8 @@ class Scoped
   def each
     return enum_for(:each) unless block_given?
 
-    begin
-      scanner = htable.getScanner(filtered_scan)
-      iterate(scanner) do |result|
-        yield Row.send(:new, @table, result)
-      end
-    ensure
-      scanner.close if scanner
+    iterate(filtered_scan) do |result|
+      yield Row.send(:new, @table, result)
     end
   end
 
@@ -164,7 +166,7 @@ class Scoped
     unless (rows.is_a?(Fixnum) && rows >= 0) || rows.nil?
       raise ArgumentError, "Invalid limit. Must be a non-negative integer or nil."
     end
-    spawn :@limit, rows
+    spawn :@limit, rows, :@mlimit, nil
   end
 
   # Returns an HBase::Scoped object with the specified time range
@@ -529,7 +531,6 @@ private
         # setMaxResultSize not yet implemented in 0.94
         if scan.respond_to?(:setMaxResultSize)
           scan.setMaxResultSize(@limit)
-          @mlimit = nil
         else
           @mlimit = @limit
           scan.caching = [@mlimit, @caching].compact.min
@@ -565,7 +566,6 @@ private
   # @private
   def filtered_scan_minimum
     filtered_scan.tap do |scan|
-      scan.cache_blocks = false
       scan.setMaxVersions 1
 
       # FirstKeyOnlyFilter: A filter that will only return the first KV from each row-
@@ -648,8 +648,9 @@ private
     raise RuntimeError, "HBase connection is already closed" if @table.closed?
   end
 
-  def iterate scanner
-    if @limit && @mlimit
+  def iterate scan
+    scanner = htable.getScanner(scan)
+    if @mlimit
       scanner.each_with_index do |result, idx|
         yield result
         break if idx == @mlimit - 1
@@ -659,6 +660,8 @@ private
         yield result
       end
     end
+  ensure
+    scanner.close if scanner
   end
 end#Scoped
 end#HBase

@@ -542,5 +542,22 @@ class TestScoped < TestHBaseJRubyBase
       get.setTimeRange(t2.to_i * 1000, t4.to_i * 1000)
     }.get(rks).compact.count
   end
+
+  def test_count_options
+    # TODO how to confirm?
+
+    (101..150).each do |i|
+      @table.put(i, 'cf1:a' => i, 'cf2:b' => i, 'cf3:c' => i * 3)
+    end
+
+    assert_equal 50, @table.count(:cache_blocks => false)
+    assert_equal 50, @table.count(:cache_blocks => true)
+
+    assert_equal 50, @table.count(:caching => nil)
+    assert_equal 50, @table.count(:caching => 5)
+    assert_equal 50, @table.count(:caching => 500)
+    assert_equal 15, @table.limit(15).count(:caching => 500)
+    assert_equal 15, @table.limit(15).count(:caching => 500, :cache_blocks => false)
+  end
 end
 
