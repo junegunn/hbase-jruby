@@ -11,6 +11,33 @@
 
     gem install hbase-jruby
 
+### Using hbase-jruby in HBase shell
+
+You can use this gem in HBase shell without external JRuby installation.
+
+First, clone this repository,
+
+```sh
+git clone https://github.com/junegunn/hbase-jruby.git
+```
+
+then start up the shell (`hbase shell`) and type in the following lines:
+
+```ruby
+$LOAD_PATH << 'hbase-jruby/lib'
+require 'hbase-jruby'
+```
+
+Now, you're all set.
+
+```ruby
+# Start using it!
+hbase = HBase.new
+
+hbase.list
+hbase[:my_table].create! :f
+```
+
 ## A quick example
 
 ```ruby
@@ -72,11 +99,17 @@ table.put 1,
   comment1:  'A must-have',
   comment2:  'Rewarding purchase'
 
-# GET
+# GET (using schema)
 book     = table.get(1)
 title    = book[:title]
 comment2 = book[:comment2]
 as_hash  = book.to_h
+
+# GET (not using schema)
+title    = book.string('cf1:title')       # cf:cq notation
+year     = book.short('cf1:year')
+reviews  = book.fixnum('cf2:reviews')
+stars    = book.fixnum(['cf2', 'stars'])  # Array notation of [cf, cq]
 
 # SCAN
 table.range(0..100)
@@ -1106,6 +1139,17 @@ ba.shift(:string, 11)  # Byte length must be given as Strings are not fixed in s
 
 ```ruby
 ba.java  # Returns the native Java byte array (byte[])
+```
+
+### Batch execution
+
+```ruby
+table.batch { |b|
+  b.put
+  b.delete
+  b.get
+  b.row_mutations
+}
 ```
 
 ## Test
