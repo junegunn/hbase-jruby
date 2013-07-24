@@ -160,21 +160,31 @@ class TestTable < TestHBaseJRubyBase
     @table.put('row1', 'cf1:counter' => 1, 'cf1:counter2' => 100)
     assert_equal 1, @table.get('row1').fixnum('cf1:counter')
 
-    @table.increment('row1', 'cf1:counter', 1)
+    ret = @table.increment('row1', 'cf1:counter', 1)
+    assert_equal 2, ret['cf1:counter']
     assert_equal 2, @table.get('row1').fixnum('cf1:counter')
 
-    @table.increment('row1', 'cf1:counter', 2)
+    ret = @table.increment('row1', 'cf1:counter', 2)
+    assert_equal 4, ret['cf1:counter']
     assert_equal 4, @table.get('row1').fixnum('cf1:counter')
 
     # Multi-column increment
-    @table.increment('row1', 'cf1:counter' => 4, 'cf1:counter2' => 100)
+    ret = @table.increment('row1', 'cf1:counter' => 4, 'cf1:counter2' => 100)
+    assert_equal 8,   ret['cf1:counter']
     assert_equal 8,   @table.get('row1').fixnum('cf1:counter')
+    assert_equal 200, ret['cf1:counter2']
+    assert_equal 200, ret[%w[cf1 counter2]]
     assert_equal 200, @table.get('row1').fixnum('cf1:counter2')
 
     # Multi-row multi-column increment
     @table.put('row2', 'cf1:counter' => 1, 'cf1:counter2' => 100)
-    @table.increment 'row1' => { 'cf1:counter' => 4, 'cf1:counter2' => 100 },
-                     'row2' => { 'cf1:counter' => 1, 'cf1:counter2' => 100 }
+    ret = @table.increment 'row1' => { 'cf1:counter' => 4, 'cf1:counter2' => 100 },
+                           'row2' => { 'cf1:counter' => 1, 'cf1:counter2' => 100 }
+    assert_equal 12,  ret['row1']['cf1:counter']
+    assert_equal 300, ret['row1']['cf1:counter2']
+    assert_equal 2,   ret['row2']['cf1:counter']
+    assert_equal 200, ret['row2']['cf1:counter2']
+    assert_equal 200, ret['row2'][%w[cf1 counter2]]
     assert_equal 12,  @table.get('row1').fixnum('cf1:counter')
     assert_equal 300, @table.get('row1').fixnum('cf1:counter2')
     assert_equal 2,   @table.get('row2').fixnum('cf1:counter')
@@ -395,5 +405,12 @@ class TestTable < TestHBaseJRubyBase
       }
     end
   end
+
+# def test_append
+#   @table.put 1000, 'cf1:a' => 'hello', 'cf2:b' => 'foo'
+#   @table.append 1000, 'cf1:a' => ' world', 'cf2:b' => 'bar'
+#   assert_equal 'hello world', @table.get(1000).string('cf1:a')
+#   assert_equal 'foobar',      @table.get(1000).string('cf2:b')
+# end
 end
 
