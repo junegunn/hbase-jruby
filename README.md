@@ -155,7 +155,7 @@ Call `HBase.resolve_dependency!` helper method passing one of the arguments list
 | cdh4.1[.*] | Cloudera CDH4.1          | cdh4.1.4        | mvn                 |
 | cdh3[u*]   | Cloudera CDH3            | cdh3u6          | mvn                 |
 | 0.95[.*]   | Apache HBase 0.95        | 0.95.0          | mvn                 |
-| 0.94[.*]   | Apache HBase 0.94        | 0.94.7          | mvn                 |
+| 0.94[.*]   | Apache HBase 0.94        | 0.94.9          | mvn                 |
 | 0.92[.*]   | Apache HBase 0.92        | 0.92.2          | mvn                 |
 | *POM PATH* | Custom Maven POM file    | -               | mvn                 |
 | `:local`   | Local HBase installation | -               | hbase               |
