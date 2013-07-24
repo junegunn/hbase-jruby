@@ -72,11 +72,11 @@ class Table
   def put *args
     case args.length
     when 1
-      puts = args.first.map { |rowkey, props| make_put rowkey, props }
+      puts = args.first.map { |rowkey, props| @mutation.put rowkey, props }
       htable.put puts
       puts.length
     when 2
-      htable.put make_put(*args)
+      htable.put @mutation.put(*args)
       1
     else
       raise ArgumentError, 'invalid number of arguments'
@@ -125,7 +125,7 @@ class Table
   def delete *args
     specs = args.first.is_a?(Array) ? args : [args]
 
-    htable.delete specs.map { |spec| spec.empty? ? nil : make_delete(*spec) }.compact
+    htable.delete specs.map { |spec| spec.empty? ? nil : @mutation.delete(*spec) }.compact
   end
 
   # Delete rows.
@@ -141,38 +141,37 @@ class Table
   #   @param [Object] rowkey Rowkey
   #   @param [String, Array] column Column expression in String "FAMILY:QUALIFIER", or in Array [FAMILY, QUALIFIER]
   #   @param [Fixnum] by Increment amount
-  #   @return [Fixnum] Column value after increment
+  #   @return [Hash]
   #   @example
   #     table.increment('a000', 'cf1:col1', 1)
   # @overload increment(rowkey, column_by_hash)
   #   Atomically increase values of multiple columns
   #   @param [Object] rowkey Rowkey
   #   @param [Hash] column_by_hash Column expression to increment amount pairs
+  #   @return [Hash]
   #   @example
   #     table.increment('a000', 'cf1:col1' => 1, 'cf1:col2' => 2)
   # @overload increment(inc_spec)
   #   Increase values of multiple columns from multiple rows.
   #   @param [Hash] inc_spec { rowkey => { col => by } }
+  #   @return [Hash]
   #   @example
   #     table.increment 'a000' => { 'cf1:col1' => 1, 'cf1:col2' => 2 },
   #                     'a001' => { 'cf1:col1' => 3, 'cf1:col2' => 4 }
   def increment rowkey, *args
     if args.empty? && rowkey.is_a?(Hash)
-      rowkey.each do |key, spec|
-        increment key, spec
-      end
-    elsif args.first.is_a?(Hash)
-      cols = args.first
-      htable.increment Increment.new(Util.to_bytes rowkey).tap { |inc|
-        cols.each do |col, by|
-          cf, cq, _ = lookup_and_parse col
-          inc.addColumn cf, cq, by
+      INSENSITIVE_ROW_HASH.clone.tap { |result|
+        rowkey.each do |key, spec|
+          result[Util.java_bytes?(key) ? ByteArray[key] : key] = increment(key, spec)
         end
       }
     else
-      col, by = args
-      cf, cq = lookup_and_parse col
-      htable.incrementColumnValue Util.to_bytes(rowkey), cf, cq, by || 1
+      incr = @mutation.increment(rowkey, *args)
+      Row.send(:new, self, htable.increment(incr)).to_h.tap { |h|
+        h.each do |k, v|
+          h[k] = Util.from_bytes :fixnum, v unless v.is_a?(Fixnum)
+        end
+      }
     end
   end
 
@@ -201,7 +200,7 @@ class Table
     cf, cq, type = lookup_and_parse(col)
 
     # If the passed value is null, the check is for the lack of column
-    CheckedOperation.new self, Util.to_bytes(rowkey),
+    CheckedOperation.new self, @mutation, Util.to_bytes(rowkey),
       cf, cq,
       (val.nil? ? nil : Util.to_typed_bytes(type, val))
   end
@@ -222,73 +221,23 @@ private
     @config   = config
     @name     = name.to_s
     @name_sym = name.to_sym
+    @mutation = Mutation.new(self)
   end
 
   def check_closed
     raise RuntimeError, "HBase connection is already closed" if @hbase.closed?
   end
 
-  def make_put rowkey, props
-    Put.new(Util.to_bytes rowkey).tap { |put|
-      props.each do |col, val|
-        next if val.nil?
-
-        cf, cq, type = lookup_and_parse col
-
-        case val
-        when Hash
-          val.each do |t, v|
-            case t
-            # Timestamp / Ruby Time
-            when Time, Fixnum
-              put.add cf, cq, time_to_long(t), Util.to_typed_bytes(type, v)
-            # Types: :byte, :short, :int, ...
-            else
-              put.add cf, cq, Util.to_typed_bytes(t, v)
-            end unless v.nil?
-          end
-        else
-          put.add cf, cq, Util.to_typed_bytes(type, val)
+  INSENSITIVE_ROW_HASH = {}.tap { |h|
+    h.instance_eval do
+      def [] key
+        if Util.java_bytes?(key)
+          key = ByteArray[key]
         end
+        super key
       end
-      raise ArgumentError, "no column to put" if put.empty?
-    }
-  end
-
-  def make_delete rowkey, *extra
-    Delete.new(Util.to_bytes rowkey).tap { |del|
-      cf = cq = nil
-      prcd = false
-
-      prc = lambda do
-        unless prcd
-          if cq
-            # Delete all versions
-            del.deleteColumns cf, cq
-          elsif cf
-            del.deleteFamily cf
-          end
-        end
-      end
-
-      extra.each do |x|
-        case x
-        when Fixnum, Time
-          if cq
-            del.deleteColumn cf, cq, time_to_long(x)
-            prcd = true
-          else
-            raise ArgumentError, 'qualifier not given'
-          end
-        else
-          prc.call
-          cf, cq, _ = lookup_and_parse x
-          prcd = false
-        end
-      end
-      prc.call
-    }
-  end
+    end
+  }
 end#Table
 end#HBase
 
