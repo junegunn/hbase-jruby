@@ -88,9 +88,10 @@ class TestSchema < TestHBaseJRubyBase
     data1[:a] *= 2
     data1[:b] = :new_symbol
     @table.put 3, data1
-    @table.increment 3, :a => 5
+    ret = @table.increment 3, :a => 5
 
     # PUT again
+    assert_equal data[:a] * 2 + 5, ret[:a]
     assert_equal data[:a] * 2 + 5, @table.get(3)[:a]
     assert_equal :new_symbol,      @table.get(3)[:b]
     assert_equal :new_symbol,      @table.get(3)['b']
@@ -235,6 +236,7 @@ class TestSchema < TestHBaseJRubyBase
     assert_equal 1, table.range(0..100).filter(:year => 1890).count
     assert_equal 1, table.range(0..100).filter(:year => 1880...1900).count
     cnt = 0
+    inc1 = inc2 = nil
     table.range(0..100).
           filter(:year     => 1880...1900,
                  :in_print => true,
@@ -253,7 +255,8 @@ class TestSchema < TestHBaseJRubyBase
       table.put book.rowkey => { :price => book[:price] + BigDecimal('1') }
 
       # Atomic increment
-      table.increment book.rowkey, :reviews => 1, :stars => 5
+      inc1 = table.increment book.rowkey => { :reviews => 1, :stars => 2 }
+      inc2 = table.increment book.rowkey, :stars => 3
       cnt += 1
     end
     assert_equal 1, cnt
@@ -261,6 +264,11 @@ class TestSchema < TestHBaseJRubyBase
     assert_equal data[:price]   + 1.0, table.get(1)[:price]
     assert_equal data[:reviews] + 1,   table.get(1)[:reviews]
     assert_equal data[:stars]   + 5,   table.get(1)[:stars]
+
+    assert_equal data[:reviews] + 1, inc1[book.rowkey][:reviews]
+    assert_equal data[:stars]   + 2, inc1[book.rowkey][:stars]
+    assert_equal nil,                inc2[:reviews]
+    assert_equal data[:stars]   + 5, inc2[:stars]
 
     # Coprocessor
     table.enable_aggregation!
