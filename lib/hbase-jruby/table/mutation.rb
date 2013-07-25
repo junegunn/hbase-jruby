@@ -13,7 +13,7 @@ class Mutation
       props.each do |col, val|
         next if val.nil?
 
-        cf, cq, type = @table.lookup_and_parse col
+        cf, cq, type = @table.lookup_and_parse col, true
 
         case val
         when Hash
@@ -62,7 +62,7 @@ class Mutation
           end
         else
           prc.call
-          cf, cq, _ = @table.lookup_and_parse x
+          cf, cq, _ = @table.lookup_and_parse x, false
           prcd = false
         end
       end
@@ -80,7 +80,7 @@ class Mutation
 
     Increment.new(Util.to_bytes rowkey).tap { |inc|
       spec.each do |col, by|
-        cf, cq, _ = @table.lookup_and_parse col
+        cf, cq, _ = @table.lookup_and_parse col, true
         inc.addColumn cf, cq, by
       end
     }
@@ -89,11 +89,42 @@ class Mutation
   def append rowkey, spec
     Append.new(Util.to_bytes rowkey).tap { |apnd|
       spec.each do |col, val|
-        cf, cq, _ = @table.lookup_and_parse col
+        cf, cq, _ = @table.lookup_and_parse col, true
         apnd.add(cf, cq, Util.to_bytes(val))
       end
     }
   end
+
+  def mutate rowkey
+    rm = Mutator.new(self, rowkey)
+    yield rm
+    org.apache.hadoop.hbase.client.RowMutations.new(Util.to_bytes rowkey).tap { |m|
+      rm.mutations.each do |action|
+        m.add action
+      end
+    }
+  end
+
+  class Mutator
+    attr_reader :mutations
+
+    def initialize mutation, rowkey
+      @mutation  = mutation
+      @rowkey    = rowkey
+      @mutations = []
+    end
+
+    # @param [Hash] props Column values
+    def put props
+      @mutations << @mutation.put(@rowkey, props)
+      self
+    end
+
+    def delete *args
+      @mutations << @mutation.delete(@rowkey, *args)
+      self
+    end
+  end#RowMutation
 end#Mutation
 end#Table
 end#HBase

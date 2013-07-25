@@ -269,7 +269,7 @@ class Row
 
 private
   def get_value col, with_versions = false
-    cf, cq, _ = @table.lookup_and_parse col
+    cf, cq, _ = @table.lookup_and_parse col, true
     if with_versions
       # Need to make it a Ruby hash:
       #   Prevents implicit conversion from ruby type to java type when updating the Hash
