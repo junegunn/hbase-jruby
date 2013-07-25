@@ -1,6 +1,15 @@
 Changelog
 =========
 
+0.4.0 (WIP)
+-----------
+- Added support for append operation: `HBase::Table#append`
+- Added support for atomic mutations on a single row: `HBase::Table#mutate`
+- Added support for batch operations: `HBase::Table#batch` and `HBase::Table#batch!`
+- Changed `HBase::Table#increment` to return the updated values as a Hash
+- Fixed HBase.resolve_dependency!(:local) on CDH distribution
+- Empty-qualifier must be given as 'cf:', and not 'cf'
+
 0.3.5
 -----
 - Improved `Scoped#count` method

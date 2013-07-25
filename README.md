@@ -487,12 +487,6 @@ puts inc[:reviews]
 # Atomically increase two columns by one and five respectively
 inc = table.increment('rowkey1', reviews: 1, stars: 5)
 puts inc[:stars]
-
-# Increase column values of multiple rows.
-# - Atomicity is only guaranteed within each row.
-inc = table.increment 'rowkey1' => { reviews: 1, stars: 5 },
-                      'rowkey2' => { reviews: 1, stars: 3 }
-puts inc['rowkey2'][:stars]
 ```
 
 ### APPEND
