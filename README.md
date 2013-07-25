@@ -1144,17 +1144,6 @@ ba.shift(:string, 11)  # Byte length must be given as Strings are not fixed in s
 ba.java  # Returns the native Java byte array (byte[])
 ```
 
-### Batch execution
-
-```ruby
-table.batch { |b|
-  b.put
-  b.delete
-  b.get
-  b.row_mutations
-}
-```
-
 ## Test
 
 ```bash
