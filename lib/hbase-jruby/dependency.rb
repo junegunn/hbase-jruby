@@ -51,7 +51,7 @@ class HBase
           # Check for hbase executable
           hbase = `which hbase`
           raise RuntimeError, "Cannot find `hbase` executable" if hbase.empty?
-          `hbase classpath`.split(':')
+          `hbase classpath`.strip.split(':').map { |e| Dir[e] }.flatten
         else
           # Check for Maven executable
           mvn = `which mvn`
@@ -99,8 +99,8 @@ class HBase
 
       # Load jars
       jars_loaded = jars.select { |jar|
-        File.exists?(jar) &&
-        File.extname(jar) == '.jar' &&
+        File.file?(jar) &&
+        File.extname(jar).downcase == '.jar' &&
         require(jar)
       }
 
