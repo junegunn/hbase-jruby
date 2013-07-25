@@ -12,6 +12,7 @@ unless defined? Enumerator
 end
 
 $LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
+$rowkey = Time.now.to_i
 
 require "hbase-jruby"
 if dist = ENV['HBASE_JRUBY_TEST_DIST']
@@ -31,7 +32,8 @@ class TestHBaseJRubyBase < Test::Unit::TestCase
   hbase.close
 
   def connect
-    HBase.new 'hbase.zookeeper.quorum' => ZK
+    HBase.new('hbase.zookeeper.quorum' => ZK,
+              'hbase.client.retries.number' => 10) # For region-split test
   end
 
   def setup
@@ -51,6 +53,10 @@ class TestHBaseJRubyBase < Test::Unit::TestCase
       @table.delete(*@table.map { |row| [row.rowkey(:raw)] })
       assert_equal 0, @table.count
     end
+  end
+
+  def next_rowkey
+    $rowkey += 1
   end
 
   def teardown

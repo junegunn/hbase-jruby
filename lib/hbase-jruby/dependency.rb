@@ -162,6 +162,7 @@ class HBase
           org.apache.hadoop.hbase.client.Delete
           org.apache.hadoop.hbase.client.Increment
           org.apache.hadoop.hbase.client.Put
+          org.apache.hadoop.hbase.client.RowMutations
           org.apache.hadoop.hbase.io.hfile.Compression
           org.apache.hadoop.hbase.regionserver.StoreFile
         ],

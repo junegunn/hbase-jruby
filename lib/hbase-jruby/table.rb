@@ -125,14 +125,24 @@ class Table
   def delete *args
     specs = args.first.is_a?(Array) ? args : [args]
 
-    htable.delete specs.map { |spec| spec.empty? ? nil : @mutation.delete(*spec) }.compact
+    list = specs.map { |spec| spec.empty? ? nil : @mutation.delete(*spec) }.compact
+    if list.length == 1
+      htable.delete list.first
+    else
+      htable.delete list
+    end
   end
 
   # Delete rows.
   # @param [*Object] rowkeys List of rowkeys of rows to delete
   # @return [nil]
   def delete_row *rowkeys
-    htable.delete rowkeys.map { |rk| Delete.new(Util.to_bytes rk) }
+    list = rowkeys.map { |rk| Delete.new(Util.to_bytes rk) }
+    if list.length == 1
+      htable.delete list.first
+    else
+      htable.delete list
+    end
   end
 
   # Atomically increase numeric values
@@ -188,6 +198,22 @@ class Table
     Row.send(:new, self, result).to_h if result # (maybe null)
   end
 
+  # Performs multiple mutations atomically on a single row.
+  # Currently Put and Delete are supported.
+  # The mutations are performed in the order in which they were specified.
+  # @param [Object] rowkey Rowkey
+  # @yield [HBase::Table::Mutation::Mutator]
+  # @return [nil]
+  # @example
+  #   table.mutate do |m|
+  #     m.put a: 100, b: 'hello'
+  #     m.delete :c, :d
+  #     m.put e: 3.14
+  #   end
+  def mutate(rowkey, &block)
+    htable.mutateRow @mutation.mutate(rowkey, &block)
+  end
+
   # Scan through the table
   # @yield [row] Yields each row in the scope
   # @yieldparam [HBase::Row] row
@@ -210,7 +236,7 @@ class Table
     raise ArgumentError, 'invalid check condition' unless cond.length == 1
     col, val = cond.first
 
-    cf, cq, type = lookup_and_parse(col)
+    cf, cq, type = lookup_and_parse(col, true)
 
     # If the passed value is null, the check is for the lack of column
     CheckedOperation.new self, @mutation, Util.to_bytes(rowkey),
@@ -224,8 +250,8 @@ class Table
   end
 
   # @private
-  def lookup_and_parse col
-    @hbase.schema.lookup_and_parse @name_sym, col
+  def lookup_and_parse col, expect_cq
+    @hbase.schema.lookup_and_parse @name_sym, col, expect_cq
   end
 
 private
