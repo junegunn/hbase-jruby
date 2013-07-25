@@ -13,7 +13,7 @@ class Scoped
   # A clean HBase::Scoped object for the same table
   # @return [HBase::Scope] A clean HBase::Scoped object for the same table
   def unscope
-    Scoped.send(:new, @table)
+    Scoped.send(:new, @table, @dcaching)
   end
 
   # Count the number of rows in the scope
@@ -253,7 +253,7 @@ class Scoped
 
 private
   # @param [HBase::Table] table
-  def initialize table
+  def initialize table, default_caching
     @table    = table
     @filters  = []
     @project  = []
@@ -261,6 +261,7 @@ private
     @range    = nil
     @versions = nil
     @batch    = nil
+    @dcaching = default_caching
     @caching  = nil
     @limit    = nil
     @mlimit   = nil
@@ -533,7 +534,9 @@ private
           scan.setMaxResultSize(@limit)
         else
           @mlimit = @limit
-          scan.caching = [@mlimit, @caching].compact.min
+          if [@caching, @dcaching].compact.all? { |c| @mlimit < c }
+            scan.caching = @mlimit
+          end
         end
       end
 

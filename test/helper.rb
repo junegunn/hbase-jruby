@@ -33,7 +33,8 @@ class TestHBaseJRubyBase < Test::Unit::TestCase
 
   def connect
     HBase.new('hbase.zookeeper.quorum' => ZK,
-              'hbase.client.retries.number' => 10) # For region-split test
+              'hbase.client.retries.number' => 10,
+              'hbase.client.scanner.caching' => 100)
   end
 
   def setup

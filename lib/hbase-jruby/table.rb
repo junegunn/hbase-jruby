@@ -225,7 +225,7 @@ class Table
   # Returns HBase::Scoped object for this table
   # @return [HBase::Scoped]
   def scoped
-    Scoped.send(:new, self)
+    Scoped.send(:new, self, @hbase.config.get('hbase.client.scanner.caching').to_i)
   end
 
   # Returns CheckedOperation instance for check-and-put and check-and-delete
