@@ -502,6 +502,17 @@ ret = table.append 'rowkey1', title: ' (limited edition)', summary: ' ...'
 puts ret[:title]   # Updated title
 ```
 
+### Atomic mutations on a single row (PUTs and DELETEs)
+
+```ruby
+# Currently Put and Delete are supported
+# - Refer to mutateRow method of org.apache.hadoop.hbase.client.HTable
+table.mutate(rowkey) do |m|
+  m.put comment3: 'Nice', comment4: 'Great'
+  m.delete :comment1, :comment2
+end
+```
+
 ### SCAN
 
 `HBase::Table` itself is an enumerable object.

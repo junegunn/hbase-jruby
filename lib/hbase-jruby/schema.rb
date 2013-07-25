@@ -86,9 +86,10 @@ class Schema
 
   # @private
   # @param [Symbol] table
-  def lookup_and_parse table, col
+  def lookup_and_parse table, col, expect_cq
     cf, cq, type = lookup table, col
     cf, cq = Util.parse_column_name(cf ? [cf, cq] : col)
+    raise ArgumentError, "Invalid column key: #{col}" if expect_cq && cq.nil?
     return [cf, cq, type]
   end
 
