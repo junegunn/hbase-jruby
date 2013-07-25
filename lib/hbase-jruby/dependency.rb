@@ -158,6 +158,7 @@ class HBase
         HBase::Table => %w[
           org.apache.hadoop.hbase.HColumnDescriptor
           org.apache.hadoop.hbase.HTableDescriptor
+          org.apache.hadoop.hbase.client.Append
           org.apache.hadoop.hbase.client.Delete
           org.apache.hadoop.hbase.client.Increment
           org.apache.hadoop.hbase.client.Put

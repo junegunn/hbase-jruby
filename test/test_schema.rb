@@ -303,6 +303,11 @@ class TestSchema < TestHBaseJRubyBase
     assert_equal 3000, HBase::Util.from_bytes(:fixnum, table.get(1).to_h[[:cf1, HBase::ByteArray[2013]]])
     assert_equal 3000, HBase::Util.from_bytes(:fixnum, table.get(1).to_h[[:cf1, 2013]])
 
+    # Append string to title column
+    ret = table.append 1, :title => '!!!'
+    assert_equal data[:title] + '!!!', ret[:title]
+    assert_equal data[:title] + '!!!', table.get(1)[:title]
+
     # Delete :title column of book 1
     table.delete 1, :title
     assert_equal nil, table.get(1)[:title]
