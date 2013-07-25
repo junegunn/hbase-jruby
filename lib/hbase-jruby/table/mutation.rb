@@ -85,6 +85,15 @@ class Mutation
       end
     }
   end
+
+  def append rowkey, spec
+    Append.new(Util.to_bytes rowkey).tap { |apnd|
+      spec.each do |col, val|
+        cf, cq, _ = @table.lookup_and_parse col
+        apnd.add(cf, cq, Util.to_bytes(val))
+      end
+    }
+  end
 end#Mutation
 end#Table
 end#HBase

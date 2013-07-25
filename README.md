@@ -495,6 +495,13 @@ inc = table.increment 'rowkey1' => { reviews: 1, stars: 5 },
 puts inc['rowkey2'][:stars]
 ```
 
+### APPEND
+
+```ruby
+ret = table.append 'rowkey1', title: ' (limited edition)', summary: ' ...'
+puts ret[:title]   # Updated title
+```
+
 ### SCAN
 
 `HBase::Table` itself is an enumerable object.

@@ -175,6 +175,19 @@ class Table
     end
   end
 
+  # Appends values to one or more columns within a single row.
+  # @param [Object] rowkey Rowkey
+  # @param [Hash] spec Hash (column to value)
+  # @return [Hash] Updated values
+  # @example
+  #   table.put :rowkey, col1: 'hello', col2: 'foo'
+  #   table.append :rowkey, col1: ' world', col2: 'bar'
+  #     # { col1: 'hello world', col2: 'foobar' }
+  def append rowkey, spec
+    result = htable.append @mutation.append(rowkey, spec)
+    Row.send(:new, self, result).to_h if result # (maybe null)
+  end
+
   # Scan through the table
   # @yield [row] Yields each row in the scope
   # @yieldparam [HBase::Row] row

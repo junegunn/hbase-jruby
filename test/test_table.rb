@@ -335,15 +335,15 @@ class TestTable < TestHBaseJRubyBase
     [
       # Without schema
       [1, 'cf1:a', 'cf1:b', 'cf1:c'],
-    # [2, 'cf1:a', 'cf1:b', 'cf1:c'],
+      [2, 'cf1:a', 'cf1:b', 'cf1:c'],
       # With schema
       [1, :a, :b, :c],
-    # [2, :a, :b, :c],
+      [2, :a, :b, :c],
     ].each do |args|
-      @table.delete_row 1
-      @table.put 1, 'cf1:a' => 100
-
       rk, a, b, c = args
+
+      @table.delete_row rk
+      @table.put rk, 'cf1:a' => 100
 
       # not nil
       assert_equal false, @table.check(rk, a => 200).put(b => 300)
@@ -406,11 +406,13 @@ class TestTable < TestHBaseJRubyBase
     end
   end
 
-# def test_append
-#   @table.put 1000, 'cf1:a' => 'hello', 'cf2:b' => 'foo'
-#   @table.append 1000, 'cf1:a' => ' world', 'cf2:b' => 'bar'
-#   assert_equal 'hello world', @table.get(1000).string('cf1:a')
-#   assert_equal 'foobar',      @table.get(1000).string('cf2:b')
-# end
+  def test_append
+    @table.put 1000, 'cf1:a' => 'hello', 'cf2:b' => 'foo'
+    result = @table.append 1000, 'cf1:a' => ' world', 'cf2:b' => 'bar'
+    assert_equal 'hello world', result['cf1:a'].to_s
+    assert_equal 'foobar',      result[%w[cf2 b]].to_s
+    assert_equal 'hello world', @table.get(1000).string('cf1:a')
+    assert_equal 'foobar',      @table.get(1000).string('cf2:b')
+  end
 end
 
