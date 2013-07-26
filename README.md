@@ -241,7 +241,19 @@ table.create! cf1: {},
               cf2: { compression: :snappy, bloomfilter: :row }
 ```
 
-## Basic operations
+## List of operations
+
+| Operation          | Description                                                                                   |
+| ------------------ | --------------------------------------------------------------------------------------------- |
+| PUT                | Puts data into the table                                                                      |
+| GET                | Retrieves data from the table by one or more rowkeys                                          |
+| SCAN               | Scans the table for a given range of rowkeys                                                  |
+| DELETE             | Deletes data in the table                                                                     |
+| INCREMENT          | Atomically increments one or more columns                                                     |
+| APPEND             | Appends values to one or more columns within a single row                                     |
+| Checked PUT/DELETE | Atomically checks if the pre-exising data matches the expected value and puts or deletes data |
+| MUTATE             | Performs multiple mutations (PUTS and DELETES) atomically on a single row                     |
+| Batch execution    | Performs multiple actions (PUT, GET, DELETE, INCREMENT, APPEND, and MUTATE) at once           |
 
 ### Defining table schema for easier data access
 
@@ -285,9 +297,9 @@ hbase.schema = {
 ```
 
 Columns that are not defined in the schema can be referenced
-using `FAMILY:QUALIFIER` notation or 2-element Array of column family name (as Symbol) and qualifier,
-however since there's no type information, they are returned as Java byte arrays,
-which have to be decoded manually.
+using `FAMILY:QUALIFIER` notation or 2-element Array of column family name (as
+Symbol) and qualifier, however since there's no type information, they are
+returned as Java byte arrays, which have to be decoded manually.
 
 ### PUT
 
@@ -337,7 +349,7 @@ extra = HBase::Util.from_bytes(:bigdecimal, book['cf2:extra'])
 extra = book.bigdecimal 'cf2:extra'
 ```
 
-### Batch-GET
+#### Batch-GET
 
 ```ruby
 # Pass an array of row keys as the parameter
@@ -349,8 +361,8 @@ books = table.get(['rowkey1', 'rowkey2', 'rowkey3'])
 `to_h` and `to_H` return the Hash representation of the row.
 (The latter returns all values with their timestamp)
 
-If a column is defined in the schema, it is referenced using its quailifier in Symbol type.
-If a column is not defined, it is represented as a 2-element Array
+If a column is defined in the schema, it is referenced using its quailifier in
+Symbol type. If a column is not defined, it is represented as a 2-element Array
 of column family in Symbol and column qualifier as ByteArray.
 Even so, to make it easier to reference those columns, an extended version of
 Hash is returned with which you can also reference them with `FAMILY:QUALIFIER`
@@ -464,20 +476,7 @@ table.delete_row 'rowkey1'
 table.delete_row 'rowkey1', 'rowkey2', 'rowkey3'
 ```
 
-### Checked PUT and DELETE
-
-```ruby
-table.check(:rowkey, in_print: false)
-     .put(in_print: true, price: BigDecimal('10.0'))
-
-table.check(:rowkey, in_print: false)
-     .delete(:price, :image)
-       # Takes the same parameters as those of HBase::Table#delete
-       # except for the first rowkey
-       #   https://github.com/junegunn/hbase-jruby#delete
-```
-
-### Atomic increment of column values
+### INCREMENT: Atomic increment of column values
 
 ```ruby
 # Atomically increase cf2:reviews by one
@@ -496,7 +495,20 @@ ret = table.append 'rowkey1', title: ' (limited edition)', summary: ' ...'
 puts ret[:title]   # Updated title
 ```
 
-### Atomic mutations on a single row (PUTs and DELETEs)
+### Checked PUT and DELETE
+
+```ruby
+table.check(:rowkey, in_print: false)
+     .put(in_print: true, price: BigDecimal('10.0'))
+
+table.check(:rowkey, in_print: false)
+     .delete(:price, :image)
+       # Takes the same parameters as those of HBase::Table#delete
+       # except for the first rowkey
+       #   https://github.com/junegunn/hbase-jruby#delete
+```
+
+### MUTATE: Atomic mutations on a single row (PUTs and DELETEs)
 
 ```ruby
 # Currently Put and Delete are supported
@@ -504,6 +516,22 @@ puts ret[:title]   # Updated title
 table.mutate(rowkey) do |m|
   m.put comment3: 'Nice', comment4: 'Great'
   m.delete :comment1, :comment2
+end
+```
+
+### Batch execution
+
+```ruby
+ret = table.batch do |b|
+  b.put rowkey1, 'cf1:a' => 100, 'cf1:b' => 'hello'
+  b.get rowkey2
+  b.append rowkey3, 'cf1:b' => 'world'
+  b.delete rowkey3, 'cf2', 'cf3:z'
+  b.increment rowkey3, 'cf1:a' => 200, 'cf1:c' => 300
+  b.mutate(rowkey4) do |m|
+    m.put 'cf3:z' => 3.14
+    m.delete 'cf3:y', 'cf4'
+  end
 end
 ```
 
@@ -627,8 +655,8 @@ scope.range(1, 100).
 
 ### *filter*
 
-You can configure server-side filtering of rows and columns with `HBase::Scoped#filter` calls.
-Multiple calls have conjunctive effects.
+You can configure server-side filtering of rows and columns with
+`HBase::Scoped#filter` calls. Multiple calls have conjunctive effects.
 
 ```ruby
 # Range scanning the table with filters
@@ -665,10 +693,10 @@ end
 
 ### *while*
 
-`HBase::Scoped#while` method takes the same parameters as `filter` method, the difference is that
-each filtering condition passed to `while` method is wrapped by `WhileMatchFilter`,
-which aborts scan immediately when the condition is not met at a certain row.
-See the following example.
+`HBase::Scoped#while` method takes the same parameters as `filter` method, the
+difference is that each filtering condition passed to `while` method is wrapped
+by `WhileMatchFilter`, which aborts scan immediately when the condition is not
+met at a certain row. See the following example.
 
 ```ruby
 (0...30).each do |idx|
@@ -717,8 +745,8 @@ scoped.project(offset: 1000, limit: 10)
 
 When using column filters on *fat* rows with many columns,
 it's advised that you limit the batch size with `HBase::Scoped#batch` call
-to avoid fetching all columns at once.
-However setting batch size allows multiple rows with the same row key are returned during scan.
+to avoid fetching all columns at once. However setting batch size allows
+multiple rows with the same row key are returned during scan.
 
 ```ruby
 # Let's say that we have rows with more than 10 columns whose qualifiers start with `str`
@@ -866,8 +894,9 @@ table.raw_families
   #    "BLOCKCACHE"          => "true"}}
 ```
 
-These String key-value pairs are not really a part of the public API of HBase, and thus might change over time.
-However, they are most useful when you need to create a table with the same properties as the existing one.
+These String key-value pairs are not really a part of the public API of HBase,
+and thus might change over time. However, they are most useful when you need to
+create a table with the same properties as the existing one.
 
 ```ruby
 hbase[:dupe_table].create!(table.raw_families, table.raw_properties)
@@ -1034,26 +1063,10 @@ end
 
 ## Advanced topics
 
-### Batch execution
-
-```ruby
-ret = table.batch do |b|
-  b.put rowkey1, 'cf1:a' => 100, 'cf1:b' => 'hello'
-  b.get rowkey2
-  b.append rowkey3, 'cf1:b' => 'world'
-  b.delete rowkey3, 'cf2', 'cf3:z'
-  b.increment rowkey3, 'cf1:a' => 200, 'cf1:c' => 300
-  b.mutate(rowkey4) do |m|
-    m.put 'cf3:z' => 3.14
-    m.delete 'cf3:y', 'cf4'
-  end
-end
-```
-
 ### Lexicographic scan order
 
-HBase stores rows in the lexicographic order of the rowkeys in their byte array representations.
-Thus the type of row key affects the scan order.
+HBase stores rows in the lexicographic order of the rowkeys in their byte array
+representations. Therefore, the type of the row key affects the scan order.
 
 ```ruby
 (1..15).times do |i|
