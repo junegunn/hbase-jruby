@@ -142,4 +142,8 @@ class TestByteArray < Test::Unit::TestCase
     assert_equal "Hello", ba.shift(:string, 5)
     assert_equal 3.14, ba.shift(:float)
   end
+
+  def test_to_s
+    assert_equal 'hello', HBase::ByteArray['hello'].to_s
+  end
 end

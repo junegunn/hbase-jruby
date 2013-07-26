@@ -37,6 +37,12 @@ class ByteArray
     initialize_(*values)
   end
 
+  # Returns the String representation of the underlying byte array
+  # @return [String]
+  def to_s
+    @java.to_s
+  end
+
   def each
     return enum_for(:each) unless block_given?
     @java.to_a.each { |byte| yield byte }
