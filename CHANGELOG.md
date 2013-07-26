@@ -12,6 +12,7 @@ Changelog
 - Fixed HBase.resolve_dependency!(:local) on CDH distribution
 - Empty-qualifier must be given as 'cf:', and not 'cf'
 - Added `HBase::Row#empty?` method
+- Added `HBase::ByteArray#to_s` method
 
 0.3.5
 -----

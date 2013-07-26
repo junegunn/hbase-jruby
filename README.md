@@ -521,6 +521,9 @@ end
 
 ### Batch execution
 
+*Disclaimer*: The ordering of execution of the actions is not defined.
+Refer to the documentation of [batch method of HTable class](http://hbase.apache.org/apidocs/org/apache/hadoop/hbase/client/HTable.html#batch(java.util.List, java.lang.Object[])).
+
 ```ruby
 ret = table.batch do |b|
   b.put rowkey1, 'cf1:a' => 100, 'cf1:b' => 'hello'
