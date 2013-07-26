@@ -1,10 +1,16 @@
 require 'bigdecimal'
 
 class HBase
-# Represents a row returned by HBase
+# Represents a set of key-values returned by HBase
 # @author Junegunn Choi <junegunn.c@gmail.com>
 class Row
   include Enumerable
+
+  # Returns if the returned row is empty
+  # @return [Boolean]
+  def empty?
+    @result.empty?
+  end
 
   # Returns the rowkey of the row
   # @param [Symbol] type The type of the rowkey

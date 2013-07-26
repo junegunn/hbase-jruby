@@ -43,7 +43,7 @@ class Table
 
   [:get, :count, :aggregate,
    :range, :project, :filter, :while,
-   :limit, :versions, :caching, :batch,
+   :limit, :versions, :caching, # :batch,
    :time_range, :at
   ].each do |method|
     define_method(method) do |*args|
@@ -242,6 +242,66 @@ class Table
     CheckedOperation.new self, @mutation, Util.to_bytes(rowkey),
       cf, cq,
       (val.nil? ? nil : Util.to_typed_bytes(type, val))
+  end
+
+  # Method that does a batch call on Deletes, Gets, Puts, Increments, Appends
+  # and RowMutations. The ordering of execution of the actions is not defined.
+  # An Array of Hashes are returned as the results of each operation. For
+  # Delete, Put, and RowMutation, :result entry of the returned Hash is
+  # Boolean. For Increment and Append, it will be plain Hashes, and for Get,
+  # HBase::Rows will be returned.
+  # When an error has occurred, you can still access the partial results using
+  # `results` method of the thrown BatchException instance.
+  # @yield [HBase::Table::BatchAction]
+  # @return [Array<Hash>]
+  # @raise [HBase::BatchException]
+  def batch arg = nil
+    if arg
+      # Backward compatibility
+      return scoped.batch(arg)
+    else
+      raise ArgumentError, "Block not given" unless block_given?
+    end
+    b = BatchAction.send(:new, self, @mutation)
+    yield b
+    results = Array.new(b.actions.length).to_java
+    process = lambda do
+      results.each_with_index do |r, idx|
+        action = b.actions[idx]
+        type = action[:type]
+        case type
+        when :get
+          action[:result] = (r.nil? || r.empty?) ? nil : Row.send(:new, self, r)
+        when :append
+          action[:result] = r && Row.send(:new, self, r).to_h
+        when :increment
+          action[:result] = r &&
+            Row.send(:new, self, r).to_h.tap { |h|
+              h.each do |k, v|
+                h[k] = Util.from_bytes :fixnum, v unless v.is_a?(Fixnum)
+              end
+            }
+        else
+          case r
+          when java.lang.Exception
+            action[:result] = false
+            action[:exception] = r
+          when nil
+            action[:result] = false
+          else
+            action[:result] = true
+          end
+        end
+      end
+      b.actions
+    end
+
+    begin
+      htable.batch b.actions.map { |a| a[:action] }, results
+      process.call
+    rescue Exception => e
+      raise HBase::BatchException.new(e, process.call)
+    end
   end
 
   # @private

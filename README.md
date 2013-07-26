@@ -1034,6 +1034,22 @@ end
 
 ## Advanced topics
 
+### Batch execution
+
+```ruby
+ret = table.batch do |b|
+  b.put rowkey1, 'cf1:a' => 100, 'cf1:b' => 'hello'
+  b.get rowkey2
+  b.append rowkey3, 'cf1:b' => 'world'
+  b.delete rowkey3, 'cf2', 'cf3:z'
+  b.increment rowkey3, 'cf1:a' => 200, 'cf1:c' => 300
+  b.mutate(rowkey4) do |m|
+    m.put 'cf3:z' => 3.14
+    m.delete 'cf3:y', 'cf4'
+  end
+end
+```
+
 ### Lexicographic scan order
 
 HBase stores rows in the lexicographic order of the rowkeys in their byte array representations.

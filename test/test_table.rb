@@ -462,5 +462,84 @@ class TestTable < TestHBaseJRubyBase
       @table.put next_rowkey, :some_column => 1
     }
   end
+
+  def test_batch
+    rk1, rk2, rk3 = next_rowkey, next_rowkey, next_rowkey
+
+    ret = @table.batch { |b|
+      b.put rk1, 'cf1:a' => 1, 'cf1:b' => 2, 'cf2:c' => 'hello'
+      b.put rk2, 'cf1:a' => 2, 'cf1:b' => 3, 'cf2:c' => 'hello'
+      b.put rk3, 'cf1:a' => 3, 'cf1:b' => 4, 'cf2:c' => 'hello'
+    }
+    assert_equal 3, ret.length
+    assert_equal :put, ret[0][:type]
+    assert_equal :put, ret[1][:type]
+    assert_equal :put, ret[2][:type]
+    assert_equal true, ret[0][:result]
+    assert_equal true, ret[1][:result]
+    assert_equal true, ret[2][:result]
+
+    ret = @table.batch { |b|
+      b.put rk3, 'cf1:c' => 5
+      b.delete rk1, 'cf1:a'
+      b.increment rk2, 'cf1:a' => 10, 'cf1:b' => 20
+      b.append rk2, 'cf2:c' => ' world'
+      b.mutate(rk3) do |m|
+        m.put 'cf2:d' => 'hola'
+        m.put 'cf2:e' => 'mundo'
+        m.delete 'cf1:b'
+      end
+      b.get(rk1)
+      b.filter('cf1:a' => 0).get(rk1)
+      b.versions(1).project('cf2').get(rk1)
+    }
+    assert_equal 8,             ret.length
+    assert_equal [:put, :delete, :increment, :append, :mutate, :get, :get, :get],
+      ret.map { |r| r[:type] }
+    assert_equal [true, true, true],
+      ret.values_at(0, 1, 4).map { |r| r[:result] }
+    assert_equal 12,            ret[2][:result]['cf1:a']
+    assert_equal 23,            ret[2][:result]['cf1:b']
+    assert_equal 'hello world', ret[3][:result]['cf2:c'].to_s
+    # assert_equal nil,           ret[5][:result].long('cf1:a') # No guarantee
+    assert_equal 2,             ret[5][:result].long('cf1:b')
+    assert_equal nil,           ret[6][:result]
+    assert_equal nil,           ret[7][:result].fixnum('cf1:b')
+    assert_equal 'hello',       ret[7][:result].string('cf2:c')
+
+    assert_equal nil, @table.get(rk1)['cf1:a']
+    assert_equal 12,  @table.get(rk2).long('cf1:a')
+    assert_equal 23,  @table.get(rk2).long('cf1:b')
+    assert_equal 5,   @table.get(rk3).long('cf1:c')
+    assert_equal 'hello world', @table.get(rk2).string('cf2:c')
+    assert_equal 'hola', @table.get(rk3).string('cf2:d')
+    assert_equal 'mundo', @table.get(rk3).string('cf2:e')
+    assert_equal nil, @table.get(rk3).string('cf2:b')
+  end
+
+  def test_batch_exception
+    rk = next_rowkey
+    @table.put rk, 'cf1:a' => 1
+
+    begin
+      @table.batch do |b|
+        b.put next_rowkey, 'cf1:a' => 1
+        b.put next_rowkey, 'cf100:a' => 1
+        b.get rk
+        b.put next_rowkey, 'cf200:a' => 1
+      end
+      assert false
+    rescue HBase::BatchException => e
+      assert_equal 4, e.results.length
+      assert_equal true, e.results[0][:result]
+      assert_equal false, e.results[1][:result]
+      assert_equal 1, e.results[2][:result].fixnum('cf1:a')
+      assert_equal false, e.results[3][:result]
+
+      assert e.results[1][:exception].is_a?(java.lang.Exception)
+      assert e.results[3][:exception].is_a?(java.lang.Exception)
+      assert e.java_exception.is_a?(java.lang.Exception)
+    end
+  end
 end
 

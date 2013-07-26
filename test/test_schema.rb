@@ -329,6 +329,26 @@ class TestSchema < TestHBaseJRubyBase
     assert_equal 'nice',  table.get(rk)[:comment3]
     assert_equal 'great', table.get(rk)[:comment4]
 
+    # Batch
+    ret = table.batch do |b|
+      b.put rk, :comment5 => 'gnarly'
+      b.delete rk, :comment4
+      b.increment rk, :stars => 100, :reviews => 200
+      b.mutate(rk) do |m|
+        m.put :comment6 => 'rad'
+        m.delete :image
+      end
+      b.append rk, :category => '/Etc'
+      b.get rk
+    end
+    assert_equal 6, ret.length
+    assert_equal [true] * 3, ret.values_at(0, 1, 3).map { |r| r[:result] }
+    assert_equal data[:stars] + 5 + 100,   ret[2][:result][:stars]
+    assert_equal data[:reviews] + 1 + 200, ret[2][:result][:reviews]
+    assert_equal data[:category] + '/Etc', ret[4][:result][:category]
+    assert_instance_of HBase::Row, ret[5][:result]
+    assert_equal 1890, ret[5][:result][:year]
+
     # Delete :title column of book 1
     table.delete rk, :title
     assert_equal nil, table.get(rk)[:title]
