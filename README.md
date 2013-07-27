@@ -538,6 +538,31 @@ ret = table.batch do |b|
 end
 ```
 
+`batch` method returns an Array of Hashes which contains the results of the
+actions in the order they are specified in the block. Each Hash has :type entry
+(:get, :put, :append, etc.) and :result entry. If the type of an action is
+:put, :delete, or :mutate, the :result will be given as a Boolean. If it's an
+:increment or :append, a plain Hash will be returned as the :result, just like
+[increment](https://github.com/junegunn/hbase-jruby#increment-atomic-increment-of-column-values)
+and [append](https://github.com/junegunn/hbase-jruby#append) methods.
+For :get action, `HBase::Row` instance will be returned.
+
+If one or more actions has failed, `HBase::BatchException` will be raised.
+Although you don't get to receive the return value from batch method,
+you can still access the partial results using `results` method of
+`HBase::BatchException`.
+
+```ruby
+results =
+  begin
+    results = table.batch do |b|
+      # ...
+    end
+  rescue HBase::BatchException => e
+    e.results
+  end
+```
+
 ### SCAN
 
 `HBase::Table` itself is an enumerable object.
