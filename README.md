@@ -539,13 +539,13 @@ end
 ```
 
 `batch` method returns an Array of Hashes which contains the results of the
-actions in the order they are specified in the block. Each Hash has :type entry
-(:get, :put, :append, etc.) and :result entry. If the type of an action is
-:put, :delete, or :mutate, the :result will be given as a Boolean. If it's an
-:increment or :append, a plain Hash will be returned as the :result, just like
-[increment](https://github.com/junegunn/hbase-jruby#increment-atomic-increment-of-column-values)
+actions in the order they are specified in the block. Each Hash has `:type` entry
+(:get, :put, :append, etc.) and `:result` entry. If the type of an action is
+:put, :delete, or :mutate, the `:result` will be given as a boolean. If it's an
+:increment or :append, a plain Hash will be returned as the `:result`, just like
+in [increment](https://github.com/junegunn/hbase-jruby#increment-atomic-increment-of-column-values)
 and [append](https://github.com/junegunn/hbase-jruby#append) methods.
-For :get action, `HBase::Row` instance will be returned.
+For :get action, `HBase::Row` instance will be returned or nil if not found.
 
 If one or more actions has failed, `HBase::BatchException` will be raised.
 Although you don't get to receive the return value from batch method,
@@ -555,7 +555,7 @@ you can still access the partial results using `results` method of
 ```ruby
 results =
   begin
-    results = table.batch do |b|
+    table.batch do |b|
       # ...
     end
   rescue HBase::BatchException => e
