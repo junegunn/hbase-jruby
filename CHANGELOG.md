@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.4.1
+-----
+- Fixed .META. scanning with range prefix ([#26](https://github.com/junegunn/hbase-jruby/issues/26))
+- Added `ByteArray#as` as a synonym for `ByteArray#decode`
+
 0.4.0
 -----
 - Added support for append operation: `HBase::Table#append`
