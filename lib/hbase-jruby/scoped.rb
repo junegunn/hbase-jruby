@@ -606,11 +606,7 @@ private
   def range_for_prefix
     return nil if @prefixes.empty?
 
-    byte_arrays = @prefixes.map { |pref| ByteArray.new(pref) }.sort
-    start = byte_arrays.first
-    stop  = byte_arrays.last
-
-    [start.java, stop.stopkey_bytes_for_prefix]
+    [@prefixes.map { |pref| ByteArray.new(pref) }.min.java, nil]
   end
 
   def parse_filter_input filters

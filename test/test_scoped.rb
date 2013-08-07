@@ -370,10 +370,12 @@ class TestScoped < TestHBaseJRubyBase
     end
 
     assert_equal 26, @table.range(:prefix => 'c').count
+    assert_equal  1, @table.range(:prefix => 'cc').count
     assert           @table.range(:prefix => 'c').get('cc')
     assert_nil       @table.range(:prefix => 'c').get('dd')
     assert           @table.range(:prefix => ['d', 'c']).get('dd')
     assert_equal 52, @table.range(:prefix => ['a', 'c']).count
+    assert_equal  2, @table.range(:prefix => ['aa', 'cc']).count
     assert_equal 78, @table.range(:prefix => ['d', 'a', 'c']).count
     assert_equal 52, @table.range(nil, 'd', :prefix => ['d', 'a', 'c']).count
     assert_equal 52, @table.range('b', :prefix => ['d', 'a', 'c']).count
