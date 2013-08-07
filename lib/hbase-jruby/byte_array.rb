@@ -107,6 +107,7 @@ class ByteArray
   def decode type
     Util.from_bytes type, @java
   end
+  alias as decode
 
   # Returns the first element decoded as the given type
   # and removes the portion from the byte array.

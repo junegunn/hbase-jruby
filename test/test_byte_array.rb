@@ -64,7 +64,7 @@ class TestByteArray < Test::Unit::TestCase
     ba = HBase::ByteArray(100, 200, "Hello", 3.14)
 
     assert_equal 100, ba[0, 8].decode(:fixnum)
-    assert_equal 200, ba[8...16].decode(:fixnum)
+    assert_equal 200, ba[8...16].as(:fixnum)
     assert_equal "Hello", ba[16, 5].decode(:string)
     assert_equal 3.14, ba[21..-1].decode(:float)
     assert_equal "H", ba[16].chr
@@ -95,7 +95,7 @@ class TestByteArray < Test::Unit::TestCase
     assert_raise(RangeError) { HBase::ByteArray(:byte => 128) }
 
     assert_equal 2,     HBase::ByteArray(:short => 12345).length
-    assert_equal 12345, HBase::ByteArray(:short => 12345).decode(:short)
+    assert_equal 12345, HBase::ByteArray(:short => 12345).as(:short)
     assert_raise(RangeError) { HBase::ByteArray( :short => 1 << 16 ) }
 
     assert_equal 4,     HBase::ByteArray(:int => 12345).length
@@ -103,7 +103,7 @@ class TestByteArray < Test::Unit::TestCase
     assert_raise(RangeError) { HBase::ByteArray.new( :int => 1 << 32 ) }
 
     ba = HBase::ByteArray( {:int => 10000}, 20000, {:short => 30000}, "Hello" )
-    assert_equal 10000, ba[0, 4].decode(:int)
+    assert_equal 10000, ba[0, 4].as(:int)
     assert_equal 20000, ba[4, 8].decode(:long)
     assert_equal 30000, ba[12, 2].decode(:short)
     assert_equal "Hell", ba[14, 4].decode(:string)
