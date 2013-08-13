@@ -1213,6 +1213,10 @@ ba.shift(:string, 11)  # Byte length must be given as Strings are not fixed in s
 ba.java  # Returns the native Java byte array (byte[])
 ```
 
+## API documentation
+
+[http://rubydoc.info/gems/hbase-jruby/0.4.1/frames](http://rubydoc.info/gems/hbase-jruby/0.4.1/frames)
+
 ## Test
 
 ```bash
