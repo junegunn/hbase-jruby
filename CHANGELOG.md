@@ -1,6 +1,10 @@
 Changelog
 =========
 
+0.4.2
+-----
+- Added CDH4.4 dependency profile
+
 0.4.1
 -----
 - Fixed .META. scanning with range prefix ([#26](https://github.com/junegunn/hbase-jruby/issues/26))

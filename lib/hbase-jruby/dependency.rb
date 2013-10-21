@@ -12,19 +12,20 @@ class HBase
   # https://ccp.cloudera.com/display/SUPPORT/CDH+Downloads
   SUPPORTED_PROFILES = {
     # Prefix => Latest known version
-    'cdh4.3' => 'cdh4.3.0',
+    'cdh4.4' => 'cdh4.4.0',
+    'cdh4.3' => 'cdh4.3.2',
     'cdh4.2' => 'cdh4.2.1',
     'cdh4.1' => 'cdh4.1.4',
     'cdh3'   => 'cdh3u6',
     '0.95'   => '0.95.0',
-    '0.94'   => '0.94.9',
+    '0.94'   => '0.94.13',
     '0.92'   => '0.92.2',
   }
 
   class << self
     # @overload resolve_dependency!(dist, options)
     #   Resolve Hadoop and HBase dependency with a predefined Maven profile
-    #   @param [String] dist HBase distribution: cdh4.2, cdh4.1, cdh3, 0.94, 0.92, local
+    #   @param [String] dist HBase distribution: cdh4.3, cdh4.2, cdh4.1, cdh3, 0.94, 0.92, local
     #   @param [Hash] options Options
     #   @option options [Boolean] :verbose Enable verbose output
     #   @return [Array<String>] Loaded JAR files
