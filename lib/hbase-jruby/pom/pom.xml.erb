@@ -10,13 +10,14 @@
   <name>hbase-jruby</name>
 
   <profiles>
+    <% %w[cdh4.5 cdh4.4 cdh4.3].each do |cdh| %>
     <profile>
       <!-- http://www.cloudera.com/content/cloudera-content/cloudera-docs/CDH4/latest/CDH-Version-and-Packaging-Information/cdhvd_topic_8.html -->
-      <id>cdh4.4</id>
+      <id><%= cdh %></id>
       <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <hadoop.version>2.0.0-<%= profiles['cdh4.4'] %></hadoop.version>
-        <hbase.version>0.94.6-<%= profiles['cdh4.4'] %></hbase.version>
+        <hadoop.version>2.0.0-<%= profiles[cdh] %></hadoop.version>
+        <hbase.version>0.94.6-<%= profiles[cdh] %></hbase.version>
       </properties>
       <repositories>
         <repository>
@@ -47,43 +48,7 @@
         </dependency>
       </dependencies>
     </profile>
-
-    <profile>
-      <id>cdh4.3</id>
-      <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <hadoop.version>2.0.0-<%= profiles['cdh4.3'] %></hadoop.version>
-        <hbase.version>0.94.6-<%= profiles['cdh4.3'] %></hbase.version>
-      </properties>
-      <repositories>
-        <repository>
-          <id>cloudera-releases</id>
-          <url>https://repository.cloudera.com/artifactory/cloudera-repos</url>
-          <releases>
-            <enabled>true</enabled>
-          </releases>
-          <snapshots>
-            <enabled>false</enabled>
-          </snapshots>
-        </repository>
-      </repositories>
-
-      <dependencies>
-        <dependency>
-          <groupId>org.apache.hadoop</groupId>
-          <artifactId>hadoop-common</artifactId>
-          <version>${hadoop.version}</version>
-          <scope>compile</scope>
-        </dependency>
-
-        <dependency>
-          <groupId>org.apache.hbase</groupId>
-          <artifactId>hbase</artifactId>
-          <version>${hbase.version}</version>
-          <scope>compile</scope>
-        </dependency>
-      </dependencies>
-    </profile>
+    <% end %>
 
     <profile>
       <id>cdh4.2</id>
@@ -166,7 +131,6 @@
         <hbase.version>0.90.6-<%= profiles['cdh3'] %></hbase.version>
         <hadoop.version>0.20.2-<%= profiles['cdh3'] %></hadoop.version>
       </properties>
-
       <repositories>
         <repository>
           <id>cloudera-releases</id>
@@ -190,7 +154,38 @@
       </dependencies>
     </profile>
 
-    <% %w[0.92 0.94 0.95].each do |version| %>
+    <% %w[0.95 0.96].each do |version| %>
+    <profile>
+      <id><%= version %></id>
+      <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <hbase.version><%= profiles[version] %></hbase.version>
+      </properties>
+
+      <dependencies>
+        <dependency>
+          <groupId>org.apache.hadoop</groupId>
+          <% if profiles[version] =~ /hadoop2/ %>
+          <artifactId>hadoop-common</artifactId>
+          <version>2.2.0</version>
+          <% else %>
+          <artifactId>hadoop-core</artifactId>
+          <version>1.1.2</version>
+          <% end %>
+          <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+          <groupId>org.apache.hbase</groupId>
+          <artifactId>hbase</artifactId>
+          <version>${hbase.version}</version>
+          <scope>compile</scope>
+        </dependency>
+      </dependencies>
+    </profile>
+    <% end %>
+
+    <% %w[0.92 0.94].each do |version| %>
     <profile>
       <id><%= version %></id>
       <properties>

@@ -12,20 +12,22 @@ class HBase
   # https://ccp.cloudera.com/display/SUPPORT/CDH+Downloads
   SUPPORTED_PROFILES = {
     # Prefix => Latest known version
+    'cdh4.5' => 'cdh4.5.0',
     'cdh4.4' => 'cdh4.4.0',
     'cdh4.3' => 'cdh4.3.2',
-    'cdh4.2' => 'cdh4.2.1',
-    'cdh4.1' => 'cdh4.1.4',
+    'cdh4.2' => 'cdh4.2.2',
+    'cdh4.1' => 'cdh4.1.5',
     'cdh3'   => 'cdh3u6',
-    '0.95'   => '0.95.0',
-    '0.94'   => '0.94.13',
+    '0.96'   => '0.96.1.1-hadoop2',
+    '0.95'   => '0.95.2-hadoop2',
+    '0.94'   => '0.94.15',
     '0.92'   => '0.92.2',
   }
 
   class << self
     # @overload resolve_dependency!(dist, options)
     #   Resolve Hadoop and HBase dependency with a predefined Maven profile
-    #   @param [String] dist HBase distribution: cdh4.3, cdh4.2, cdh4.1, cdh3, 0.94, 0.92, local
+    #   @param [String] dist HBase distribution: cdh4.[1-5], cdh3, 0.94, 0.92, local
     #   @param [Hash] options Options
     #   @option options [Boolean] :verbose Enable verbose output
     #   @return [Array<String>] Loaded JAR files
@@ -66,7 +68,7 @@ class HBase
           else
             matched_profiles = SUPPORTED_PROFILES.keys.select { |pf| dist.start_with? pf }
             if matched_profiles.length != 1
-              raise ArgumentError, "Invalid profile: #{dist}"
+              raise ArgumentError, "Unknown profile: #{dist}"
             end
             matched_profile = matched_profiles.first
             profiles = SUPPORTED_PROFILES.dup
@@ -82,9 +84,15 @@ class HBase
           # Download dependent JAR files and build classpath string
           tempfiles << tf = Tempfile.new('hbase-jruby-classpath')
           tf.close(false)
-          system "mvn org.apache.maven.plugins:maven-dependency-plugin:2.5.1:resolve org.apache.maven.plugins:maven-dependency-plugin:2.5.1:build-classpath -Dsilent=true -Dmdep.outputFile=#{tf.path} #{profile} -f #{path} #{silencer}"
+          system("mvn org.apache.maven.plugins:maven-dependency-plugin:2.5.1:resolve " <<
+                 "org.apache.maven.plugins:maven-dependency-plugin:2.5.1:build-classpath " <<
+                 "-Dsilent=true -Dmdep.outputFile=#{tf.path} #{profile} -f #{path} #{silencer}")
 
-          raise RuntimeError.new("Error occurred. Set verbose option to see the log.") unless $?.exitstatus == 0
+          unless $?.exitstatus == 0
+            message = "Error occurred."
+            message << " Set verbose option to see the log." unless verbose
+            raise RuntimeError.new(message)
+          end
 
           if File.read(tf.path).empty?
             desc =

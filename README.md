@@ -150,12 +150,12 @@ Call `HBase.resolve_dependency!` helper method passing one of the arguments list
 
 | Argument   | Dependency               | Default version | Required executable |
 | ---------- | ------------------------ | --------------- | ------------------- |
+| cdh4.5[.*] | Cloudera CDH4.5          | cdh4.5.0        | mvn                 |
 | cdh4.4[.*] | Cloudera CDH4.4          | cdh4.4.0        | mvn                 |
 | cdh4.3[.*] | Cloudera CDH4.3          | cdh4.3.2        | mvn                 |
-| cdh4.2[.*] | Cloudera CDH4.2          | cdh4.2.1        | mvn                 |
-| cdh4.1[.*] | Cloudera CDH4.1          | cdh4.1.4        | mvn                 |
+| cdh4.2[.*] | Cloudera CDH4.2          | cdh4.2.2        | mvn                 |
+| cdh4.1[.*] | Cloudera CDH4.1          | cdh4.1.5        | mvn                 |
 | cdh3[u*]   | Cloudera CDH3            | cdh3u6          | mvn                 |
-| 0.95[.*]   | Apache HBase 0.95        | 0.95.0          | mvn                 |
 | 0.94[.*]   | Apache HBase 0.94        | 0.94.13         | mvn                 |
 | 0.92[.*]   | Apache HBase 0.92        | 0.92.2          | mvn                 |
 | *POM PATH* | Custom Maven POM file    | -               | mvn                 |

@@ -3,7 +3,11 @@ Changelog
 
 0.4.2
 -----
-- Added CDH4.4 dependency profile
+- Fixed bug when using schema with non-String/Symbol qualifier
+- Updated dependency profiles
+  - Added CDH4.5, CDH4.4 (same as CDH4.3)
+  - 0.95, 0.96 (experimental, currently not working)
+- Improved compatibility with HBase shell which is based on JRuby 1.6.5
 
 0.4.1
 -----
