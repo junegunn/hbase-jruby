@@ -82,7 +82,8 @@ class Schema
       if match = lookup[:exact][col]
         return match
       elsif pair = lookup[:pattern].find { |k, v| col.to_s =~ k }
-        return pair[1].dup.tap { |e| e[1] = col.to_sym }
+        colsym = col.to_sym rescue nil
+        return colsym && pair[1].dup.tap { |e| e[1] = colsym }
       end
     else
       return nil

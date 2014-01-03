@@ -43,9 +43,10 @@ class Row
   def to_h
     HASH_TEMPLATE.clone.tap do |ret|
       @result.getNoVersionMap.each do |cf, cqmap|
-        cf = cf.to_s
+        cf = Util.from_bytes :string, cf
         cqmap.each do |cq, val|
-          f, q, t = @table.lookup_schema(cq.to_s)
+          cqs = Util.from_bytes(:string, cq) rescue nil
+          f, q, t = @table.lookup_schema(cqs)
           t = nil if f != cf
           name = t ? q : [cf.to_sym, ByteArray[cq]]
 
@@ -60,9 +61,10 @@ class Row
   def to_H
     HASH_TEMPLATE.clone.tap do |ret|
       @result.getMap.each do |cf, cqmap|
-        cf = cf.to_s
+        cf = Util.from_bytes :string, cf
         cqmap.each do |cq, tsmap|
-          f, q, t = @table.lookup_schema(cq.to_s)
+          cqs = Util.from_bytes(:string, cq) rescue nil
+          f, q, t = @table.lookup_schema(cqs)
           t = nil if f != cf
           name = t ? q : [cf.to_sym, ByteArray[cq]]
 
