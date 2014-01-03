@@ -410,5 +410,19 @@ class TestSchema < TestHBaseJRubyBase
     assert_equal true, HBase::Util.java_bytes?(@table.get(rk)['cf1:a'])
     assert_equal 100,  HBase::Util.from_bytes(:fixnum, @table.get(rk)['cf1:a'])
   end
+
+  def test_schema_bytearray
+    # Does not support non-string/symbol qualifiers
+    @hbase.schema[@table.name] = {
+      :cf1 => {
+        /.*/ => :fixnum
+      }
+    }
+
+    rk = next_rowkey
+    @table.put rk, [:cf1, HBase::ByteArray[1234]] => 1234
+
+    assert_equal HBase::ByteArray[1234], HBase::ByteArray[@table.get(rk)[[:cf1, HBase::ByteArray[1234]]]]
+  end
 end
 

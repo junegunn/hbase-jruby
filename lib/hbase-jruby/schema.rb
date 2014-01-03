@@ -77,10 +77,15 @@ class Schema
   def lookup table, col
     return nil unless lookup = @lookup[table]
 
-    if match = lookup[:exact][col]
-      return match
-    elsif pair = lookup[:pattern].find { |k, v| col.to_s =~ k }
-      return pair[1].dup.tap { |e| e[1] = col.to_sym }
+    case col
+    when String, Symbol
+      if match = lookup[:exact][col]
+        return match
+      elsif pair = lookup[:pattern].find { |k, v| col.to_s =~ k }
+        return pair[1].dup.tap { |e| e[1] = col.to_sym }
+      end
+    else
+      return nil
     end
   end
 
