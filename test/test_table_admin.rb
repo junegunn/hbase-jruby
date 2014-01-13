@@ -145,13 +145,15 @@ class TestTableAdmin < TestHBaseJRubyBase
   def test_add_coprocessor!
     coproc = 'org.apache.hadoop.hbase.coprocessor.AggregateImplementation'
     assert_false @table.has_coprocessor? coproc
-    @table.add_coprocessor! coproc, :priority => 20000, :params => { :abc => 'def', 'xyz' => 1 }
+    assert_raise(ArgumentError) {
+      # :path is missing
+      @table.add_coprocessor! coproc, :priority => 100
+    }
+    @table.add_coprocessor! coproc
     assert @table.has_coprocessor? coproc
 
-    # TODO
-    assert_raise(NotImplementedError) do
-      @table.remove_coprocessor! 'org.apache.hadoop.hbase.coprocessor.AggregateImplementation'
-    end
+    @table.remove_coprocessor! 'org.apache.hadoop.hbase.coprocessor.AggregateImplementation'
+    assert !@table.has_coprocessor?(coproc)
 
     @table.drop!
   end

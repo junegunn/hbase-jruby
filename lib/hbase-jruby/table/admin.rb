@@ -406,8 +406,11 @@ private
           htd.addCoprocessor class_name
         else
           path, priority, params = props.values_at :path, :priority, :params
-          params = Hash[ params.map { |k, v| [k.to_s, v.to_s] } ]
-          htd.addCoprocessor class_name, path, priority || Coprocessor::PRIORITY_USER, params
+          raise ArgumentError, ":path required"
+          params = params ? Hash[ params.map { |k, v| [k.to_s, v.to_s] } ] : {}
+          htd.addCoprocessor class_name,
+            org.apache.hadoop.fs.Path.new(path),
+            priority || org.apache.hadoop.hbase.Coprocessor::PRIORITY_USER, params
         end
         admin.modifyTable @name.to_java_bytes, htd
         wait_async_admin(admin, &block) if bang
@@ -416,9 +419,6 @@ private
   end
 
   def _remove_coprocessor name, bang, &block
-    unless HTableDescriptor.respond_to?(:removeCoprocessor)
-      raise NotImplementedError, "org.apache.hadoop.hbase.HTableDescriptor.removeCoprocessor not implemented"
-    end
     with_admin do |admin|
       while_disabled(admin) do
         htd = admin.get_table_descriptor(@name.to_java_bytes)

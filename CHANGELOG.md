@@ -1,6 +1,10 @@
 Changelog
 =========
 
+0.4.3
+-----
+- Fixed `HBase::Table#add_coprocessor[!]` and `HBase::Table#remove_coprocessor[!]`
+
 0.4.2
 -----
 - Fixed bug when using schema with non-String/Symbol qualifier
