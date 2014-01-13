@@ -35,7 +35,10 @@ Now, you're all set.
 hbase = HBase.new
 
 hbase.list
+
 hbase[:my_table].create! :f
+hbase[:my_table].put 100, 'f:a' => 1, 'f:b' => 'two', 'f:c' => 3.14
+hbase[:my_table].get(100).double('f:c') # Returns 3.14
 ```
 
 ## A quick example

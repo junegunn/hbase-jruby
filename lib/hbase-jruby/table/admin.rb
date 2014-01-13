@@ -406,7 +406,7 @@ private
           htd.addCoprocessor class_name
         else
           path, priority, params = props.values_at :path, :priority, :params
-          raise ArgumentError, ":path required"
+          raise ArgumentError, ":path required" unless path
           params = params ? Hash[ params.map { |k, v| [k.to_s, v.to_s] } ] : {}
           htd.addCoprocessor class_name,
             org.apache.hadoop.fs.Path.new(path),
