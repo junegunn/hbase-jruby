@@ -1,6 +1,10 @@
 Changelog
 =========
 
+0.4.4
+-----
+- Fixed `HBase::Table#raw_families/raw_properties` on HBase shell
+
 0.4.3
 -----
 - Fixed `HBase::Table#add_coprocessor[!]` and `HBase::Table#remove_coprocessor[!]`

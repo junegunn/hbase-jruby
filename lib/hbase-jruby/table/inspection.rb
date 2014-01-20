@@ -103,7 +103,11 @@ private
   end
 
   def parse_raw_map m
-    Hash[ m.keys.map { |e| e.get.to_s }.zip m.values.map { |e| e.get.to_s } ]
+    Hash[
+      m.keys.map { |e| Util.from_bytes :string, e.get }.zip(
+        m.values.map { |e| Util.from_bytes :string, e.get }
+      )
+    ]
   end
 end#Table
 end#HBase
