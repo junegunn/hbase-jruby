@@ -102,11 +102,15 @@ class Mutation
       rm.mutations.each do |action|
         m.add action
       end
-    }
+    } unless rm.empty?
   end
 
   class Mutator
     attr_reader :mutations
+
+    def empty?
+      @mutations.empty?
+    end
 
     def initialize mutation, rowkey
       @mutation  = mutation

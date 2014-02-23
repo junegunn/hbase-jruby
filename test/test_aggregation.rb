@@ -5,6 +5,9 @@ require 'helper'
 
 class TestAggregation < TestHBaseJRubyBase
   def test_aggregation
+    # AggregationClient is removed in 0.96
+    return unless @aggregation
+
     (1..100).each do |idx|
       @table.put idx, 'cf1:a' => idx, 'cf1:b' => idx * 2
     end

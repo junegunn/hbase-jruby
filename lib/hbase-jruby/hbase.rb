@@ -89,7 +89,7 @@ class HBase
       unless @closed
         @closed = true
         close_table_pool
-        HConnectionManager.deleteConnection(@config, true)
+        HConnectionManager.deleteConnection(@config)
       end
     end
   end

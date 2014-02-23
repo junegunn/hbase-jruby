@@ -33,19 +33,20 @@ class TestHBaseJRubyBase < Test::Unit::TestCase
 
   def connect
     HBase.new('hbase.zookeeper.quorum' => ZK,
-              'hbase.client.retries.number' => 10,
+              'hbase.client.retries.number' => 5,
               'hbase.client.scanner.caching' => 100)
   end
 
   def setup
     @hbase = connect
     @table = @hbase.table(TABLE)
+    @aggregation = defined?(org.apache.hadoop.hbase.client.coprocessor.AggregationClient)
 
     # Drop & Create
     @table.drop! if RECREATE && @table.exists?
     @table.create!(
-      :cf1 => { :compression => :none, :bloomfilter => :row },
-      :cf2 => { :bloomfilter => :rowcol },
+      :cf1 => { :compression => :none, :bloomfilter => :row, :versions => 3 },
+      :cf2 => { :bloomfilter => :rowcol, :versions => 3 },
       :cf3 => { :versions => 1, :bloomfilter => :rowcol }
     ) unless @table.exists?
     @table.enable! if @table.disabled?

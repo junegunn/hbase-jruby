@@ -279,11 +279,13 @@ class TestSchema < TestHBaseJRubyBase
     assert_equal data[:stars]   + 5, inc2[:stars]
 
     # Coprocessor
-    table.enable_aggregation!
-    table.put next_rowkey, :reviews => 100, :stars => 500
-    assert_equal data[:reviews] + 1 + data[:stars] + 5 + 100 + 500,
-      table.project(:reviews, :stars).aggregate(:sum)
-    #table.disable_aggregation!
+    if @aggregation
+      table.enable_aggregation!
+      table.put next_rowkey, :reviews => 100, :stars => 500
+      assert_equal data[:reviews] + 1 + data[:stars] + 5 + 100 + 500,
+        table.project(:reviews, :stars).aggregate(:sum)
+      #table.disable_aggregation!
+    end
 
     # Undefined columns
     table.put rk, 'cf1:x'      => 1000
@@ -330,24 +332,48 @@ class TestSchema < TestHBaseJRubyBase
     assert_equal 'great', table.get(rk)[:comment4]
 
     # Batch
+    # FIXME: Mutation in batch hangs on 0.96, temporarily using @aggregation
+    # here to see if the version if 0.96 (no AggregationClient) or not
+    mutation_in_batch = @aggregation
     ret = table.batch do |b|
       b.put rk, :comment5 => 'gnarly'
       b.delete rk, :comment4
-      b.increment rk, :stars => 100, :reviews => 200
-      b.mutate(rk) do |m|
-        m.put :comment6 => 'rad'
-        m.delete :image
-      end
+
+      # https://issues.apache.org/jira/browse/HBASE-10384
+      # Due to the bug introduced in 0.96 we have to order the columns
+      # b.increment rk, :stars => 100, :reviews => 200
+      b.increment rk, :reviews => 200, :stars => 100
       b.append rk, :category => '/Etc'
       b.get rk
+
+      if mutation_in_batch
+        b.mutate(rk) do |m|
+          m.put :comment6 => 'rad'
+          m.delete :image
+        end
+      else
+        table.mutate(rk) do |m|
+          m.put :comment6 => 'rad'
+          m.delete :image
+        end
+      end
     end
-    assert_equal 6, ret.length
-    assert_equal [true] * 3, ret.values_at(0, 1, 3).map { |r| r[:result] }
-    assert_equal data[:stars] + 5 + 100,   ret[2][:result][:stars]
+
+    if mutation_in_batch
+      assert_equal 6, ret.length
+      assert_equal [true] * 3, ret.values_at(0, 1, 5).map { |r| r[:result] }
+    else
+      assert_equal 5, ret.length
+      assert_equal [true] * 2, ret.values_at(0, 1).map { |r| r[:result] }
+    end
+
+    assert_equal data[:stars]   + 5 + 100, ret[2][:result][:stars]
     assert_equal data[:reviews] + 1 + 200, ret[2][:result][:reviews]
-    assert_equal data[:category] + '/Etc', ret[4][:result][:category]
-    assert_instance_of HBase::Row, ret[5][:result]
-    assert_equal 1890, ret[5][:result][:year]
+    assert_equal data[:category] + '/Etc', ret[3][:result][:category]
+    assert_instance_of HBase::Row, ret[4][:result]
+    assert_equal 1890, ret[4][:result][:year]
+    assert_equal nil, table.get(rk)[:image]
+    assert_equal 'rad', table.get(rk)[:comment6]
 
     # Delete :title column of book 1
     table.delete rk, :title

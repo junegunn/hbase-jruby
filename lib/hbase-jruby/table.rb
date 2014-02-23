@@ -211,7 +211,8 @@ class Table
   #     m.put e: 3.14
   #   end
   def mutate(rowkey, &block)
-    htable.mutateRow @mutation.mutate(rowkey, &block)
+    ms = @mutation.mutate(rowkey, &block)
+    htable.mutateRow ms if ms
   end
 
   # Scan through the table

@@ -28,7 +28,7 @@ class Scoped
 
     scan = block_given? ? filtered_scan : filtered_scan_minimum
     scan.cache_blocks = options[:cache_blocks]
-    if options[:caching] && (@mlimit.nil? || options[:caching] < @mlimit)
+    if options[:caching] && (@limit.nil? || options[:caching] < @limit)
       scan.caching = options[:caching]
     end
 
@@ -166,7 +166,7 @@ class Scoped
     unless (rows.is_a?(Fixnum) && rows >= 0) || rows.nil?
       raise ArgumentError, "Invalid limit. Must be a non-negative integer or nil."
     end
-    spawn :@limit, rows, :@mlimit, nil
+    spawn :@limit, rows
   end
 
   # Returns an HBase::Scoped object with the specified time range
@@ -264,7 +264,6 @@ private
     @dcaching = default_caching
     @caching  = nil
     @limit    = nil
-    @mlimit   = nil
     @trange   = nil
     @scan_cbs = []
     @get_cbs  = []
@@ -529,14 +528,8 @@ private
 
       # Limit
       if @limit
-        # setMaxResultSize not yet implemented in 0.94
-        if scan.respond_to?(:setMaxResultSize)
-          scan.setMaxResultSize(@limit)
-        else
-          @mlimit = @limit
-          if [@caching, @dcaching].compact.all? { |c| @mlimit < c }
-            scan.caching = @mlimit
-          end
+        if [@caching, @dcaching].compact.all? { |c| @limit < c }
+          scan.caching = @limit
         end
       end
 
@@ -649,10 +642,10 @@ private
 
   def iterate scan
     scanner = htable.getScanner(scan)
-    if @mlimit
+    if @limit
       scanner.each_with_index do |result, idx|
         yield result
-        break if idx == @mlimit - 1
+        break if idx == @limit - 1
       end
     else
       scanner.each do |result|

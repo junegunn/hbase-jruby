@@ -20,7 +20,7 @@ class HBase
     'cdh3'   => 'cdh3u6',
     '0.96'   => '0.96.1.1-hadoop2',
     '0.95'   => '0.95.2-hadoop2',
-    '0.94'   => '0.94.15',
+    '0.94'   => '0.94.16',
     '0.92'   => '0.92.2',
   }
 
@@ -173,8 +173,8 @@ class HBase
           org.apache.hadoop.hbase.client.Put
           org.apache.hadoop.hbase.client.RowMutations
           org.apache.hadoop.hbase.io.hfile.Compression
-          org.apache.hadoop.hbase.regionserver.StoreFile
-        ],
+          org.apache.hadoop.hbase.io.compress.Compression
+        ], # hfile.Compression <= 0.94
         HBase::Scoped => %w[
           org.apache.hadoop.hbase.client.Get
           org.apache.hadoop.hbase.client.Scan

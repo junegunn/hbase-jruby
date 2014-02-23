@@ -17,6 +17,11 @@ class Table
           props[prop] = parse_property desc.send get
         end
       end
+
+      # deferred_log_flush is deprecated in 0.96
+      if props.has_key?(:durability) && props.has_key?(:deferred_log_flush)
+        props.delete :deferred_log_flush
+      end
     }
   end
 
@@ -83,7 +88,9 @@ private
         r[:id]        = ri.region_id
         r[:start_key] = nil_if_empty ri.start_key
         r[:end_key]   = nil_if_empty ri.end_key
-        r[:root]      = ri.is_root_region
+        if ri.respond_to?(:is_root_region)
+          r[:root]      = ri.is_root_region
+        end
         r[:meta]      = ri.is_meta_region
         r[:online]    = !ri.is_offline
       }

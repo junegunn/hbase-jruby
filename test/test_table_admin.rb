@@ -143,6 +143,8 @@ class TestTableAdmin < TestHBaseJRubyBase
   end
 
   def test_add_coprocessor!
+    return unless @aggregation
+
     coproc = 'org.apache.hadoop.hbase.coprocessor.AggregateImplementation'
     assert_false @table.has_coprocessor? coproc
     assert_raise(ArgumentError) {
@@ -163,10 +165,28 @@ class TestTableAdmin < TestHBaseJRubyBase
     @table.drop!
     assert @table.inspect.is_a?(String)
 
+    gz = begin
+           org.apache.hadoop.hbase.io.hfile.Compression::Algorithm::GZ
+         rescue Exception
+           org.apache.hadoop.hbase.io.compress.Compression::Algorithm::GZ
+         end
+
+    table_props = {
+      :max_filesize       => 512 * 1024 ** 2,
+      :memstore_flushsize => 64 * 1024 ** 2,
+      :readonly           => false,
+      :splits             => [10, 20, 30, 40]
+    }
+    if org.apache.hadoop.hbase.HTableDescriptor.method_defined? :setDurability
+      table_props[:durability] = :async_wal
+    else
+      table_props[:deferred_log_flush] = true
+    end
+
     [
       'GZ',
       :gz,
-      org.apache.hadoop.hbase.io.hfile.Compression::Algorithm::GZ
+      gz
     ].each do |cmp|
       @table.create!({
           :cf => {
@@ -185,13 +205,7 @@ class TestTableAdmin < TestHBaseJRubyBase
             :ttl                 => 100,
             :versions            => 10,
           }
-        },
-        :max_filesize       => 512 * 1024 ** 2,
-        :memstore_flushsize => 64 * 1024 ** 2,
-        :readonly           => false,
-        :deferred_log_flush => true,
-        :splits             => [10, 20, 30, 40]
-      )
+        }, table_props)
 
       # Initial region count
       regions = @table.regions
@@ -199,13 +213,14 @@ class TestTableAdmin < TestHBaseJRubyBase
 
       # Table properties
       props = @table.properties
-      assert_equal true,            props[:deferred_log_flush]
+      assert props[:deferred_log_flush] || props[:durability] == 'ASYNC_WAL'
       assert_equal false,           props[:readonly]
       assert_equal 64 * 1024 ** 2,  props[:memstore_flushsize]
       assert_equal 512 * 1024 ** 2, props[:max_filesize]
 
       rprops = @table.raw_properties
-      assert_equal true.to_s,              rprops['DEFERRED_LOG_FLUSH']
+      assert rprops['DEFERRED_LOG_FLUSH'] == 'true' || rprops['DURABILITY'] == 'ASYNC_WAL'
+
       assert_equal false.to_s,             rprops['READONLY']
       assert_equal((64 * 1024 ** 2).to_s,  rprops['MEMSTORE_FLUSHSIZE'])
       assert_equal((512 * 1024 ** 2).to_s, rprops['MAX_FILESIZE'])
@@ -236,23 +251,11 @@ class TestTableAdmin < TestHBaseJRubyBase
       @table.put 31, 'cf:a' => 100
       @table.put 37, 'cf:a' => 100
       @table.split!(35)
-
-      # FIXME
-      10.times do |i|
-        break if @table.regions.count == 6
-        sleep 1
-        assert false, "Region not split" if i == 9
-      end
+      wait_for_regions 6
 
       @table.put 39, 'cf:a' => 100
       @table.split!(38)
-
-      # FIXME
-      10.times do |i|
-        break if @table.regions.count == 7
-        sleep 1
-        assert false, "Region not split" if i == 9
-      end
+      wait_for_regions 7
 
       regions = @table.regions
       assert_equal [10, 20, 30, 35, 38, 40], regions.map { |r| HBase::Util.from_bytes :fixnum, r[:start_key] }.compact.sort
@@ -292,6 +295,18 @@ class TestTableAdmin < TestHBaseJRubyBase
     assert_equal 0, @table.snapshots.length
   rescue Exception
     # TODO: Only works on HBase 0.94 or above
+  end
+
+private
+  def wait_for_regions rnum, max_tries = 30
+    sleep 5
+    max_tries.times do |i|
+      if @table.regions.count == rnum && @table.regions.all? { |r| r[:online] }
+        return
+      end
+      sleep 1
+    end
+    assert false, "Region not split"
   end
 end unless ENV['HBASE_JRUBY_TEST_SKIP_ADMIN']
 

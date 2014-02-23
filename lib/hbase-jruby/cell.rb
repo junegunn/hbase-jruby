@@ -119,7 +119,9 @@ class Cell
   # @param [Cell] other
   # @return [Fixnum] -1, 0, or 1
   def <=> other
-    KeyValue.COMPARATOR.compare(@java, other.java)
+    (@comparator ||=
+      KeyValue.const_defined?(:COMPARATOR) ?
+        KeyValue::COMPARATOR : KeyValue.COMPARATOR).compare(@java, other.java)
   end
 
   # Checks if the cells are the same

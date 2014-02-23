@@ -281,6 +281,13 @@ private
     :readonly           => { :get => :isReadOnly,           :set => :setReadOnly },
     :memstore_flushsize => { :get => :getMemStoreFlushSize, :set => :setMemStoreFlushSize },
     :deferred_log_flush => { :get => :isDeferredLogFlush,   :set => :setDeferredLogFlush },
+    :durability         => { :get => :getDurability,
+                             :set => proc { |htd, v|
+                                const = const_shortcut(
+                                  org.apache.hadoop.hbase.client.Durability, v,
+                                  "Invalid durability setting")
+                                htd.setDurability const }
+                           }
   }
 
   MAX_SPLIT_WAIT = 30
@@ -330,7 +337,7 @@ private
     end
   end
 
-  def const_shortcut base, v, message
+  def self.const_shortcut base, v, message
     # Match by constant value
     # - const_get doesn't work with symbols in 1.8 compatibility mode
     if base.constants.map { |c| base.const_get c }.any? { |cv| v == cv }
@@ -343,12 +350,20 @@ private
     end
   end
 
+  def const_shortcut *args
+    Table.const_shortcut *args
+  end
+
   def patch_table_descriptor! htd, props
     props.each do |key, value|
       next if key == :splits
 
       if method = TABLE_PROPERTIES[key] && TABLE_PROPERTIES[key][:set]
-        htd.send method, value
+        if method.is_a? Symbol
+          htd.send method, value
+        else
+          method.call htd, value
+        end
       elsif key.is_a?(String)
         htd.setValue key, value.to_s
       else

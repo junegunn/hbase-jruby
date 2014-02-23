@@ -1,6 +1,10 @@
 Changelog
 =========
 
+0.4.5
+-----
+- Fixed HBase 0.96 compatibily issues
+
 0.4.4
 -----
 - Fixed `HBase::Table#raw_families/raw_properties` on HBase shell
