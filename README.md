@@ -168,7 +168,7 @@ Call `HBase.resolve_dependency!` helper method passing one of the arguments list
 | `:local`   | Local HBase installation | -                | hbase               |
 
 (Default version is used when an argument prefix is given without specific patch version.
- e.g. `cdh4.2` defaults to `cdh4.2.0`)
+ e.g. `cdh4.2` defaults to `cdh4.2.2`)
 
 #### Examples
 
