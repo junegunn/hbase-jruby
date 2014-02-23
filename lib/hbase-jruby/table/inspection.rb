@@ -10,10 +10,11 @@ class Table
   # @return [Hash]
   def properties
     desc = descriptor
-    {}.tap { |props|
+    parse_raw_map(descriptor.values).tap { |props|
       TABLE_PROPERTIES.each do |prop, gs|
         get = gs[:get]
         if get && desc.respond_to?(get)
+          props.delete(prop.to_s.upcase)
           props[prop] = parse_property desc.send get
         end
       end
@@ -38,10 +39,11 @@ class Table
       descriptor.families.each do |family|
         name = family.name_as_string
         ret[name] =
-          {}.tap { |props|
+          parse_raw_map(family.values).tap { |props|
             COLUMN_PROPERTIES.each do |prop, gs|
               get = gs[:get]
               if get && family.respond_to?(get)
+                props.delete(prop.to_s.upcase)
                 props[prop] = parse_property family.send get
               end
             end
