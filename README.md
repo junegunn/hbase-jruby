@@ -160,6 +160,7 @@ Call `HBase.resolve_dependency!` helper method passing one of the arguments list
 | cdh4.2[.*] | Cloudera CDH4.2          | cdh4.2.2         | mvn                 |
 | cdh4.1[.*] | Cloudera CDH4.1          | cdh4.1.5         | mvn                 |
 | cdh3[u*]   | Cloudera CDH3            | cdh3u6           | mvn                 |
+| 0.98[.*]   | Apache HBase 0.98        | 0.98.0-hadoop2   | mvn                 |
 | 0.96[.*]   | Apache HBase 0.96        | 0.96.1.1-hadoop2 | mvn                 |
 | 0.94[.*]   | Apache HBase 0.94        | 0.94.16          | mvn                 |
 | 0.92[.*]   | Apache HBase 0.92        | 0.92.2           | mvn                 |
