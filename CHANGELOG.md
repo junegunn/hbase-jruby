@@ -3,7 +3,7 @@ Changelog
 
 0.4.5
 -----
-- Fixed HBase 0.96 compatibily issues
+- Fixed HBase 0.96 compatibily issues and tested on HBase 0.96 and 0.98
 - Added `:split_policy` table property
 - `Table#properties` and `Table#families` now include previously unknown
   properties as String-String pairs
