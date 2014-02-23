@@ -77,6 +77,7 @@ class TestTable < TestHBaseJRubyBase
     assert_equal 1,      @table.get(row1).fixnum('cf1:a')
     assert_equal 'a',    @table.get(row1).string('cf1:b')
     assert_equal 'a',    String.from_java_bytes(@table.get(row1).raw('cf1:b'))
+    assert_equal 'a',    @table.get(row1).byte_array('cf1:b').as(:string)
     assert_equal 3.14,   @table.get(row1).float('cf1:c')
     assert_equal true,   @table.get(row1).boolean('cf1:d')
     assert_equal :sym,   @table.get(row1).symbol('cf1:f')
@@ -93,6 +94,7 @@ class TestTable < TestHBaseJRubyBase
     assert_equal [1, 2],        @table.get(row1).fixnums('cf1:a').values
     assert_equal %w[a b],       @table.get(row1).strings('cf1:b').values
     assert_equal %w[a b],       @table.get(row1).raws('cf1:b').values.map { |v| String.from_java_bytes v }
+    assert_equal %w[a b],       @table.get(row1).byte_arrays('cf1:b').values.map { |v| v.as :string }
     assert_equal [3.14, 6.28],  @table.get(row1).floats('cf1:c').values
     assert_equal [true, false], @table.get(row1).booleans('cf1:d').values
     assert_equal [:sym, :bol],  @table.get(row1).symbols('cf1:f').values

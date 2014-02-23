@@ -128,6 +128,8 @@ module Util
         Bytes.to_double val
       when :boolean, :bool
         Bytes.to_boolean val
+      when :byte_array
+        ByteArray[val]
       when :raw, nil
         val
       else

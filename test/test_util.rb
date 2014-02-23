@@ -49,6 +49,10 @@ class TestUtil < Test::Unit::TestCase
 
     assert_equal 0, Util.to_bytes(nil).length
 
+    byte_array = Util.from_bytes :byte_array, "1234".to_java_bytes
+    assert_instance_of HBase::ByteArray, byte_array
+    assert_equal "1234", byte_array.as(:string)
+
     assert_raise(ArgumentError) { Util.from_bytes(:xxx, [].to_java(Java::byte)) }
     assert_raise(ArgumentError) { Util.to_bytes({}) }
   end
