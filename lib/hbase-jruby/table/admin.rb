@@ -281,12 +281,28 @@ private
     :readonly           => { :get => :isReadOnly,           :set => :setReadOnly },
     :memstore_flushsize => { :get => :getMemStoreFlushSize, :set => :setMemStoreFlushSize },
     :deferred_log_flush => { :get => :isDeferredLogFlush,   :set => :setDeferredLogFlush },
+    :split_policy       => { :get => :getRegionSplitPolicyClassName,
+                             :set => proc { |htd, v|
+                               htd.setValue HTableDescriptor::SPLIT_POLICY,
+                                 case v
+                                 when String
+                                   v
+                                 when Class
+                                   v.java_class.name
+                                 when Java::JavaClass
+                                   v.name
+                                 else
+                                   raise ArgumentError, "Invalid type for region split policy"
+                                 end
+                             }
+                           },
     :durability         => { :get => :getDurability,
                              :set => proc { |htd, v|
                                 const = const_shortcut(
                                   org.apache.hadoop.hbase.client.Durability, v,
                                   "Invalid durability setting")
-                                htd.setDurability const }
+                                htd.setDurability const
+                             }
                            }
   }
 
@@ -374,7 +390,7 @@ private
   end
 
   def _alter props, bang, &block
-    raise ArgumentError, ":split not supported" if props[:splits]
+    raise ArgumentError, ":splits not supported" if props[:splits]
     with_admin do |admin|
       htd = admin.get_table_descriptor(@name.to_java_bytes)
       patch_table_descriptor! htd, props

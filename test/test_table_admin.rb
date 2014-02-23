@@ -175,7 +175,10 @@ class TestTableAdmin < TestHBaseJRubyBase
       :max_filesize       => 512 * 1024 ** 2,
       :memstore_flushsize => 64 * 1024 ** 2,
       :readonly           => false,
-      :splits             => [10, 20, 30, 40]
+      :splits             => [10, 20, 30, 40],
+      :split_policy       =>
+          'org.apache.hadoop.hbase.regionserver.IncreasingToUpperBoundRegionSplitPolicy',
+      'hello'             => 'world'
     }
     if org.apache.hadoop.hbase.HTableDescriptor.method_defined? :setDurability
       table_props[:durability] = :async_wal
@@ -204,6 +207,7 @@ class TestTableAdmin < TestHBaseJRubyBase
             :replication_scope   => 0,
             :ttl                 => 100,
             :versions            => 10,
+            'whatever'           => 'works',
           }
         }, table_props)
 
@@ -217,6 +221,9 @@ class TestTableAdmin < TestHBaseJRubyBase
       assert_equal false,           props[:readonly]
       assert_equal 64 * 1024 ** 2,  props[:memstore_flushsize]
       assert_equal 512 * 1024 ** 2, props[:max_filesize]
+      assert_equal 'world',         props['hello']
+      assert_equal 'org.apache.hadoop.hbase.regionserver.IncreasingToUpperBoundRegionSplitPolicy',
+                                    props[:split_policy]
 
       rprops = @table.raw_properties
       assert rprops['DEFERRED_LOG_FLUSH'] == 'true' || rprops['DURABILITY'] == 'ASYNC_WAL'
@@ -224,6 +231,9 @@ class TestTableAdmin < TestHBaseJRubyBase
       assert_equal false.to_s,             rprops['READONLY']
       assert_equal((64 * 1024 ** 2).to_s,  rprops['MEMSTORE_FLUSHSIZE'])
       assert_equal((512 * 1024 ** 2).to_s, rprops['MAX_FILESIZE'])
+      assert_equal 'world',                rprops['hello']
+      assert_equal 'org.apache.hadoop.hbase.regionserver.IncreasingToUpperBoundRegionSplitPolicy',
+                                           rprops['SPLIT_POLICY']
 
       # Column family properties
       cf = @table.families['cf']
@@ -236,6 +246,7 @@ class TestTableAdmin < TestHBaseJRubyBase
       assert_equal 131072, cf[:blocksize]
       assert_equal true,   cf[:in_memory]
       assert_equal true,   cf[:blockcache]
+      assert_equal 'works', cf['whatever']
 
       rcf = @table.raw_families['cf']
       assert_equal 'ROW',       rcf['BLOOMFILTER']
@@ -247,6 +258,7 @@ class TestTableAdmin < TestHBaseJRubyBase
       assert_equal 131072.to_s, rcf['BLOCKSIZE']
       assert_equal true.to_s,   rcf['IN_MEMORY']
       assert_equal true.to_s,   rcf['BLOCKCACHE']
+      assert_equal 'works',     rcf['whatever']
 
       @table.put 31, 'cf:a' => 100
       @table.put 37, 'cf:a' => 100

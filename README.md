@@ -1017,13 +1017,15 @@ Some of the properties are only available on recent versions of HBase.
 
 http://hbase.apache.org/apidocs/org/apache/hadoop/hbase/HTableDescriptor.html
 
-| Property              | Type    | Description                                                                                             |
-|-----------------------|---------|---------------------------------------------------------------------------------------------------------|
-| `:max_filesize`       | Fixnum  | The maximum size upto which a region can grow to after which a region split is triggered                |
-| `:readonly`           | Boolean | If the table is read-only                                                                               |
-| `:memstore_flushsize` | Fixnum  | The maximum size of the memstore after which the contents of the memstore are flushed to the filesystem |
-| `:deferred_log_flush` | Boolean | Defer the log edits syncing to the file system                                                          |
-| `:splits`             | Array   | Region split points                                                                                     |
+| Property              | Type          | Description                                                                                               |
+| --------------------- | ------------- | --------------------------------------------------------------------------------------------------------- |
+| `:max_filesize`       | Fixnum        | The maximum size upto which a region can grow to after which a region split is triggered                  |
+| `:readonly`           | Boolean       | If the table is read-only                                                                                 |
+| `:memstore_flushsize` | Fixnum        | The maximum size of the memstore after which the contents of the memstore are flushed to the filesystem   |
+| `:deferred_log_flush` | Boolean       | Defer the log edits syncing to the file system (deprecated in 0.96)                                       |
+| `:durability`         | Symbol/String | Durability setting of the table                                                                           |
+| `:split_policy`       | String/Class  | Region split policy                                                                                       |
+| `:splits`             | Array         | Region split points                                                                                       |
 
 ### Managing column families
 
