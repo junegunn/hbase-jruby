@@ -58,15 +58,16 @@ hbase.schema = {
   book: {
     # Columns in cf1 family
     cf1: {
-      title:    :string,     # String (UTF-8)
-      author:   :string,
-      category: :string,
-      year:     :short,      # Short integer (2-byte)
-      pages:    :int,        # Integer (4-byte)
-      price:    :bigdecimal, # BigDecimal
-      weight:   :float,      # Double-precision floating-point number
-      in_print: :boolean,    # Boolean (true | false)
-      image:    :raw         # Java byte array; no automatic type conversion
+      title:     :string,     # String (UTF-8)
+      author:    :string,
+      category:  :string,
+      year:      :short,      # Short integer (2-byte)
+      pages:     :int,        # Integer (4-byte)
+      price:     :bigdecimal, # BigDecimal
+      weight:    :float,      # Double-precision floating-point number
+      in_print:  :boolean,    # Boolean (true | false)
+      image:     :raw         # Java byte array; no automatic type conversion
+      thumbnail: :byte_array  # HBase::ByteArray
     },
     # Columns in cf2 family
     cf2: {

@@ -4,6 +4,12 @@ Changelog
 0.4.5
 -----
 - Fixed HBase 0.96 compatibily issues
+- Added `:split_policy` table property
+- `Table#properties` and `Table#families` now include previously unknown
+  properties as String-String pairs
+- Added `Row#byte_array` which returns an instance of `HBase::ByteArray`
+    - Equivalent to `HBase::ByteArray[row.raw(col)]`
+
 
 0.4.4
 -----
