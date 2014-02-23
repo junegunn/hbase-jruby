@@ -367,7 +367,7 @@ private
   end
 
   def const_shortcut *args
-    Table.const_shortcut *args
+    Table.const_shortcut(*args)
   end
 
   def patch_table_descriptor! htd, props
