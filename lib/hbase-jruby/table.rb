@@ -29,10 +29,16 @@ class Table
     local_htables[@name] ||= @hbase.send :get_htable, @name
   end
 
-  # @deprecated
+  # Return HTable instance back to the table pool.
+  # Generally this is not required unless you use unlimited number of threads
   # @return [nil]
   def close
-    nil
+    check_closed
+
+    (t = Thread.current[:hbase_jruby]) &&
+    (t = t[@hbase]) &&
+    (t = t.delete @name) &&
+    t.close
   end
 
   # Returns whether if the connection is closed

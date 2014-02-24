@@ -23,14 +23,32 @@ class TestTable < TestHBaseJRubyBase
     # Multi-threaded
     htables = []
     table = @hbase.table(TABLE)
+    num_registered_threads = @hbase.instance_variable_get(:@threads).length
     4.times do
       Thread.new {
         htables << table.htable
+        assert_equal num_registered_threads + 1,
+                     @hbase.instance_variable_get(:@threads).length
       }.join
     end
     assert_equal 4, htables.uniq.length
+    # XXX Implementation detail XXX
+    assert_equal num_registered_threads + 1,
+                 @hbase.instance_variable_get(:@threads).length
 
     assert_equal @hbase.table(TABLE).htable, @hbase[TABLE].htable
+  end
+
+  def test_table_close
+    htables = Set.new
+    htables << @hbase[TABLE].htable
+    htables << @hbase[TABLE].htable
+    assert_equal 1, htables.length
+
+    @hbase[TABLE].close
+    htables << @hbase[TABLE].htable
+    htables << @hbase[TABLE].htable
+    assert_equal 2, htables.length
   end
 
   def test_put_then_get
