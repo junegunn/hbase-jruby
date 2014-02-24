@@ -89,7 +89,12 @@ class HBase
       unless @closed
         @closed = true
         close_table_pool
-        HConnectionManager.deleteConnection(@config)
+        begin
+          HConnectionManager.deleteConnection(@config)
+        rescue ArgumentError
+          # HBase 0.92 or below
+          HConnectionManager.deleteConnection(@config, true)
+        end
       end
     end
   end
