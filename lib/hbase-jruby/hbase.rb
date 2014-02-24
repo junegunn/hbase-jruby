@@ -176,6 +176,7 @@ private
     @mutex.synchronize do
       check_closed
       @threads << t
+      @threads = Set.new(@threads.select { |t| t.alive? })
     end
   end
 
