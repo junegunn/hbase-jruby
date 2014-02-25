@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.4.6
+-----
+- [#29 Fix possible HTable leaks](https://github.com/junegunn/hbase-jruby/issues/29)
+- [#30 Make `HBase.log4j=` callable before dependencies are met](https://github.com/junegunn/hbase-jruby/issues/30)
+
 0.4.5
 -----
 - Fixed HBase 0.96 compatibily issues and tested on HBase 0.96 and 0.98
