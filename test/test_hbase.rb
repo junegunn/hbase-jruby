@@ -89,10 +89,11 @@ class TestHBase < TestHBaseJRubyBase
     threads = 4.times.map { |i|
       Thread.new {
         ht = hbase2[TABLE].htable
+        sleep
       }
     }
     threads.each do |t|
-      t.join
+      t.kill
       assert t[:hbase_jruby][hbase2][TABLE]
     end
 
