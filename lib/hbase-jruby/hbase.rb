@@ -178,10 +178,21 @@ class HBase
 
 private
   def register_thread t
+    # (NOTE) The cleanup routine can be inefficient when the number of
+    # concurrent threads becomes large. However, since it is not likely that
+    # there will be more than a few hundred threads in a typical JRuby process
+    # and the code is executed only once per thread, let's simply assume that
+    # it's okay.
     @mutex.synchronize do
       check_closed
       @threads << t
-      @threads = Set.new(@threads.select { |t| t.alive? })
+      alives, deads = @threads.partition { |e| e.alive? }
+      @threads = Set.new(alives)
+      deads.each do |dead|
+        (dead[:hbase_jruby].delete(self) || {}).each do |_, htable|
+          htable.close rescue nil
+        end
+      end
     end
   end
 
