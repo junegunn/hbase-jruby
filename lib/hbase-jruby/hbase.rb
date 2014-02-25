@@ -13,29 +13,34 @@ class HBase
   # @overload HBase.log4j=(filename)
   #   Configure Log4j logging with the given file
   #   @param [String] filename Path to log4j.properties or log4j.xml file
-  #   @return [nil]
+  #   @return [String]
   # @overload HBase.log4j=(hash)
   #   Configure Log4j logging with the given Hash
   #   @param [Hash] hash Log4j properties in Ruby Hash
-  #   @return [nil]
+  #   @return [Hash]
   # @overload HBase.log4j=(props)
   #   Configure Log4j logging with the given Properties
   #   @param [java.util.Properties] props Properties object
-  #   @return [nil]
+  #   @return [java.util.Properties]
   def self.log4j= arg
-    if arg.is_a?(Hash)
-      props = java.util.Properties.new
-      arg.each do |k, v|
-        props.setProperty k.to_s, v.to_s
-      end
-      org.apache.log4j.PropertyConfigurator.configure props
-    else
-      case File.extname(arg).downcase
-      when '.xml'
-        org.apache.log4j.xml.DOMConfigurator.configure arg
+    org.apache.log4j.PropertyConfigurator rescue nil
+    if defined?(org.apache.log4j.PropertyConfigurator)
+      if arg.is_a?(Hash)
+        props = java.util.Properties.new
+        arg.each do |k, v|
+          props.setProperty k.to_s, v.to_s
+        end
+        org.apache.log4j.PropertyConfigurator.configure props
       else
-        org.apache.log4j.PropertyConfigurator.configure arg
+        case File.extname(arg).downcase
+        when '.xml'
+          org.apache.log4j.xml.DOMConfigurator.configure arg
+        else
+          org.apache.log4j.PropertyConfigurator.configure arg
+        end
       end
+    else
+      @@log4j = arg
     end
   end
 

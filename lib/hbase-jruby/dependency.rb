@@ -114,6 +114,9 @@ class HBase
         require(jar)
       }
 
+      # Apply pending log4j configuration
+      HBase.log4j = @@log4j if @@log4j
+
       # Try importing Java classes again
       not_found = HBase.import_java_classes!
       if verbose && !not_found.empty?
