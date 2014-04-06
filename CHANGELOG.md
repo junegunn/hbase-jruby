@@ -1,6 +1,10 @@
 Changelog
 =========
 
+0.4.7
+-----
+- Added CDH5.0 (HBase 0.96.1.1) and CDH4.6 dependency profiles
+
 0.4.6
 -----
 - [#29 Fix possible HTable leaks](https://github.com/junegunn/hbase-jruby/issues/29)
