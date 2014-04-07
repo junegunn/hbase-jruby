@@ -152,20 +152,20 @@ or by `require`ing relevant JAR files after launching JRuby.
 Well, there's an easier way.
 Call `HBase.resolve_dependency!` helper method passing one of the arguments listed below.
 
-| Argument   | Dependency               | Default version  | Required executable |
-| ---------- | ------------------------ | ---------------  | ------------------- |
-| cdh4.5[.*] | Cloudera CDH4.5          | cdh4.5.0         | mvn                 |
-| cdh4.4[.*] | Cloudera CDH4.4          | cdh4.4.0         | mvn                 |
-| cdh4.3[.*] | Cloudera CDH4.3          | cdh4.3.2         | mvn                 |
-| cdh4.2[.*] | Cloudera CDH4.2          | cdh4.2.2         | mvn                 |
-| cdh4.1[.*] | Cloudera CDH4.1          | cdh4.1.5         | mvn                 |
-| cdh3[u*]   | Cloudera CDH3            | cdh3u6           | mvn                 |
-| 0.98[.*]   | Apache HBase 0.98        | 0.98.0-hadoop2   | mvn                 |
-| 0.96[.*]   | Apache HBase 0.96        | 0.96.1.1-hadoop2 | mvn                 |
-| 0.94[.*]   | Apache HBase 0.94        | 0.94.16          | mvn                 |
-| 0.92[.*]   | Apache HBase 0.92        | 0.92.2           | mvn                 |
-| *POM PATH* | Custom Maven POM file    | -                | mvn                 |
-| `:local`   | Local HBase installation | -                | hbase               |
+| Argument   | Dependency               | Default version | Required executable |
+| ---------- | ------------------------ | --------------- | ------------------- |
+| cdh4.5[.*] | Cloudera CDH4.5          | cdh4.5.0        | mvn                 |
+| cdh4.4[.*] | Cloudera CDH4.4          | cdh4.4.0        | mvn                 |
+| cdh4.3[.*] | Cloudera CDH4.3          | cdh4.3.2        | mvn                 |
+| cdh4.2[.*] | Cloudera CDH4.2          | cdh4.2.2        | mvn                 |
+| cdh4.1[.*] | Cloudera CDH4.1          | cdh4.1.5        | mvn                 |
+| cdh3[u*]   | Cloudera CDH3            | cdh3u6          | mvn                 |
+| 0.98[.*]   | Apache HBase 0.98        | 0.98.0-hadoop2  | mvn                 |
+| 0.96[.*]   | Apache HBase 0.96        | 0.96.2-hadoop2  | mvn                 |
+| 0.94[.*]   | Apache HBase 0.94        | 0.94.18         | mvn                 |
+| 0.92[.*]   | Apache HBase 0.92        | 0.92.2          | mvn                 |
+| *POM PATH* | Custom Maven POM file    | -               | mvn                 |
+| `:local`   | Local HBase installation | -               | hbase               |
 
 (Default version is used when an argument prefix is given without specific patch version.
  e.g. `cdh4.2` defaults to `cdh4.2.2`)
