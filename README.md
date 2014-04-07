@@ -1100,6 +1100,22 @@ end
 
 ## Advanced topics
 
+### Thread-safety
+
+You can freely share a `HBase::Table` instance among threads, as it is backed by
+thread-local HTable instances. ([HTable instance in itself is not
+thread-safe](https://hbase.apache.org/book/client.html))
+
+```ruby
+table = hbase[:my_table]
+
+10.times.map do |i|
+  Thread.new do
+    table.put i, data
+  end
+end.each(&:join)
+```
+
 ### Lexicographic scan order
 
 HBase stores rows in the lexicographic order of the rowkeys in their byte array
