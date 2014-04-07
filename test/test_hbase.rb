@@ -86,15 +86,22 @@ class TestHBase < TestHBaseJRubyBase
     # Thread-local htable cache has now been created
     assert Thread.current[:hbase_jruby][hbase2][TABLE]
 
+    sleeping = {}
+    mutex = Mutex.new
     threads = 4.times.map { |i|
       Thread.new {
-        ht = hbase2[TABLE].htable
+        Thread.current[:htable] = hbase2[TABLE].htable
+        mutex.synchronize { sleeping[Thread.current] = true }
         sleep
       }
     }
+    sleep 0.1 while mutex.synchronize { sleeping.length } < 4
     threads.each do |t|
-      t.kill
+      assert t[:htable]
       assert t[:hbase_jruby][hbase2][TABLE]
+      assert_equal t[:htable], t[:hbase_jruby][hbase2][TABLE]
+
+      t.kill
     end
 
     # Now close the connection
