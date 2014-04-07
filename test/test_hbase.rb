@@ -120,20 +120,23 @@ class TestHBase < TestHBaseJRubyBase
 
   def test_reset_pool
     hbase2 = HBase.new @hbase.config
-    table  = hbase2[TABLE]
+    omit_unless(hbase2.use_table_pool?) do
+      table  = hbase2[TABLE]
 
-    htable = table.htable
-    assert_equal htable, table.htable
-    assert_equal htable, hbase2[TABLE.to_sym].htable
+      htable = table.htable
+      assert_equal htable, table.htable
+      assert_equal htable, hbase2[TABLE.to_sym].htable
 
-    assert_nil hbase2.reset_table_pool
+      assert_nil hbase2.reset_table_pool
 
-    assert_not_equal htable, table.htable
-    assert_not_equal htable, hbase2[TABLE].htable
+      assert_not_equal htable, table.htable
+      assert_not_equal htable, hbase2[TABLE].htable
 
-    htable = table.htable
-    assert_equal htable, table.htable
-    assert_equal htable, hbase2[TABLE.to_sym].htable
+      htable = table.htable
+      assert_equal htable, table.htable
+      assert_equal htable, hbase2[TABLE.to_sym].htable
+    end
+    hbase2.close
   end
 end
 

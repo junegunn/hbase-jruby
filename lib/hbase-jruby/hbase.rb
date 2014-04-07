@@ -67,11 +67,24 @@ class HBase
           end
         end
       end
-    @htable_pool = HTablePool.new @config, java.lang.Integer::MAX_VALUE
+    @connection = HConnectionManager.createConnection @config
+    @htable_pool =
+      if @connection.respond_to?(:getTable)
+        nil
+      else
+        HTablePool.new @config, java.lang.Integer::MAX_VALUE
+      end
     @threads = Set.new
     @mutex   = Mutex.new
     @schema  = Schema.new
     @closed  = false
+  end
+
+  # Returns if this instance is backed by an HTablePool which is deprecated
+  # in the recent versions of HBase
+  # @return [Boolean]
+  def use_table_pool?
+    !@htable_pool.nil?
   end
 
   # Returns an HBaseAdmin object for administration
@@ -93,13 +106,17 @@ class HBase
     @mutex.synchronize do
       unless @closed
         @closed = true
-        close_table_pool
+        @htable_pool.close if use_table_pool?
+        clear_thread_locals
+        @connection.close
+
+        # To be deprecated
         begin
           HConnectionManager.deleteConnection(@config)
         rescue ArgumentError
           # HBase 0.92 or below
           HConnectionManager.deleteConnection(@config, true)
-        end
+        end if use_table_pool?
       end
     end
   end
@@ -167,10 +184,14 @@ class HBase
  end
 
   # Reset underlying HTablePool
+  # @deprecated
   # @return [nil]
   def reset_table_pool
+    raise RuntimeError, 'Not using table pool' unless use_table_pool?
+
     @mutex.synchronize do
-      close_table_pool
+      clear_thread_locals
+      @htable_pool.close
       @htable_pool = HTablePool.new @config, java.lang.Integer::MAX_VALUE
     end
     nil
@@ -196,10 +217,7 @@ private
     end
   end
 
-  def close_table_pool
-    # Close all the HTable instances in the pool
-    @htable_pool.close
-
+  def clear_thread_locals
     # Cleanup thread-local references
     @threads.each do |thr|
       thr[:hbase_jruby].delete self
@@ -207,7 +225,7 @@ private
   end
 
   def get_htable name
-    @htable_pool.get_table name
+    (@htable_pool || @connection).get_table name
   end
 
   def check_closed
