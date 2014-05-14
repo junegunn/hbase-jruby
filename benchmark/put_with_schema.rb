@@ -1,20 +1,28 @@
 #!/usr/bin/env ruby
 
+if ARGV.length != 3
+  puts "usage: #{$0} <version> <dist> <hbase.zookeeper.quorum>"
+  exit 1
+end
+
 require 'benchmark'
-gem 'hbase-jruby', ARGV[0] || '0.3.0'
+gem 'hbase-jruby', ARGV[0]
 require 'hbase-jruby'
 require 'parallelize'
 
-HBase.resolve_dependency! 'cdh4.2'
-hbase = HBase.new 'hbase.zookeeper.quorum' =>
-          ENV.fetch('HBASE_JRUBY_TEST_ZK', '127.0.0.1')
+HBase.log4j = { 'log4j.threshold' => 'ERROR' }
+HBase.resolve_dependency! ARGV[1]
+hbase = HBase.new 'hbase.zookeeper.quorum' => ARGV[2],
+                  'hbase.hconnection.threads.core' => 256
+puts "- HTablePool (deprecated): #{hbase.use_table_pool? rescue true}"
+
 test = hbase[:test]
 test.drop! if test.exists?
 test.create! :f, splits: (0..10 ** 10).step(10 ** 8).to_a[1...-1]
 
-new_version = HBase::JRuby::VERSION >= '0.3'
+schema_supported = HBase::JRuby::VERSION >= '0.3'
 
-if new_version
+if schema_supported
   hbase.schema = {
     test: {
       f: {
@@ -52,7 +60,7 @@ Benchmark.bmbm(30) do |x|
         test.put rand(10 ** 10), data
       end
     end
-  } if new_version
+  } if schema_supported
 
   x.report(:put_old) {
     parallelize(threads) do

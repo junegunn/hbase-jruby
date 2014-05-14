@@ -1,9 +1,13 @@
 Changelog
 =========
 
-0.4.7
+0.5.0
 -----
 - Added CDH5.0 (HBase 0.96.1.1) and CDH4.6 dependency profiles
+    - If you share HBase instance between threads, you may need to set
+      `hbase.hconnection.threads.core` due to
+      [a bug](https://issues.apache.org/jira/browse/HBASE-10449) in CDH5.5.0.
+- Use HConnection instead of deprecated HTablePool when possible
 
 0.4.6
 -----
