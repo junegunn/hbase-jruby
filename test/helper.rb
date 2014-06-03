@@ -40,7 +40,12 @@ class TestHBaseJRubyBase < Test::Unit::TestCase
   def setup
     @hbase = connect
     @table = @hbase.table(TABLE)
-    @aggregation = defined?(org.apache.hadoop.hbase.client.coprocessor.AggregationClient)
+    begin
+      org.apache.hadoop.hbase.client.coprocessor.AggregationClient
+      @aggregation = true
+    rescue NameError
+      @aggregation = false
+    end
 
     # Drop & Create
     @table.drop! if RECREATE && @table.exists?

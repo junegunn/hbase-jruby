@@ -47,10 +47,15 @@ private
   def aggregation_impl method, type
     raise ArgumentError.new("No column specified") if method != :row_count && @project.empty?
 
+    @@with_byte_array_name ||=
+      org.apache.hadoop.hbase.client.coprocessor.AggregationClient.
+      java_class.java_instance_methods.select { |m| m.name == 'sum' }.
+      map { |m| m.argument_types.first }.include?(''.to_java_bytes.java_class)
+
     @aggregation_client ||= AggregationClient.new(table.config)
     @aggregation_client.send(
       method,
-      Util.to_bytes(table.name),
+      @@with_byte_array_name ? Util.to_bytes(table.name) : htable,
       column_interpreter_for(type),
       filtered_scan)
   end

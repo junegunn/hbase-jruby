@@ -1,6 +1,10 @@
 Changelog
 =========
 
+0.5.1
+-----
+- Fixed `Table#aggregate` for HBase 0.98 or above
+
 0.5.0
 -----
 - Added CDH5.0 (HBase 0.96.1.1) and CDH4.6 dependency profiles
