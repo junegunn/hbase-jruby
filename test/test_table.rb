@@ -131,21 +131,21 @@ class TestTable < TestHBaseJRubyBase
     # assert_equal [301, 401], @table.get(row1).int(['cf1:int', 'cf1:int2'])
 
     # single-get-multi-ver
-    assert_equal [1, 2],        @table.get(row1).fixnums('cf1:a').values
-    assert_equal %w[a b],       @table.get(row1).strings('cf1:b').values
-    assert_equal %w[a b],       @table.get(row1).raws('cf1:b').values.map { |v| String.from_java_bytes v }
-    assert_equal %w[a b],       @table.get(row1).byte_arrays('cf1:b').values.map { |v| v.as :string }
-    assert_equal [3.14, 6.28],  @table.get(row1).floats('cf1:c').values
-    assert_equal [true, false], @table.get(row1).booleans('cf1:d').values
-    assert_equal [:sym, :bol],  @table.get(row1).symbols('cf1:f').values
+    assert_equal [1, 2],        @table.versions(:all).get(row1).fixnums('cf1:a').values
+    assert_equal %w[a b],       @table.versions(:all).get(row1).strings('cf1:b').values
+    assert_equal %w[a b],       @table.versions(:all).get(row1).raws('cf1:b').values.map { |v| String.from_java_bytes v }
+    assert_equal %w[a b],       @table.versions(:all).get(row1).byte_arrays('cf1:b').values.map { |v| v.as :string }
+    assert_equal [3.14, 6.28],  @table.versions(:all).get(row1).floats('cf1:c').values
+    assert_equal [true, false], @table.versions(:all).get(row1).booleans('cf1:d').values
+    assert_equal [:sym, :bol],  @table.versions(:all).get(row1).symbols('cf1:f').values
     assert_equal [
       BigDecimal.new("123.456"),
-      BigDecimal.new("456.123")], @table.get(row1).bigdecimals('cf1:g').values
-    assert_equal [101, 100], @table.get(row1).bytes('cf1:byte').values
-    assert_equal [201, 200], @table.get(row1).shorts('cf1:short').values
-    assert_equal [301, 300], @table.get(row1).ints('cf1:int').values
+      BigDecimal.new("456.123")], @table.versions(:all).get(row1).bigdecimals('cf1:g').values
+    assert_equal [101, 100], @table.versions(:all).get(row1).bytes('cf1:byte').values
+    assert_equal [201, 200], @table.versions(:all).get(row1).shorts('cf1:short').values
+    assert_equal [301, 300], @table.versions(:all).get(row1).ints('cf1:int').values
 
-    assert @table.get(row1).fixnums('cf1:a').keys.all? { |k| k.instance_of? Fixnum }
+    assert @table.versions(:all).get(row1).fixnums('cf1:a').keys.all? { |k| k.instance_of? Fixnum }
 
     # single-get-multi-col-multi=ver (deprecated since 0.3)
     # rets = @table.get(row1).strings(['cf1:str1', 'cf1:str2'])
@@ -196,10 +196,10 @@ class TestTable < TestHBaseJRubyBase
       },
     }
 
-    assert_equal [1270000000000, 'A3'], @table.get(rowkey).strings('cf1:a').first
-    assert_equal 'A2', @table.get(rowkey).strings('cf1:a')[1260000000000]
-    assert_equal [1250000000000, 'A1'], @table.get(rowkey).strings('cf1:a').to_a.last
-    assert_equal ['B1'], @table.get(rowkey).strings('cf1:b').values
+    assert_equal [1270000000000, 'A3'], @table.versions(:all).get(rowkey).strings('cf1:a').first
+    assert_equal 'A2',                  @table.versions(:all).get(rowkey).strings('cf1:a')[1260000000000]
+    assert_equal [1250000000000, 'A1'], @table.versions(:all).get(rowkey).strings('cf1:a').to_a.last
+    assert_equal ['B1'],                @table.versions(:all).get(rowkey).strings('cf1:b').values
   end
 
   def test_increment
@@ -250,13 +250,13 @@ class TestTable < TestHBaseJRubyBase
     @table.put(row1, 'cf2:d' => 5)
     sleep 0.1
     @table.put(row1, 'cf2:d' => 6)
-    versions = @table.get(row1).versions(:all).to_H[%w[cf2 d]].keys
+    versions = @table.versions(:all).get(row1).to_H[%w[cf2 d]].keys
     assert versions[0] > versions[1]
     assert versions[1] > versions[2]
 
     # Deletes a version (Fixnum and Time as timestamps)
     @table.delete(row1, 'cf2:d', versions[0], Time.at(versions[2] / 1000.0))
-    new_versions = @table.get(row1).versions(:all).to_H[%w[cf2 d]].keys
+    new_versions = @table.versions(:all).get(row1).to_H[%w[cf2 d]].keys
     assert_equal new_versions, [versions[1]]
 
     # Deletes a column
@@ -312,10 +312,10 @@ class TestTable < TestHBaseJRubyBase
 
     assert_equal 3, @table.get(drow).to_h.keys.length
 
-    assert_equal 1, @table.get(drow).versions(:all).to_H['cf1:a'].length
-    assert_equal 2, @table.get(drow).versions(:all).to_H['cf1:b'].length
-    assert_equal 3000, @table.get(drow).versions(:all).to_H['cf1:a'].keys.first
-    assert_equal [6000, 4000], @table.get(drow).versions(:all).to_H['cf1:b'].keys
+    assert_equal 1, @table.versions(:all).get(drow).to_H['cf1:a'].length
+    assert_equal 2, @table.versions(:all).get(drow).to_H['cf1:b'].length
+    assert_equal 3000, @table.versions(:all).get(drow).to_H['cf1:a'].keys.first
+    assert_equal [6000, 4000], @table.versions(:all).get(drow).to_H['cf1:b'].keys
   end
 
   def test_delete_advanced_with_schema
@@ -354,10 +354,10 @@ class TestTable < TestHBaseJRubyBase
 
     assert_equal 3, @table.get(drow).to_h.keys.length
 
-    assert_equal 1, @table.get(drow).versions(:all).to_H[:a].length
-    assert_equal 2, @table.get(drow).versions(:all).to_H[:b].length
-    assert_equal 3000, @table.get(drow).versions(:all).to_H[:a].keys.first
-    assert_equal [6000, 4000], @table.get(drow).versions(:all).to_H[:b].keys
+    assert_equal 1, @table.versions(:all).get(drow).to_H[:a].length
+    assert_equal 2, @table.versions(:all).get(drow).to_H[:b].length
+    assert_equal 3000, @table.versions(:all).get(drow).to_H[:a].keys.first
+    assert_equal [6000, 4000], @table.versions(:all).get(drow).to_H[:b].keys
   end
 
   def test_delete_row
@@ -438,7 +438,7 @@ class TestTable < TestHBaseJRubyBase
       @table.put rk, a => 100, b => 200,
         c => { ts => 300, (ts - 1000) => 400, (ts - 2000).to_i => 500 },
         d => 1000
-      assert_equal 3, @table.get(rk).versions(:all).to_H[:c].length
+      assert_equal 3, @table.versions(:all).get(rk).to_H[:c].length
 
       assert_equal false, @table.check(rk, a => 200).delete(b)
       assert_equal 200, @table.get(rk)[b]
@@ -447,8 +447,8 @@ class TestTable < TestHBaseJRubyBase
       assert_equal nil, @table.get(rk)[b]
 
       assert_equal true, @table.check(rk, a => 100).delete(c, ts, (ts - 2000).to_i, 'cf2')
-      assert_equal 1, @table.get(rk).versions(:all).to_H[:c].length
-      assert_equal (ts - 1000).to_i, @table.get(rk).versions(:all).to_H[:c].keys.first / 1000
+      assert_equal 1, @table.versions(:all).get(rk).to_H[:c].length
+      assert_equal (ts - 1000).to_i, @table.versions(:all).get(rk).to_H[:c].keys.first / 1000
       assert_equal nil, @table.get(rk)[d]
 
       assert_equal true, @table.check(rk, a => 100).delete

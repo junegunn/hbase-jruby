@@ -54,6 +54,9 @@ class TestHBase < TestHBaseJRubyBase
     @hbase = connect
     table = @hbase[TABLE]
     assert_equal table.htable, Thread.current[:hbase_jruby][@hbase][TABLE]
+
+    # FIXME: Connection is closed, we have to update @table object
+    @table = @hbase.table(TABLE)
   end
 
   def test_admin

@@ -143,7 +143,7 @@ class TestTableAdmin < TestHBaseJRubyBase
   end
 
   def test_add_coprocessor!
-    omit "AggregationClient is removed in 0.96" unless @aggregation
+    omit "AggregationClient not found" unless @aggregation
 
     coproc = 'org.apache.hadoop.hbase.coprocessor.AggregateImplementation'
     assert_false @table.has_coprocessor? coproc
