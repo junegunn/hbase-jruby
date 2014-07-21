@@ -1,6 +1,20 @@
 Changelog
 =========
 
+0.6.0
+-----
+
+0.6.0 includes a few backward-incompatible changes.
+
+- Default number of versions for a scan or get is now changed to 1 to match Java API
+    - Make sure to set versions to `:all` if you're calling `to_H` or plural datatype methods
+        - `scoped.versions(:all).to_H`
+        - `scoped.versions(:all).strings('d:title')`
+- Removed `HBase::Table::BatchAction#mutate` method
+    - RowMutation is not allowed in `HBase::Table#batch`
+        - https://issues.apache.org/jira/browse/HBASE-11421
+- Added CDH5.1 dependency profile
+
 0.5.1
 -----
 - Fixed `Table#aggregate` for HBase 0.98 or above

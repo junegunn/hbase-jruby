@@ -96,7 +96,7 @@ table.put 1,
   price:     BigDecimal('21.50'),
   weight:    3.0,
   in_print:  true,
-  image:     File.open('thumbnail.png', 'rb') { |f| f.read }.to_java_bytes,
+  image:     File.open('thumbnail.png', 'rb') { | f          | f.read }.to_java_bytes,
   summary:   'A wide-ranging, comparative study of mythology and religion',
   reviews:   52,
   stars:     226,
@@ -123,7 +123,7 @@ table.range(0..100)
              category: ['Comics', 'Fiction', /cult/i],
              price:    { lt: BigDecimal('30.00') },
              summary:  /myth/i)
-     .each do |book|
+     .each do                                   | book       |
 
   # Update columns
   table.put book.rowkey, price: book[:price] + BigDecimal('1')
@@ -152,22 +152,22 @@ or by `require`ing relevant JAR files after launching JRuby.
 Well, there's an easier way.
 Call `HBase.resolve_dependency!` helper method passing one of the arguments listed below.
 
-| Argument   | Dependency               | Default version | Required executable |
-| ---------- | ------------------------ | --------------- | ------------------- |
-| cdh5.1[.*] | Cloudera CDH5.1          | cdh5.1.0        | mvn                 |
-| cdh5.0[.*] | Cloudera CDH5.0          | cdh5.0.0        | mvn                 |
-| cdh4.5[.*] | Cloudera CDH4.5          | cdh4.5.0        | mvn                 |
-| cdh4.4[.*] | Cloudera CDH4.4          | cdh4.4.0        | mvn                 |
-| cdh4.3[.*] | Cloudera CDH4.3          | cdh4.3.2        | mvn                 |
-| cdh4.2[.*] | Cloudera CDH4.2          | cdh4.2.2        | mvn                 |
-| cdh4.1[.*] | Cloudera CDH4.1          | cdh4.1.5        | mvn                 |
-| cdh3[u*]   | Cloudera CDH3            | cdh3u6          | mvn                 |
-| 0.98[.*]   | Apache HBase 0.98        | 0.98.0-hadoop2  | mvn                 |
-| 0.96[.*]   | Apache HBase 0.96        | 0.96.2-hadoop2  | mvn                 |
-| 0.94[.*]   | Apache HBase 0.94        | 0.94.18         | mvn                 |
-| 0.92[.*]   | Apache HBase 0.92        | 0.92.2          | mvn                 |
-| *POM PATH* | Custom Maven POM file    | -               | mvn                 |
-| `:local`   | Local HBase installation | -               | hbase               |
+                                                | Argument   | Dependency               | Default version | Required executable |
+                                                | ---------- | ------------------------ | --------------- | ------------------- |
+                                                | cdh5.1[.*] | Cloudera CDH5.1          | cdh5.1.0        | mvn                 |
+                                                | cdh5.0[.*] | Cloudera CDH5.0          | cdh5.0.0        | mvn                 |
+                                                | cdh4.5[.*] | Cloudera CDH4.5          | cdh4.5.0        | mvn                 |
+                                                | cdh4.4[.*] | Cloudera CDH4.4          | cdh4.4.0        | mvn                 |
+                                                | cdh4.3[.*] | Cloudera CDH4.3          | cdh4.3.2        | mvn                 |
+                                                | cdh4.2[.*] | Cloudera CDH4.2          | cdh4.2.2        | mvn                 |
+                                                | cdh4.1[.*] | Cloudera CDH4.1          | cdh4.1.5        | mvn                 |
+                                                | cdh3[u*]   | Cloudera CDH3            | cdh3u6          | mvn                 |
+                                                | 0.98[.*]   | Apache HBase 0.98        | 0.98.0-hadoop2  | mvn                 |
+                                                | 0.96[.*]   | Apache HBase 0.96        | 0.96.2-hadoop2  | mvn                 |
+                                                | 0.94[.*]   | Apache HBase 0.94        | 0.94.18         | mvn                 |
+                                                | 0.92[.*]   | Apache HBase 0.92        | 0.92.2          | mvn                 |
+                                                | *POM PATH* | Custom Maven POM file    | -               | mvn                 |
+                                                | `:local`   | Local HBase installation | -               | hbase               |
 
 (Default version is used when an argument prefix is given without specific patch version.
  e.g. `cdh4.2` defaults to `cdh4.2.2`)
@@ -262,7 +262,7 @@ table.create! cf1: {},
 | APPEND             | Appends values to one or more columns within a single row                                     |
 | Checked PUT/DELETE | Atomically checks if the pre-exising data matches the expected value and puts or deletes data |
 | MUTATE             | Performs multiple mutations (PUTS and DELETES) atomically on a single row                     |
-| Batch execution    | Performs multiple actions (PUT, GET, DELETE, INCREMENT, APPEND, and MUTATE) at once           |
+| Batch execution    | Performs multiple actions (PUT, GET, DELETE, INCREMENT, APPEND) at once                       |
 
 ### Defining table schema for easier data access
 
@@ -349,7 +349,7 @@ year   = book[:year]
 hash = book.to_h
 
 # Convert to Hash containing all versions of values indexed by their timestamps
-all_hash = book.to_H
+all_hash = table.versions(:all).get('rowkey1').to_H
 
 # Columns not defined in the schema are returned as Java byte arrays
 # They need to be decoded manually
@@ -413,7 +413,7 @@ hash['cf2:10']
 hash[[:cf2, 10]]
   # byte[102, 111, 111, 98, 97, 114]@6f28bb44
 
-hash_with_versions = book.to_H
+hash_with_versions = table.versions(:all).get(10000).to_H
   # {
   #   :title => {1369019227766 => "Hello world"},
   #   [:cf2, HBase::ByteArray<0, 0, 0, 0, 0, 0, 0, 10>] =>
@@ -540,17 +540,13 @@ ret = table.batch do |b|
   b.append rowkey3, 'cf1:b' => 'world'
   b.delete rowkey3, 'cf2', 'cf3:z'
   b.increment rowkey3, 'cf1:a' => 200, 'cf1:c' => 300
-  b.mutate(rowkey4) do |m|
-    m.put 'cf3:z' => 3.14
-    m.delete 'cf3:y', 'cf4'
-  end
 end
 ```
 
 `batch` method returns an Array of Hashes which contains the results of the
 actions in the order they are specified in the block. Each Hash has `:type` entry
 (:get, :put, :append, etc.) and `:result` entry. If the type of an action is
-:put, :delete, or :mutate, the `:result` will be given as a boolean. If it's an
+:put or :delete, the `:result` will be given as a boolean. If it's an
 :increment or :append, a plain Hash will be returned as the `:result`, just like
 in [increment](https://github.com/junegunn/hbase-jruby#increment-atomic-increment-of-column-values)
 and [append](https://github.com/junegunn/hbase-jruby#append) methods.
