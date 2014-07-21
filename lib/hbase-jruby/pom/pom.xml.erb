@@ -10,13 +10,13 @@
   <name>hbase-jruby</name>
 
   <profiles>
-    <% %w[cdh5.0].each do |cdh| %>
+    <% { 'cdh5.0' => '0.96.1.1', 'cdh5.1' => '0.98.1' }.each do |cdh, hbase_version| %>
     <profile>
       <id><%= cdh %></id>
       <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <hadoop.version>2.3.0-<%= profiles[cdh] %></hadoop.version>
-        <hbase.version>0.96.1.1-<%= profiles[cdh] %></hbase.version>
+        <hbase.version><%= hbase_version %>-<%= profiles[cdh] %></hbase.version>
       </properties>
       <repositories>
         <repository>

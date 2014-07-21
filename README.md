@@ -154,6 +154,7 @@ Call `HBase.resolve_dependency!` helper method passing one of the arguments list
 
 | Argument   | Dependency               | Default version | Required executable |
 | ---------- | ------------------------ | --------------- | ------------------- |
+| cdh5.1[.*] | Cloudera CDH5.1          | cdh5.1.0        | mvn                 |
 | cdh5.0[.*] | Cloudera CDH5.0          | cdh5.0.0        | mvn                 |
 | cdh4.5[.*] | Cloudera CDH4.5          | cdh4.5.0        | mvn                 |
 | cdh4.4[.*] | Cloudera CDH4.4          | cdh4.4.0        | mvn                 |
