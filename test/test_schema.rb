@@ -341,9 +341,7 @@ class TestSchema < TestHBaseJRubyBase
     assert_equal 'great', table.get(rk)[:comment4]
 
     # Batch
-    # FIXME: Mutation in batch hangs on 0.96, temporarily using @aggregation
-    # here to see if the version if 0.96 (no AggregationClient) or not
-    mutation_in_batch = @aggregation
+    # XXX: Mutation in batch is no more allowed in 0.98
     ret = table.batch do |b|
       b.put rk, :comment5 => 'gnarly'
       b.delete rk, :comment4
@@ -355,26 +353,12 @@ class TestSchema < TestHBaseJRubyBase
       b.append rk, :category => '/Etc'
       b.get rk
 
-      if mutation_in_batch
-        b.mutate(rk) do |m|
-          m.put :comment6 => 'rad'
-          m.delete :image
-        end
-      else
-        table.mutate(rk) do |m|
-          m.put :comment6 => 'rad'
-          m.delete :image
-        end
-      end
+      b.put rk, :comment6 => 'rad'
+      b.delete rk, :image
     end
 
-    if mutation_in_batch
-      assert_equal 6, ret.length
-      assert_equal [true] * 3, ret.values_at(0, 1, 5).map { |r| r[:result] }
-    else
-      assert_equal 5, ret.length
-      assert_equal [true] * 2, ret.values_at(0, 1).map { |r| r[:result] }
-    end
+    assert_equal 7, ret.length
+    assert_equal [true] * 4, ret.values_at(0, 1, 5, 6).map { |r| r[:result] }
 
     assert_equal data[:stars]   + 5 + 100, ret[2][:result][:stars]
     assert_equal data[:reviews] + 1 + 200, ret[2][:result][:reviews]

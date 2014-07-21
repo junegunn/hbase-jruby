@@ -44,11 +44,6 @@ class BatchAction
     @actions << { :type => :increment, :action => @mutation.increment(*args) }
   end
 
-  # @see HBase::Table#mutate
-  def mutate *args, &blk
-    @actions << { :type => :mutate, :action => @mutation.mutate(*args, &blk) }
-  end
-
   [:get, :range, :project, :filter, :versions, :time_range, :at].each do |method|
     define_method(method) do |*args|
       BatchGetScoped.send(:new, @table.scoped, proc { |get|
