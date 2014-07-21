@@ -281,9 +281,18 @@ class TestSchema < TestHBaseJRubyBase
     # Coprocessor
     if @aggregation
       table.enable_aggregation!
+      # Expected:
+      # 844 = reviews(52) + inc(1) + stars(226) + inc(2 + 3) +
+      #       put-review(100) + put-stars(500)
       table.put next_rowkey, :reviews => 100, :stars => 500
-      assert_equal data[:reviews] + 1 + data[:stars] + 5 + 100 + 500,
+      assert_equal data[:reviews] + 1 + data[:stars] + 2 + 3 + 100 + 500,
         table.project(:reviews, :stars).aggregate(:sum)
+
+      assert_equal data[:reviews] + 1 + data[:stars] + 2 + 3 + 100 + 500,
+        table.project(:reviews, :stars).versions(1).aggregate(:sum)
+
+      assert_equal data[:reviews] * 2 + 1 + data[:stars] * 3 + 2 * 2 + 3 + 100 + 500,
+        table.project(:reviews, :stars).versions(:all).aggregate(:sum)
       #table.disable_aggregation!
     end
 

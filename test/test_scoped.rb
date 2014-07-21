@@ -240,7 +240,7 @@ class TestScoped < TestHBaseJRubyBase
     insert.call
     [@table, @table.scoped].each do |table|
       # versions
-      assert table.all? { |result| result.to_H[%w[cf1 a]].length == 2 }
+      assert table.versions(:all).all? { |result| result.to_H[%w[cf1 a]].length == 2 }
       assert table.versions(1).all? { |result| result.to_H[%w[cf1 a]].length == 1 }
     end
   end

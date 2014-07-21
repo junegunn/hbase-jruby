@@ -213,11 +213,13 @@ class Scoped
   end
 
   # Returns an HBase::Scoped object with the specified version number limit.
-  # If not set, all versions of each value are fetched by default.
-  # @param [Fixnum] vs Sets the maximum number of versions
+  # If not set or set to :all, all versions are fetched.
+  # @param [Fixnum|:all] vs Sets the maximum number of versions
   # @return [HBase::Scoped] HBase::Scoped object with the version number limit
   def versions vs
-    raise ArgumentError, "Invalid versions. Must be a positive integer." unless vs.is_a?(Fixnum) && vs > 0
+    unless vs.is_a?(Fixnum) && vs > 0 || vs == :all
+      raise ArgumentError, "Invalid versions. Must be a positive integer or :all."
+    end
     spawn :@versions, vs
   end
 
@@ -350,11 +352,7 @@ private
 
   def getify rowkey
     Get.new(Util.to_bytes rowkey).tap { |get|
-      if @versions
-        get.setMaxVersions @versions
-      else
-        get.setMaxVersions
-      end
+      set_max_versions get
 
       filters = []
       filters += process_projection!(get)
@@ -495,6 +493,15 @@ private
     end
   end
 
+  def set_max_versions obj
+    case @versions
+    when Fixnum
+      obj.setMaxVersions @versions
+    when :all
+      obj.setMaxVersions
+    end
+  end
+
   def filtered_scan
     Scan.new.tap { |scan|
       # Range
@@ -534,11 +541,7 @@ private
       end
 
       # Versions
-      if @versions
-        scan.setMaxVersions @versions
-      else
-        scan.setMaxVersions
-      end
+      set_max_versions scan
 
       # Timerange / Timestamp
       case @trange
