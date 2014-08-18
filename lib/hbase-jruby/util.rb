@@ -159,8 +159,13 @@ module Util
         raise ArgumentError, "Column family not specified"
       else
         col = col.to_s
-        cf, cq = KeyValue.parseColumn(col.to_java_bytes)
-        cq = JAVA_BYTE_ARRAY_EMPTY if cq.nil? && col[-1, 1] == ':'
+        cfcq = KeyValue.parseColumn(col.to_java_bytes)
+        cf = cfcq[0]
+        cq = if cfcq.length == 2
+               cfcq[1]
+             elsif col[-1, 1] == ':'
+               JAVA_BYTE_ARRAY_EMPTY
+             end
         return cf, cq
       end
     end
