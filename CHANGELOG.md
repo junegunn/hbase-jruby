@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.6.1
+-----
+
+- Fixed error on JRuby 1.7.13 (#34)
+
 0.6.0
 -----
 
