@@ -20,20 +20,6 @@ class TestTable < TestHBaseJRubyBase
     end
     assert_equal 1, htables.uniq.length
 
-    # Multi-threaded
-    htables = []
-    table = @hbase.table(TABLE)
-    nthr = num_managed_threads
-    4.times do
-      Thread.new {
-        htables << table.htable
-        assert_equal nthr + 1, num_managed_threads
-      }.join
-    end
-    assert_equal 4, htables.uniq.length
-    # XXX Implementation detail
-    assert_equal nthr + 1, num_managed_threads
-
     assert_equal @hbase.table(TABLE).htable, @hbase[TABLE].htable
   end
 
@@ -47,30 +33,6 @@ class TestTable < TestHBaseJRubyBase
     htables << @hbase[TABLE].htable
     htables << @hbase[TABLE].htable
     assert_equal 2, htables.length
-  end
-
-  def num_managed_threads
-    @hbase.instance_variable_get(:@threads).length
-  end
-
-  # FIXME
-  # - Implementation detail
-  # - Naive assertion
-  # - Race condition
-  def test_autoclose_htables
-    nthr = num_managed_threads
-    threads = 50.times.map { |i|
-      Thread.new {
-        @hbase[TABLE].htable
-        sleep 0.5
-      }
-    }
-    sleep 1
-    assert num_managed_threads > nthr
-
-    nthr = num_managed_threads
-    Thread.new { @hbase[TABLE].htable }.join
-    assert num_managed_threads < nthr
   end
 
   def test_put_then_get

@@ -1,6 +1,15 @@
 Changelog
 =========
 
+0.6.2
+-----
+
+- Removed automatic cleanup of thread-local HTable instances
+    - Fixes issue #35
+    - Close of individual HTable instance turned out to be unnecessary
+        - `flushCommits` not required as `hbase-jruby` runs in auto-flush mode
+        - No need to close shared connection or its thread pool
+
 0.6.1
 -----
 

@@ -23,7 +23,6 @@ class Table
     # [:hbase_jruby][HBase connection][Table name]
     local_vars = Thread.current[:hbase_jruby] ||= {}
     unless local_htables = local_vars[@hbase]
-      @hbase.send :register_thread, Thread.current
       local_htables = local_vars[@hbase] = {}
     end
     local_htables[@name] ||= @hbase.send :get_htable, @name

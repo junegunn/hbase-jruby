@@ -74,7 +74,6 @@ class HBase
       else
         HTablePool.new @config, java.lang.Integer::MAX_VALUE
       end
-    @threads = Set.new
     @mutex   = Mutex.new
     @schema  = Schema.new
     @closed  = false
@@ -107,7 +106,6 @@ class HBase
       unless @closed
         @closed = true
         @htable_pool.close if use_table_pool?
-        clear_thread_locals
         @connection.close
 
         # To be deprecated
@@ -190,7 +188,6 @@ class HBase
     raise RuntimeError, 'Not using table pool' unless use_table_pool?
 
     @mutex.synchronize do
-      clear_thread_locals
       @htable_pool.close
       @htable_pool = HTablePool.new @config, java.lang.Integer::MAX_VALUE
     end
@@ -198,32 +195,6 @@ class HBase
   end
 
 private
-  def register_thread t
-    # (NOTE) The cleanup routine can be inefficient when the number of
-    # concurrent threads becomes large. However, since it is not likely that
-    # there will be more than a few hundred threads in a typical JRuby process
-    # and the code is executed only once per thread, let's simply assume that
-    # it's okay.
-    @mutex.synchronize do
-      check_closed
-      @threads << t
-      alives, deads = @threads.partition { |e| e.alive? }
-      @threads = Set.new(alives)
-      deads.each do |dead|
-        (dead[:hbase_jruby].delete(self) || {}).each do |_, htable|
-          htable.close rescue nil
-        end
-      end
-    end
-  end
-
-  def clear_thread_locals
-    # Cleanup thread-local references
-    @threads.each do |thr|
-      thr[:hbase_jruby].delete self
-    end
-  end
-
   def get_htable name
     (@htable_pool || @connection).get_table name
   end

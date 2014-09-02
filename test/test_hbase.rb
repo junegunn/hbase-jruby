@@ -34,8 +34,6 @@ class TestHBase < TestHBaseJRubyBase
     assert @hbase.closed?
     assert table.closed?
 
-    assert !Thread.current[:hbase_jruby].has_key?(@hbase)
-
     assert_raise(RuntimeError) { @hbase.list }
     assert_raise(RuntimeError) { table.exists? }
     assert_raise(RuntimeError) { table.drop! }
@@ -109,12 +107,6 @@ class TestHBase < TestHBaseJRubyBase
 
     # Now close the connection
     hbase2.close
-
-    # Threads-local htable cache deleted
-    assert_nil Thread.current[:hbase_jruby][hbase2]
-    threads.each do |t|
-      assert_nil t[:hbase_jruby][hbase2]
-    end
 
     # Connection is already closed
     assert_raise(RuntimeError) { hbase2[TABLE] }
