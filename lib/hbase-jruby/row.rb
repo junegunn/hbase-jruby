@@ -38,45 +38,58 @@ class Row
     end
   end
 
-  # Only supports string column qualifiers
+  module HashExtension
+    def [] key
+      # %w[cf x]
+      if key.is_a?(Array) && key.length == 2
+        key = [key[0].to_sym, ByteArray[key[1]]]
+      # %[cf:x]
+      elsif key.is_a?(String) && key.index(':')
+        cf, cq = key.split(':', 2)
+        key = [cf.to_sym, ByteArray[cq]]
+      end
+      super key
+    end
+  end
+
   # @return [Hash]
   def to_h
-    HASH_TEMPLATE.clone.tap do |ret|
-      @result.getNoVersionMap.each do |cf, cqmap|
-        cf = Util.from_bytes :string, cf
-        cqmap.each do |cq, val|
-          cqs = Util.from_bytes(:string, cq) rescue nil
-          f, q, t = @table.lookup_schema(cqs)
-          t = nil if f != cf
-          name = t ? q : [cf.to_sym, ByteArray[cq]]
+    ret = {}
+    @result.getNoVersionMap.each do |cf, cqmap|
+      cf = Util.from_bytes :string, cf
+      cqmap.each do |cq, val|
+        cqs = Util.from_bytes(:string, cq) rescue nil
+        f, q, t = @table.lookup_schema(cqs)
+        t = nil if f != cf
+        name = t ? q : [cf.to_sym, ByteArray[cq]]
 
-          ret[name] = Util.from_bytes(t, val)
-        end
+        ret[name] = Util.from_bytes(t, val)
       end
     end
+    ret.extend(HashExtension)
   end
   alias to_hash to_h
 
   # @return [Hash]
   def to_H
-    HASH_TEMPLATE.clone.tap do |ret|
-      @result.getMap.each do |cf, cqmap|
-        cf = Util.from_bytes :string, cf
-        cqmap.each do |cq, tsmap|
-          cqs = Util.from_bytes(:string, cq) rescue nil
-          f, q, t = @table.lookup_schema(cqs)
-          t = nil if f != cf
-          name = t ? q : [cf.to_sym, ByteArray[cq]]
+    ret = {}
+    @result.getMap.each do |cf, cqmap|
+      cf = Util.from_bytes :string, cf
+      cqmap.each do |cq, tsmap|
+        cqs = Util.from_bytes(:string, cq) rescue nil
+        f, q, t = @table.lookup_schema(cqs)
+        t = nil if f != cf
+        name = t ? q : [cf.to_sym, ByteArray[cq]]
 
-          ret[name] =
-            Hash[
-              tsmap.map { |ts, val|
-                [ ts, Util.from_bytes(t, val) ]
-              }
-            ]
-        end
+        ret[name] =
+          Hash[
+            tsmap.map { |ts, val|
+              [ ts, Util.from_bytes(t, val) ]
+            }
+          ]
       end
     end
+    ret.extend(HashExtension)
   end
   alias to_hash_with_versions to_H
 
@@ -272,22 +285,6 @@ private
       Util.from_bytes type, v
     end
   end
-
-  HASH_TEMPLATE = {}.tap { |h|
-    h.instance_eval do
-      def [] key
-        # %w[cf x]
-        if key.is_a?(Array) && key.length == 2
-          key = [key[0].to_sym, ByteArray[key[1]]]
-        # %[cf:x]
-        elsif key.is_a?(String) && key.index(':')
-          cf, cq = key.split(':', 2)
-          key = [cf.to_sym, ByteArray[cq]]
-        end
-        super key
-      end
-    end
-  }
 
   # @param [HBase::Table] table
   # @param [org.apache.hadoop.hbase.client.Result] java_result
