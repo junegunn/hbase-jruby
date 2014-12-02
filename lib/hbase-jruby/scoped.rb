@@ -44,24 +44,26 @@ class Scoped
   end
 
   # Performs GET operations
-  # @overload get(rowkey)
-  #   Single GET.
+  # @overload get(rowkey, columns = [])
+  #   Single GET. Returns all columns unless specified.
   #   Gets a record with the given rowkey. If the record is not found, nil is returned.
   #   @param [Object] rowkey Rowkey
+  #   @param [Array<Symbol|String>] columns Schema symbols or "CF" or "CF:CQ"
   #   @return [HBase::Row, nil]
-  # @overload get(rowkeys)
+  # @overload get(rowkeys, columns = [])
   #   Batch GET. Gets an array of records with the given rowkeys.
   #   Nonexistent records will be returned as nils.
   #   @param [Array<Object>] *rowkeys Rowkeys
+  #   @param [Array<Symbol|String>] columns Schema symbols or "CF" or "CF:CQ"
   #   @return [Array<HBase::Row>]
-  def get rowkeys
+  def get rowkeys, columns: []
     case rowkeys
     when Array
-      htable.get(rowkeys.map { |rk| getify rk }).map { |result|
+      htable.get(rowkeys.map { |rk| getify(rk, columns) }).map { |result|
         result.isEmpty ? nil : Row.send(:new, @table, result)
       }
     else
-      result = htable.get(getify rowkeys)
+      result = htable.get(getify rowkeys, columns)
       result.isEmpty ? nil : Row.send(:new, @table, result)
     end
   end
@@ -350,7 +352,7 @@ private
     filters
   end
 
-  def getify rowkey
+  def getify rowkey, cols = []
     Get.new(Util.to_bytes rowkey).tap { |get|
       set_max_versions get
 
@@ -404,6 +406,16 @@ private
       # Customization
       @get_cbs.each do |prc|
         prc.call get
+      end
+
+      # add specific columns, if any
+      cols.each do |col|
+        cf, cq, _ = @table.lookup_and_parse col, false
+        if cq
+          get.add_column cf, cq
+        else
+          get.add_family cf
+        end
       end
     }
   end
