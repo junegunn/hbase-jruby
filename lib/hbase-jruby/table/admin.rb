@@ -345,7 +345,11 @@ private
               }
             }[key] || proc { |a| a }).call(val)
         elsif key.is_a?(String)
-          hcd.setValue key, val.to_s
+          if key.include? '.'
+            hcd.setConfiguration key, val.to_s
+          else
+            hcd.setValue key, val.to_s
+          end
         else
           raise ArgumentError, "Invalid property: #{key}"
         end
@@ -381,7 +385,11 @@ private
           method.call htd, value
         end
       elsif key.is_a?(String)
-        htd.setValue key, value.to_s
+        if key.include? '.'
+          htd.setConfiguration key, value.to_s
+        else
+          htd.setValue key, value.to_s
+        end
       else
         raise ArgumentError, "Invalid table property: #{key}" unless method
       end

@@ -1,6 +1,21 @@
 Changelog
 =========
 
+0.6.4
+-----
+
+- Hash for describing column and table options can now contain XML entries.
+  For String keys to the Hash, the method heuristically determines whether
+  `setValue` should be called or `setConfiguration` should be called instead.
+
+```ruby
+hbase[:my_table].create! :d,
+    # HTableDescriptor#setValue
+   'MAX_FILESIZE' => 1 << 33,
+    # HTableDescriptor#setConfiguration
+   'hbase.hstore.compaction.max.size' => 1 << 30
+```
+
 0.6.3
 -----
 
