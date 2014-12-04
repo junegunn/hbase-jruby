@@ -320,8 +320,11 @@ private
   def hcd name, opts
     HColumnDescriptor.new(name.to_s).tap do |hcd|
       opts.each do |key, val|
-        method = COLUMN_PROPERTIES[key] && COLUMN_PROPERTIES[key][:set]
-        if method
+        if key == :config
+          val.each do |k, v|
+            hcd.setConfiguration k, v.to_s
+          end
+        elsif method = COLUMN_PROPERTIES[key] && COLUMN_PROPERTIES[key][:set]
           hcd.send method,
             ({
               :bloomfilter => proc { |v|
@@ -345,11 +348,7 @@ private
               }
             }[key] || proc { |a| a }).call(val)
         elsif key.is_a?(String)
-          if key.include? '.'
-            hcd.setConfiguration key, val.to_s
-          else
-            hcd.setValue key, val.to_s
-          end
+          hcd.setValue key, val.to_s
         else
           raise ArgumentError, "Invalid property: #{key}"
         end
@@ -378,18 +377,18 @@ private
     props.each do |key, value|
       next if key == :splits
 
-      if method = TABLE_PROPERTIES[key] && TABLE_PROPERTIES[key][:set]
+      if key == :config
+        value.each do |k, v|
+          htd.setConfiguration k, v.to_s
+        end
+      elsif method = TABLE_PROPERTIES[key] && TABLE_PROPERTIES[key][:set]
         if method.is_a? Symbol
           htd.send method, value
         else
           method.call htd, value
         end
       elsif key.is_a?(String)
-        if key.include? '.'
-          htd.setConfiguration key, value.to_s
-        else
-          htd.setValue key, value.to_s
-        end
+        htd.setValue key, value.to_s
       else
         raise ArgumentError, "Invalid table property: #{key}" unless method
       end
