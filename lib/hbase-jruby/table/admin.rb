@@ -44,7 +44,12 @@ class Table
   #         :min_versions       => 2,
   #         :replication_scope  => 0,
   #         :ttl                => 100,
-  #         :versions           => 5
+  #         :versions           => 5,
+  #
+  #         # XML config can be specified in :config Hash
+  #         :config             => {
+  #           'hbase.hstore.compaction.max.size' => 1 << 30,
+  #         }
   #       }
   #     )
   # @overload create!(table_descriptor)

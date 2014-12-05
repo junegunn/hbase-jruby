@@ -994,7 +994,7 @@ http://hbase.apache.org/apidocs/org/apache/hadoop/hbase/HColumnDescriptor.html
 Some of the properties are only available on recent versions of HBase.
 
 | Property                 | Type          | Description                                                                                                        |
-|--------------------------|---------------|--------------------------------------------------------------------------------------------------------------------|
+| ------------------------ | ------------- | ------------------------------------------------------------------------------------------------------------------ |
 | `:blockcache`            | Boolean       | If MapFile blocks should be cached                                                                                 |
 | `:blocksize`             | Fixnum        | Blocksize to use when writing out storefiles/hfiles on this column family                                          |
 | `:bloomfilter`           | Symbol/String | Bloom filter type: `:none`, `:row`, `:rowcol`, or uppercase Strings                                                |
@@ -1012,6 +1012,7 @@ Some of the properties are only available on recent versions of HBase.
 | `:replication_scope`     | Fixnum        | Replication scope                                                                                                  |
 | `:ttl`                   | Fixnum        | Time-to-live of cell contents, in seconds                                                                          |
 | `:versions`              | Fixnum        | The maximum number of versions. (By default, all available versions are retrieved.)                                |
+| `:config`                | Hash          | Additional XML configuration                                                                                       |
 
 #### List of table properties
 
@@ -1026,6 +1027,7 @@ http://hbase.apache.org/apidocs/org/apache/hadoop/hbase/HTableDescriptor.html
 | `:durability`         | Symbol/String | Durability setting of the table                                                                           |
 | `:split_policy`       | String/Class  | Region split policy                                                                                       |
 | `:splits`             | Array         | Region split points                                                                                       |
+| `:config`             | Hash          | Additional XML configuration                                                                              |
 
 ### Managing column families
 
@@ -1238,7 +1240,7 @@ ba.java  # Returns the native Java byte array (byte[])
 
 ## API documentation
 
-[http://rubydoc.info/gems/hbase-jruby/0.4.1/frames](http://rubydoc.info/gems/hbase-jruby/0.4.1/frames)
+[http://www.rubydoc.info/gems/hbase-jruby/](http://www.rubydoc.info/gems/hbase-jruby/)
 
 ## Test
 

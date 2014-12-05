@@ -1,9 +1,15 @@
 Changelog
 =========
 
-0.6.4
+0.6.3
 -----
 
+- Refactoring
+    - Changed `HBase::Row#to_h` call to return a Hash extended with
+      `HBase::Row::HashExtension` module which makes it possible to extend the
+      returned Hash by monkey-patching the module
+    - `HBase::Row::HashExtension` overrides `#[]` method to allow looking up data
+      with both Array and String notation of column keys: `[CF, CQ]` or `CF:CQ`
 - Hash for describing column and table options can now contain XML entries
   using additional `:config` key.
 
@@ -16,16 +22,6 @@ hbase[:my_table].create! :d,
      'hbase.hstore.compaction.max.size' => 1 << 30
    }
 ```
-
-0.6.3
------
-
-- Refactoring
-    - Changed `HBase::Row#to_h` call to return a Hash extended with
-      `HBase::Row::HashExtension` module which makes it possible to extend the
-      returned Hash by monkey-patching the module
-    - `HBase::Row::HashExtension` overrides `#[]` method to allow looking up data
-      with both Array and String notation of column keys: `[CF, CQ]` or `CF:CQ`
 
 0.6.2
 -----
