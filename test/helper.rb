@@ -15,7 +15,9 @@ $LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
 $rowkey = Time.now.to_i
 
 require "hbase-jruby"
-if dist = ENV['HBASE_JRUBY_TEST_DIST']
+if jar = ENV['HBASE_JRUBY_TEST_JAR']
+  require jar
+elsif dist = ENV['HBASE_JRUBY_TEST_DIST']
   HBase.resolve_dependency!(dist, :verbose => true)
 end
 HBase.log4j = { 'log4j.threshold' => 'ERROR' }

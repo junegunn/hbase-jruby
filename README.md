@@ -47,7 +47,7 @@ hbase[:my_table].get(100).double('f:c') # Returns 3.14
 require 'hbase-jruby'
 
 # Load required JAR files from CDH distribution using Maven
-HBase.resolve_dependency! 'cdh4.3.0'
+HBase.resolve_dependency! 'cdh5.2.0'
 
 # Connect to HBase on localhost
 hbase = HBase.new
@@ -143,19 +143,32 @@ table.delete 1
 
 ### Resolving Hadoop/HBase dependency
 
-To be able to access HBase from JRuby, Hadoop/HBase dependency must be satisfied.
-This can be done by either setting up CLASSPATH variable beforehand
+To be able to access HBase from JRuby, Hadoop/HBase dependency must be
+satisfied. This can be done by either setting up CLASSPATH variable beforehand
 or by `require`ing relevant JAR files after launching JRuby.
 
-### `HBase.resolve_dependency!`
+You might be able to find the right uberjar required for using HBase client
+API from [hbase-client-dep releases page](https://github.com/junegunn/hbase-client-dep/releases).
+(If you don't find one, send me a pull request.)
 
-Well, there's an easier way.
-Call `HBase.resolve_dependency!` helper method passing one of the arguments listed below.
+```ruby
+require 'hbase-jruby'
+require 'hbase-client-dep-cdh5.2.jar'
+
+HBase.log4j = { 'log4j.threshold' => 'ERROR' }
+hbase = HBase.new
+```
+
+### `HBase.resolve_dependency!` (*to be deprecated!*)
+
+hbase-jruby is shipped with `HBase.resolve_dependency!` helper method that can
+be used to load JAR files from Maven repository.
 
 | Argument   | Dependency               | Default version | Required executable |
 | ---------- | ------------------------ | --------------- | ------------------- |
-| cdh5.1[.*] | Cloudera CDH5.1          | cdh5.1.0        | mvn                 |
-| cdh5.0[.*] | Cloudera CDH5.0          | cdh5.0.0        | mvn                 |
+| cdh5.2[.*] | Cloudera CDH5.2          | cdh5.2.1        | mvn                 |
+| cdh5.1[.*] | Cloudera CDH5.1          | cdh5.1.4        | mvn                 |
+| cdh5.0[.*] | Cloudera CDH5.0          | cdh5.0.5        | mvn                 |
 | cdh4.5[.*] | Cloudera CDH4.5          | cdh4.5.0        | mvn                 |
 | cdh4.4[.*] | Cloudera CDH4.4          | cdh4.4.0        | mvn                 |
 | cdh4.3[.*] | Cloudera CDH4.3          | cdh4.3.2        | mvn                 |
