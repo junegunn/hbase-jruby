@@ -9,6 +9,7 @@ class HBase
   attr_reader :config, :schema
 
   include Admin
+  include HBase::Util
 
   # @overload HBase.log4j=(filename)
   #   Configure Log4j logging with the given file
@@ -99,7 +100,7 @@ class HBase
     end
   end
 
-  # Closes HTablePool and connection
+  # Closes the connection, and clean up thread-local cache
   # @return [nil]
   def close
     @mutex.synchronize do
@@ -117,6 +118,10 @@ class HBase
         end if use_table_pool?
       end
     end
+
+    thread_local.delete self
+
+    nil
   end
 
   # Returns whether if the connection is closed
@@ -128,25 +133,25 @@ class HBase
   # Returns the list of HBase::Table instances
   # @return [Array<HBase::Table>]
   def tables
-    check_closed
     table_names.map { |tn| table(tn) }
   end
 
   # Returns the list of table names
   # @return [Array<String>]
   def table_names
-    check_closed
     with_admin { |admin| admin.list_tables.map(&:name_as_string) }
   end
   alias list table_names
 
   # Creates an HBase::Table instance for the specified name
   # @param [#to_s] table_name The name of the table
+  # @param [Hash] opts Options
+  #   @option opts [Boolean] :cache Use thread-local cache (default: false)
   # @return [HBase::Table]
-  def table table_name
+  def table table_name, opts = {}
     check_closed
 
-    ht = HBase::Table.send :new, self, @config, table_name
+    ht = HBase::Table.send :new, self, @config, table_name, opts[:cache]
 
     if block_given?
       yield ht

@@ -21,23 +21,16 @@ class Table
     check_closed
 
     # [:hbase_jruby][HBase connection][Table name]
-    local_vars = Thread.current[:hbase_jruby] ||= {}
-    unless local_htables = local_vars[@hbase]
-      local_htables = local_vars[@hbase] = {}
-    end
-    local_htables[@name] ||= @hbase.send :get_htable, @name
+    thread_local(@hbase, @name_sym)[:htable] ||= @hbase.send(:get_htable, @name)
   end
 
-  # Return HTable instance back to the table pool.
+  # Clean up thread-locals
   # Generally this is not required unless you use unlimited number of threads
   # @return [nil]
   def close
-    check_closed
-
-    (t = Thread.current[:hbase_jruby]) &&
-    (t = t[@hbase]) &&
-    (t = t.delete @name) &&
-    t.close
+    hash = thread_local(@hbase).delete(@name_sym)
+    hash[:htable].close if hash && hash[:htable]
+    nil
   end
 
   # Returns whether if the connection is closed
@@ -320,13 +313,23 @@ class Table
     @hbase.schema.lookup_and_parse @name_sym, col, expect_cq
   end
 
+  # @private
+  module ThreadLocalCache
+    def lookup_and_parse col, expect_cq
+      thread_local(@hbase, @name_sym, :columns)[col] ||=
+          @hbase.schema.lookup_and_parse(@name_sym, col, expect_cq)
+    end
+  end
+
 private
-  def initialize hbase, config, name
+  def initialize hbase, config, name, cache
     @hbase    = hbase
     @config   = config
     @name     = name.to_s
     @name_sym = name.to_sym
     @mutation = Mutation.new(self)
+
+    extend ThreadLocalCache if cache
   end
 
   def check_closed

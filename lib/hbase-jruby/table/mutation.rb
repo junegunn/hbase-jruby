@@ -27,6 +27,8 @@ class Mutation
               put.add cf, cq, Util.to_typed_bytes(t, v)
             end unless v.nil?
           end
+        when String
+          put.add cf, cq, val.to_java_bytes
         else
           put.add cf, cq, Util.to_typed_bytes(type, val)
         end

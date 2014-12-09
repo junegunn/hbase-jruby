@@ -1,6 +1,29 @@
 Changelog
 =========
 
+0.6.4
+-----
+
+### Performance improvement (experimental)
+
+`HBase::Table` instance can be set up to cache the interpretations of the
+column keys using thread-locals which can lead to 3-times faster Put
+generation in tight loops.
+
+```ruby
+table = hbase[:my_table, cache: true]
+# ...
+table.close
+```
+
+However, the option is off by default because of the following issues:
+
+1. You should not use it with the tables with unlimited number of columns.
+2. Caching does not keep track of the updates of the schema. If you change the
+   schema of an `HBase` object after you created an `HBase::Table` object with
+   the cache turned on from it, the object may hold stale information on the
+   types of the columns. `HBase::Table#close` method will clean up the cache.
+
 0.6.3
 -----
 

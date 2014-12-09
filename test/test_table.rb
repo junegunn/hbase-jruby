@@ -410,7 +410,7 @@ class TestTable < TestHBaseJRubyBase
 
       assert_equal true, @table.check(rk, a => 100).delete(c, ts, (ts - 2000).to_i, 'cf2')
       assert_equal 1, @table.versions(:all).get(rk).to_H[:c].length
-      assert_equal (ts - 1000).to_i, @table.versions(:all).get(rk).to_H[:c].keys.first / 1000
+      assert_equal((ts - 1000).to_i, @table.versions(:all).get(rk).to_H[:c].keys.first / 1000)
       assert_equal nil, @table.get(rk)[d]
 
       assert_equal true, @table.check(rk, a => 100).delete
@@ -540,6 +540,20 @@ class TestTable < TestHBaseJRubyBase
       assert e.results[3][:exception].is_a?(java.lang.Exception)
       assert e.java_exception.is_a?(java.lang.Exception)
     end
+  end
+
+  def test_thread_local_cache
+    cached = @hbase[TABLE, :cache => true]
+    not_cached = @hbase[TABLE]
+
+    cached.put     next_rowkey, 'cf1:abc' => 100
+    not_cached.put next_rowkey, 'cf1:def' => 100
+
+    assert_equal ['cf1:abc'], Thread.current[:hbase_jruby][@hbase][TABLE.to_sym][:columns].keys
+    cached.close
+
+    # FIXME closing not_cached will also remove the cache
+    assert_nil Thread.current[:hbase_jruby][@hbase][TABLE.to_sym]
   end
 end
 

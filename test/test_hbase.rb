@@ -26,7 +26,7 @@ class TestHBase < TestHBaseJRubyBase
     table.exists?
     assert @hbase.list.is_a?(Array)
 
-    assert_equal table.htable, Thread.current[:hbase_jruby][@hbase][TABLE]
+    assert_equal table.htable, Thread.current[:hbase_jruby][@hbase][TABLE.to_sym][:htable]
 
     assert !@hbase.closed?
     assert !table.closed?
@@ -51,7 +51,7 @@ class TestHBase < TestHBaseJRubyBase
     # Reconnect and check
     @hbase = connect
     table = @hbase[TABLE]
-    assert_equal table.htable, Thread.current[:hbase_jruby][@hbase][TABLE]
+    assert_equal table.htable, Thread.current[:hbase_jruby][@hbase][TABLE.to_sym][:htable]
 
     # FIXME: Connection is closed, we have to update @table object
     @table = @hbase.table(TABLE)
@@ -83,9 +83,9 @@ class TestHBase < TestHBaseJRubyBase
     table = hbase2[TABLE]
     assert_nil Thread.current[:hbase_jruby][hbase2]
 
-    table.htable
+    ht = table.htable
     # Thread-local htable cache has now been created
-    assert Thread.current[:hbase_jruby][hbase2][TABLE]
+    assert_equal ht, Thread.current[:hbase_jruby][hbase2][TABLE.to_sym][:htable]
 
     sleeping = {}
     mutex = Mutex.new
@@ -99,8 +99,8 @@ class TestHBase < TestHBaseJRubyBase
     sleep 0.1 while mutex.synchronize { sleeping.length } < 4
     threads.each do |t|
       assert t[:htable]
-      assert t[:hbase_jruby][hbase2][TABLE]
-      assert_equal t[:htable], t[:hbase_jruby][hbase2][TABLE]
+      assert t[:hbase_jruby][hbase2][TABLE.to_sym]
+      assert_equal t[:htable], t[:hbase_jruby][hbase2][TABLE.to_sym][:htable]
 
       t.kill
     end

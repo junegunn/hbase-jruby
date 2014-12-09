@@ -194,6 +194,16 @@ private
       raise ArgumentError, "Invalid time format"
     end
   end
+
+  # XXX Why am I doing this instead of using inject (reduce)?
+  # Because inject is around 25% slower, and this method is used in tight loops
+  def thread_local key1 = nil, key2 = nil, key3 = nil
+    obj = Thread.current[:hbase_jruby] ||= {}
+    obj = obj[key1] ||= {} if key1
+    obj = obj[key2] ||= {} if key2
+    obj = obj[key3] ||= {} if key3
+    obj
+  end
 end#Util
 end#HBase
 
