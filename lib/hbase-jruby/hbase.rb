@@ -24,24 +24,19 @@ class HBase
   #   @param [java.util.Properties] props Properties object
   #   @return [java.util.Properties]
   def self.log4j= arg
-    org.apache.log4j.PropertyConfigurator rescue nil
-    if defined?(org.apache.log4j.PropertyConfigurator)
-      if arg.is_a?(Hash)
-        props = java.util.Properties.new
-        arg.each do |k, v|
-          props.setProperty k.to_s, v.to_s
-        end
-        org.apache.log4j.PropertyConfigurator.configure props
-      else
-        case File.extname(arg).downcase
-        when '.xml'
-          org.apache.log4j.xml.DOMConfigurator.configure arg
-        else
-          org.apache.log4j.PropertyConfigurator.configure arg
-        end
+    if arg.is_a?(Hash)
+      props = java.util.Properties.new
+      arg.each do |k, v|
+        props.setProperty k.to_s, v.to_s
       end
+      org.apache.log4j.PropertyConfigurator.configure props
     else
-      @@log4j = arg
+      case File.extname(arg).downcase
+      when '.xml'
+        org.apache.log4j.xml.DOMConfigurator.configure arg
+      else
+        org.apache.log4j.PropertyConfigurator.configure arg
+      end
     end
   end
 

@@ -46,8 +46,8 @@ hbase[:my_table].get(100).double('f:c') # Returns 3.14
 ```ruby
 require 'hbase-jruby'
 
-# Load required JAR files from CDH distribution using Maven
-HBase.resolve_dependency! 'cdh5.2.0'
+# HBase client dependencies
+require 'hbase-client-dep-cdh5.3.jar'
 
 # Connect to HBase on localhost
 hbase = HBase.new
@@ -148,65 +148,17 @@ satisfied. This can be done by either setting up CLASSPATH variable beforehand
 or by `require`ing relevant JAR files after launching JRuby.
 
 You might be able to find the right uberjar required for using HBase client
-API from [hbase-client-dep releases page](https://github.com/junegunn/hbase-client-dep/releases).
+API from [hbase-client-dep releases page][client].
 (If you don't find one, send me a pull request.)
 
 ```ruby
 require 'hbase-jruby'
-require 'hbase-client-dep-cdh5.2.jar'
+require 'hbase-client-dep-cdh5.3.jar'
 
-HBase.log4j = { 'log4j.threshold' => 'ERROR' }
 hbase = HBase.new
 ```
 
-### `HBase.resolve_dependency!` (*to be deprecated!*)
-
-hbase-jruby is shipped with `HBase.resolve_dependency!` helper method that can
-be used to load JAR files from Maven repository.
-
-| Argument   | Dependency               | Default version | Required executable |
-| ---------- | ------------------------ | --------------- | ------------------- |
-| cdh5.2[.*] | Cloudera CDH5.2          | cdh5.2.1        | mvn                 |
-| cdh5.1[.*] | Cloudera CDH5.1          | cdh5.1.4        | mvn                 |
-| cdh5.0[.*] | Cloudera CDH5.0          | cdh5.0.5        | mvn                 |
-| cdh4.5[.*] | Cloudera CDH4.5          | cdh4.5.0        | mvn                 |
-| cdh4.4[.*] | Cloudera CDH4.4          | cdh4.4.0        | mvn                 |
-| cdh4.3[.*] | Cloudera CDH4.3          | cdh4.3.2        | mvn                 |
-| cdh4.2[.*] | Cloudera CDH4.2          | cdh4.2.2        | mvn                 |
-| cdh4.1[.*] | Cloudera CDH4.1          | cdh4.1.5        | mvn                 |
-| cdh3[u*]   | Cloudera CDH3            | cdh3u6          | mvn                 |
-| 0.98[.*]   | Apache HBase 0.98        | 0.98.0-hadoop2  | mvn                 |
-| 0.96[.*]   | Apache HBase 0.96        | 0.96.2-hadoop2  | mvn                 |
-| 0.94[.*]   | Apache HBase 0.94        | 0.94.18         | mvn                 |
-| 0.92[.*]   | Apache HBase 0.92        | 0.92.2          | mvn                 |
-| *POM PATH* | Custom Maven POM file    | -               | mvn                 |
-| `:local`   | Local HBase installation | -               | hbase               |
-
-(Default version is used when an argument prefix is given without specific patch version.
- e.g. `cdh4.2` defaults to `cdh4.2.2`)
-
-#### Examples
-
-```ruby
-# Load JAR files from CDH4 using Maven
-HBase.resolve_dependency! 'cdh4.3.0'
-HBase.resolve_dependency! 'cdh4.2'
-
-# Load JAR files of HBase 0.94.x using Maven
-HBase.resolve_dependency! '0.94.7'
-HBase.resolve_dependency! '0.94.2', verbose: true
-
-# Dependency resolution with custom POM file
-HBase.resolve_dependency! '/path/to/my/pom.xml'
-HBase.resolve_dependency! '/path/to/my/pom.xml', profile: 'trunk'
-
-# Load JAR files from local HBase installation
-# (equivalent to: export CLASSPATH=$CLASSPATH:`hbase classpath`)
-HBase.resolve_dependency! :local
-```
-
-(If you're behind an http proxy, set up your ~/.m2/settings.xml file
-as described in [this page](http://maven.apache.org/guides/mini/guide-proxies.html))
+[client]: https://github.com/junegunn/hbase-client-dep/releases
 
 ### Log4j logs from HBase
 
