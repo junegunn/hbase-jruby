@@ -46,7 +46,10 @@ class HBase
   end
 
   # Connects to HBase
-  # @param [Hash] config A key-value pairs to build HBaseConfiguration from
+  # @overload initialize(zookeeper_quorum)
+  #   @param [String] zookeeper_quorum hbase.zookeeper.quorum
+  # @overload initialize(config)
+  #   @param [Hash] config A key-value pairs to build HBaseConfiguration from
   def initialize config = {}
     begin
       org.apache.hadoop.conf.Configuration
@@ -59,6 +62,10 @@ class HBase
 
     @config =
       case config
+      when String
+        HBaseConfiguration.create.tap do |hbcfg|
+          hbcfg.set 'hbase.zookeeper.quorum', config
+        end
       when org.apache.hadoop.conf.Configuration
         config
       else

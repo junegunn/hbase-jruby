@@ -228,6 +228,9 @@ HBase.log4j = { 'log4j.threshold' => 'ERROR' }
 hbase = HBase.new
 
 # HBase on remote host
+hbase = HBase.new 'remote-server.mydomain.net'
+
+# The above is equivalent to the following:
 hbase = HBase.new 'hbase.zookeeper.quorum' => 'remote-server.mydomain.net'
 
 # Extra configuration
