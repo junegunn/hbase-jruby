@@ -81,6 +81,38 @@ class Table
     end
   end
 
+  # Executes all the buffered Put operations
+  def flush_commits
+    htable.flush_commits
+  end
+
+  # Set the autoFlush behavior
+  # @param Boolean true or false
+  def auto_flush=(state = nil)
+    htable.auto_flush_to = (state == true)
+  end
+
+  # Tells whether or not 'auto-flush' is turned on.
+  #  @return Bool true if autoflush is on
+  def auto_flush
+    htable.is_auto_flush
+  end
+
+  # Returns the maximum size in bytes of the write buffer for this HTable.
+  # The default value comes from the configuration parameter hbase.client.write.buffer.
+  #
+  # @return integer
+  def write_buffer_size
+    htable.write_buffer_size
+  end
+
+  # Sets the size of the buffer in bytes.
+  # If the new size is less than the current amount of data in the write buffer, the buffer gets flushed.
+  #
+  def write_buffer_size=(size=1000)
+    htable.write_buffer_size = size.to_i
+  end
+
   # Deletes data
   # @overload delete(rowkey)
   #   Deletes a row with the given rowkey
