@@ -14,13 +14,14 @@ class TestCell < TestHBaseJRubyBase
       'value'                   => :string,
       :value                    => :symbol,
       123                       => :fixnum,
-      123.456                   => :float,
+      123.456                   => :double,
       true                      => :boolean,
       false                     => :boolean,
       BigDecimal.new("123.456") => :bigdecimal,
       { :int   => 10240 }       => :int,
       { :short => 1024 }        => :short,
-      { :byte  => 100 }         => :byte
+      { :byte  => 100 }         => :byte,
+      { :float => 123.0 }       => :float
     }.each do |value, type|
       kv = KeyValue.new("rowkey".to_java_bytes, "hello".to_java_bytes, "world".to_java_bytes, ts, Util.to_bytes(value))
       cell = HBase::Cell.new(@table, kv) # FIXME

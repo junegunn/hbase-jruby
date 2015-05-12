@@ -42,7 +42,7 @@ module Util
         raise ArgumentError, "Unknown value format" unless len == 1
 
         val = v.values.first
-        raise ArgumentError, "Unknown value format" unless val.is_a?(Fixnum)
+        raise ArgumentError, "Unknown value format" unless val.is_a?(Numeric)
 
         case v.keys.first
         when :byte
@@ -53,6 +53,10 @@ module Util
           Bytes.java_send :toBytes, [Java::short], val
         when :long, :fixnum
           Bytes.java_send :toBytes, [Java::long], val
+        when :float
+          Bytes.java_send :toBytes, [Java::float], val
+        when :double
+          Bytes.java_send :toBytes, [Java::double], val
         else
           raise ArgumentError, "Invalid value format"
         end
@@ -83,7 +87,9 @@ module Util
         Bytes.java_send :toBytes, [Java::short], val
       when :long, :fixnum
         Bytes.java_send :toBytes, [Java::long], val
-      when :float, :double
+      when :float
+        Bytes.java_send :toBytes, [Java::float], val
+      when :double
         Bytes.java_send :toBytes, [Java::double], val
       when :bigdecimal
         case val
@@ -124,7 +130,9 @@ module Util
         Bytes.to_string(val).to_sym
       when :bigdecimal
         BigDecimal.new(Bytes.to_big_decimal(val).to_s)
-      when :float, :double
+      when :float
+        Bytes.to_float val
+      when :double
         Bytes.to_double val
       when :boolean, :bool
         Bytes.to_boolean val

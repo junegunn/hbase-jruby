@@ -23,8 +23,13 @@ class TestUtil < Test::Unit::TestCase
     assert_raise(ArgumentError) { Util.to_bytes(:short => 100, :int => 200) }
 
     [:float, :double].each do |type|
-      assert_equal 3.14, Util.from_bytes( type, Util.to_bytes(3.14) )
+      assert_equal 314, (Util.from_bytes( type, Util.to_bytes(type => 3.14) ) * 100).to_i
     end
+    assert_equal 4, Util.to_bytes(:float => 3.14).length
+    assert_equal 8, Util.to_bytes(:double => 3.14).length
+    assert_equal 314, (Util.from_bytes(:float, Util.to_bytes(:float => 3.14)) * 100).to_i
+    assert_equal 3.14, Util.from_bytes(:double, Util.to_bytes(:double => 3.14))
+
     [:string, :str].each do |type|
       assert_equal "Hello", Util.from_bytes( type, Util.to_bytes("Hello") )
       assert_equal "Hello", Util.from_bytes( type, Util.to_bytes(HBase::ByteArray("Hello")) )

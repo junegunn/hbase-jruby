@@ -28,7 +28,7 @@ class TestSchema < TestHBaseJRubyBase
           :a    => :fixnum,
           :b    => :symbol,
           :c    => :int,
-          /^d/i => :float,
+          /^d/i => :double,
           'd2'  => :short,
         },
         # Every column from cf2 is :string
@@ -36,7 +36,7 @@ class TestSchema < TestHBaseJRubyBase
 
         # cf3:f is a 8-byte integer
         :cf3 => { :f => :fixnum },
-        'cf3:g' => :float
+        'cf3:g' => :double
       }
     }
 
@@ -135,8 +135,8 @@ class TestSchema < TestHBaseJRubyBase
         :name   => :string,
         :age    => :fixnum,
         :sex    => :symbol,
-        :height => :float,
-        :weight => :float,
+        :height => :double,
+        :weight => :double,
         :alive  => :boolean
       },
       :cf2 => {
@@ -188,7 +188,7 @@ class TestSchema < TestHBaseJRubyBase
         :year     => :short,
         :pages    => :int,
         :price    => :bigdecimal,
-        :weight   => :float,
+        :weight   => :double,
         :in_print => :boolean,
         :image    => :raw
       },

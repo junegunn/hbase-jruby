@@ -35,7 +35,7 @@ class TestAggregation < TestHBaseJRubyBase
     assert_raise(ArgumentError) { @table.scoped.aggregate(:sum) }
 
     # Invalid type
-    assert_raise(ArgumentError) { @table.project('cf1:a').aggregate(:sum, :float) }
+    assert_raise(ArgumentError) { @table.project('cf1:a').aggregate(:sum, :double) }
 
     @table.drop!
   end

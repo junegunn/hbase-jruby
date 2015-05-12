@@ -1,6 +1,18 @@
 Changelog
 =========
 
+0.7.0
+-----
+
+- Distinguish float and double
+    - `Cell#float` / `Cell#double`
+    - `Row#float` / `Row#double`
+    - `Row#floats` / `Row#doubles`
+    - `Util.to_bytes 3.14` (double by default)
+    - `Util.to_bytes :float => 3.14`
+    - `Util.to_bytes :double => 3.14`
+    - `Util.from_bytes :float, bytes'`
+
 0.6.4
 -----
 

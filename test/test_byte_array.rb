@@ -66,7 +66,7 @@ class TestByteArray < Test::Unit::TestCase
     assert_equal 100, ba[0, 8].decode(:fixnum)
     assert_equal 200, ba[8...16].as(:fixnum)
     assert_equal "Hello", ba[16, 5].decode(:string)
-    assert_equal 3.14, ba[21..-1].decode(:float)
+    assert_equal 3.14, ba[21..-1].decode(:double)
     assert_equal "H", ba[16].chr
   end
 
@@ -83,7 +83,7 @@ class TestByteArray < Test::Unit::TestCase
     assert_equal 9, ba.length
     assert_equal false, ba.shift(:boolean)
     assert_equal 8, ba.length
-    assert_equal 3.14, ba.shift(:float)
+    assert_equal 3.14, ba.shift(:double)
     assert_equal 0, ba.length
 
     assert_raise(ArgumentError) { ba.shift(:fixnum) }
@@ -140,7 +140,7 @@ class TestByteArray < Test::Unit::TestCase
     assert_equal 200, ba.shift(:long)
     assert_equal 300, ba.shift(:int)
     assert_equal "Hello", ba.shift(:string, 5)
-    assert_equal 3.14, ba.shift(:float)
+    assert_equal 3.14, ba.shift(:double)
   end
 
   def test_to_s

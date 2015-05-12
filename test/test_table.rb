@@ -80,7 +80,7 @@ class TestTable < TestHBaseJRubyBase
     assert_equal 'a',    @table.get(row1).string('cf1:b')
     assert_equal 'a',    String.from_java_bytes(@table.get(row1).raw('cf1:b'))
     assert_equal 'a',    @table.get(row1).byte_array('cf1:b').as(:string)
-    assert_equal 3.14,   @table.get(row1).float('cf1:c')
+    assert_equal 3.14,   @table.get(row1).double('cf1:c')
     assert_equal true,   @table.get(row1).boolean('cf1:d')
     assert_equal :sym,   @table.get(row1).symbol('cf1:f')
     assert_equal BigDecimal.new("123.456"), @table.get(row1).bigdecimal('cf1:g')
@@ -97,7 +97,7 @@ class TestTable < TestHBaseJRubyBase
     assert_equal %w[a b],       @table.versions(:all).get(row1).strings('cf1:b').values
     assert_equal %w[a b],       @table.versions(:all).get(row1).raws('cf1:b').values.map { |v| String.from_java_bytes v }
     assert_equal %w[a b],       @table.versions(:all).get(row1).byte_arrays('cf1:b').values.map { |v| v.as :string }
-    assert_equal [3.14, 6.28],  @table.versions(:all).get(row1).floats('cf1:c').values
+    assert_equal [3.14, 6.28],  @table.versions(:all).get(row1).doubles('cf1:c').values
     assert_equal [true, false], @table.versions(:all).get(row1).booleans('cf1:d').values
     assert_equal [:sym, :bol],  @table.versions(:all).get(row1).symbols('cf1:f').values
     assert_equal [
@@ -117,7 +117,7 @@ class TestTable < TestHBaseJRubyBase
     # multi-get
     assert_equal [row1, row2, row3], @table.get([row1, row2, row3]).map { |r| r.rowkey :string }
     assert_equal [1, 2, 4         ], @table.get([row1, row2, row3]).map { |r| r.fixnum('cf1:a') }
-    assert_equal [3.14, 6.28, 6.28], @table.get([row1, row2, row3]).map { |r| r.float('cf1:c') }
+    assert_equal [3.14, 6.28, 6.28], @table.get([row1, row2, row3]).map { |r| r.double('cf1:c') }
     assert_equal [nil, nil        ], @table.get(['xxx', 'yyy'])
 
     # Unavailable columns
@@ -453,7 +453,7 @@ class TestTable < TestHBaseJRubyBase
     assert_equal nil,     row.string('cf1:c')
     assert_equal nil,     row['cf1:c']
     assert_equal true,    row.boolean('cf1:z')
-    assert_equal nil,     row.float('cf2:d')
+    assert_equal nil,     row.double('cf2:d')
     assert_equal nil,     row['cf2:d']
 
     @table.mutate(rk) { |m| } # Nothing

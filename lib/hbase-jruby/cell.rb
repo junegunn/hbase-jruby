@@ -101,12 +101,17 @@ class Cell
     Util.from_bytes :bigdecimal, value
   end
 
-  # Returns the column value as a Float
+  # Returns the 4-byte column value as a Float
   # @return [Float]
   def float
     Util.from_bytes :float, value
   end
-  alias double float
+
+  # Returns the 8-byte column value as a Float
+  # @return [Float]
+  def double
+    Util.from_bytes :double, value
+  end
 
   # Returns the column value as a boolean value
   # @return [true, false]

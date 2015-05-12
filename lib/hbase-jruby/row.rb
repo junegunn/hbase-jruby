@@ -225,21 +225,33 @@ class Row
     decode_value :bigdecimal, col, true
   end
 
-  # Returns the latest column value as a Float
+  # Returns the latest 4-byte column value as a Float
   # @param [String, Array] column Column name as String or 2-element Array of family and qualifier
   # @return [Float]
   def float col
     decode_value :float, col
   end
-  alias double float
 
-  # Returns all versions of column values as Floats in a Hash indexed by their timestamps
+  # Returns all versions of 4-byte column values as Floats in a Hash indexed by their timestamps
   # @param [String, Array] column Column name as String or 2-element Array of family and qualifier
   # @return [Hash<Fixnum, Float>]
   def floats col
     decode_value :float, col, true
   end
-  alias doubles floats
+
+  # Returns the latest 8-byte column value as a Float
+  # @param [String, Array] column Column name as String or 2-element Array of family and qualifier
+  # @return [Float]
+  def double col
+    decode_value :double, col
+  end
+
+  # Returns all versions of 8-byte column values as Floats in a Hash indexed by their timestamps
+  # @param [String, Array] column Column name as String or 2-element Array of family and qualifier
+  # @return [Hash<Fixnum, Float>]
+  def doubles col
+    decode_value :double, col, true
+  end
 
   # Returns the latest column value as a boolean value
   # @param [String, Array] column Column name as String or 2-element Array of family and qualifier
