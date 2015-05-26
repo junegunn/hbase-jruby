@@ -14,7 +14,7 @@ module Util
     # @param [byte[]] v
     # @return [byte[]]
     def to_bytes v
-      import_java_classes!
+      HBase.import_java_classes!
 
       case v
       when Array
@@ -73,7 +73,7 @@ module Util
       return nil               if val.nil?
       return Util.to_bytes val if type.nil?
 
-      import_java_classes!
+      HBase.import_java_classes!
       case type
       when :string, :str, :symbol, :sym
         val.to_s.to_java_bytes
@@ -114,7 +114,7 @@ module Util
     def from_bytes type, val
       return nil if val.nil?
 
-      import_java_classes!
+      HBase.import_java_classes!
       case type
       when :string, :str
         Bytes.to_string val
@@ -175,17 +175,6 @@ module Util
                JAVA_BYTE_ARRAY_EMPTY
              end
         return cf, cq
-      end
-    end
-
-  private
-    def import_java_classes!
-      HBase.import_java_classes!
-      if defined?(ByteBuffer) && defined?(KeyValue) && defined?(Bytes)
-        self.instance_eval do
-          def import_java_classes!
-          end
-        end
       end
     end
   end
