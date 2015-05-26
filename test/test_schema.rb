@@ -16,7 +16,7 @@ class TestSchema < TestHBaseJRubyBase
   def test_invalid_schema_type
     @hbase.schema = { @table.name => { :cf1 => { :a => 'string' } } }
 
-    assert_raise(ArgumentError) do
+    assert_raises(ArgumentError) do
       @hbase.schema = { @table.name => { :cf1 => { :a => :xxx } } }
     end
   end
@@ -331,7 +331,7 @@ class TestSchema < TestHBaseJRubyBase
     table.mutate(rk) do |m|
       m.delete :comment1, :comment2
       m.put :comment3 => 'nice', :comment4 => 'great'
-      assert_raise(ArgumentError) {
+      assert_raises(ArgumentError) {
         m.put :some_unknown_column => 'perfect'
       }
     end
@@ -397,7 +397,7 @@ class TestSchema < TestHBaseJRubyBase
     }
 
     rk = next_rowkey
-    assert_raise(ArgumentError) {
+    assert_raises(ArgumentError) {
       @table.put rk, :a => nil, :b => nil, :c => nil, 'cf1:z' => nil
     }
     @table.put rk, :a => nil, :b => nil, :c => nil, :d => 'yo', 'cf1:z' => 1000
@@ -425,7 +425,7 @@ class TestSchema < TestHBaseJRubyBase
     assert_equal 100, @table.get(rk)['cf1:a']
 
     @hbase.schema.delete @table.name
-    assert_raise(ArgumentError) { @table.get(rk)[:a] }
+    assert_raises(ArgumentError) { @table.get(rk)[:a] }
     assert_equal true, HBase::Util.java_bytes?(@table.get(rk)['cf1:a'])
     assert_equal 100,  HBase::Util.from_bytes(:fixnum, @table.get(rk)['cf1:a'])
   end

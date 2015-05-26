@@ -1,7 +1,6 @@
 $VERBOSE = true
 
-require 'rubygems'
-require "test-unit"
+require 'minitest/autorun'
 require 'simplecov'
 SimpleCov.start
 
@@ -22,7 +21,7 @@ elsif dist = ENV['HBASE_JRUBY_TEST_DIST']
 end
 HBase.log4j = { 'log4j.threshold' => 'ERROR' }
 
-class TestHBaseJRubyBase < Test::Unit::TestCase
+class TestHBaseJRubyBase < MiniTest::Unit::TestCase
   TABLE = 'test_hbase_jruby'
   ZK    = ENV.fetch 'HBASE_JRUBY_TEST_ZK'
 

@@ -4,11 +4,11 @@ $LOAD_PATH.unshift File.expand_path('..', __FILE__)
 require 'helper'
 require 'bigdecimal'
 
-class TestUtil < Test::Unit::TestCase
+class TestUtil < MiniTest::Unit::TestCase
   Util = HBase::Util
 
   def test_bytea_conversion
-    assert_raise(ArgumentError) { Util.to_bytes(10 ** 30) }
+    assert_raises(ArgumentError) { Util.to_bytes(10 ** 30) }
 
     [:fixnum, :long].each do |type|
       assert_equal 100, Util.from_bytes( type, Util.to_bytes(100) )
@@ -18,9 +18,9 @@ class TestUtil < Test::Unit::TestCase
     assert_equal 100, Util.from_bytes( :byte,  Util.to_bytes(:byte => 100) )
     assert_equal 100, Util.from_bytes( :short, Util.to_bytes(:short => 100) )
     assert_equal 100, Util.from_bytes( :int, Util.to_bytes(:int => 100) )
-    assert_raise(ArgumentError) { Util.to_bytes(:short => "Hello") }
-    assert_raise(ArgumentError) { Util.to_bytes(:xxx => 100) }
-    assert_raise(ArgumentError) { Util.to_bytes(:short => 100, :int => 200) }
+    assert_raises(ArgumentError) { Util.to_bytes(:short => "Hello") }
+    assert_raises(ArgumentError) { Util.to_bytes(:xxx => 100) }
+    assert_raises(ArgumentError) { Util.to_bytes(:short => 100, :int => 200) }
 
     [:float, :double].each do |type|
       assert_equal 314, (Util.from_bytes( type, Util.to_bytes(type => 3.14) ) * 100).to_i
@@ -58,8 +58,8 @@ class TestUtil < Test::Unit::TestCase
     assert_instance_of HBase::ByteArray, byte_array
     assert_equal "1234", byte_array.as(:string)
 
-    assert_raise(ArgumentError) { Util.from_bytes(:xxx, [].to_java(Java::byte)) }
-    assert_raise(ArgumentError) { Util.to_bytes({}) }
+    assert_raises(ArgumentError) { Util.from_bytes(:xxx, [].to_java(Java::byte)) }
+    assert_raises(ArgumentError) { Util.to_bytes({}) }
   end
 
   def test_parse_column_name
@@ -79,8 +79,8 @@ class TestUtil < Test::Unit::TestCase
 
     assert_equal [:abc, :def],   parse_to_str([:abc, :def], :symbol)
 
-    assert_raise(ArgumentError) { Util.parse_column_name(nil) }
-    assert_raise(ArgumentError) { Util.parse_column_name('') }
+    assert_raises(ArgumentError) { Util.parse_column_name(nil) }
+    assert_raises(ArgumentError) { Util.parse_column_name('') }
 
     assert_equal nil, Util.from_bytes(:string, nil)
   end
@@ -91,7 +91,7 @@ class TestUtil < Test::Unit::TestCase
 
   def test_java_bytes
     ["Hello", 1234, :symbol].each do |v|
-      assert_false Util.java_bytes?(v)
+      assert_equal false, Util.java_bytes?(v)
     end
 
     ["Hello".to_java_bytes, Util.to_bytes(1234), Util.to_bytes(:symbol)].each do |v|

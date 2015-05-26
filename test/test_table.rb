@@ -135,16 +135,16 @@ class TestTable < TestHBaseJRubyBase
   # Put added after a delete is overshadowed if its timestamp is older than than that of the tombstone
   # https://issues.apache.org/jira/browse/HBASE-2847
   def test_put_delete_put
+    skip "https://issues.apache.org/jira/browse/HBASE-2847"
+
     rowkey = next_rowkey
-    pend("https://issues.apache.org/jira/browse/HBASE-2847") do
-      data = { 'cf1:pdp' => { 1250000000000 => 'A1' } }
-      @table.put rowkey => data
-      assert_equal 'A1', @table.get(rowkey).string('cf1:pdp')
-      @table.delete rowkey
-      assert_nil @table.get(rowkey)
-      @table.put rowkey => data
-      assert_equal 'A1', @table.get(rowkey).string('cf1:pdp')
-    end
+    data = { 'cf1:pdp' => { 1250000000000 => 'A1' } }
+    @table.put rowkey => data
+    assert_equal 'A1', @table.get(rowkey).string('cf1:pdp')
+    @table.delete rowkey
+    assert_nil @table.get(rowkey)
+    @table.put rowkey => data
+    assert_equal 'A1', @table.get(rowkey).string('cf1:pdp')
   end
 
   def test_put_timestamp
@@ -339,8 +339,8 @@ class TestTable < TestHBaseJRubyBase
   end
 
   def test_check
-    assert_raise(ArgumentError) { @table.check(1, :a => 1, :b => 2) }
-    assert_raise(ArgumentError) { @table.check(1) }
+    assert_raises(ArgumentError) { @table.check(1, :a => 1, :b => 2) }
+    assert_raises(ArgumentError) { @table.check(1) }
   end
 
   def test_check_and_put
@@ -462,7 +462,7 @@ class TestTable < TestHBaseJRubyBase
   end
 
   def test_invalid_column_key
-    assert_raise(ArgumentError) {
+    assert_raises(ArgumentError) {
       @table.put next_rowkey, :some_column => 1
     }
   end

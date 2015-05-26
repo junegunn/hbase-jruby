@@ -3,7 +3,7 @@
 $LOAD_PATH.unshift File.expand_path('..', __FILE__)
 require 'helper'
 
-class TestByteArray < Test::Unit::TestCase
+class TestByteArray < MiniTest::Unit::TestCase
   def test_order
     [
       [(1..100).to_a, :fixnum],
@@ -78,7 +78,7 @@ class TestByteArray < Test::Unit::TestCase
     assert_equal 22, ba.length
     assert_equal 200, ba.shift(:fixnum)
     assert_equal 14, ba.length
-    assert_raise(ArgumentError) { ba.shift(:string) }
+    assert_raises(ArgumentError) { ba.shift(:string) }
     assert_equal "Hello", ba.shift(:string, 5)
     assert_equal 9, ba.length
     assert_equal false, ba.shift(:boolean)
@@ -86,21 +86,21 @@ class TestByteArray < Test::Unit::TestCase
     assert_equal 3.14, ba.shift(:double)
     assert_equal 0, ba.length
 
-    assert_raise(ArgumentError) { ba.shift(:fixnum) }
+    assert_raises(ArgumentError) { ba.shift(:fixnum) }
   end
 
   def test_short_int
     assert_equal 1,  HBase::ByteArray(:byte => 12).length
     assert_equal 12, HBase::ByteArray(:byte => 12).decode(:byte)
-    assert_raise(RangeError) { HBase::ByteArray(:byte => 128) }
+    assert_raises(RangeError) { HBase::ByteArray(:byte => 128) }
 
     assert_equal 2,     HBase::ByteArray(:short => 12345).length
     assert_equal 12345, HBase::ByteArray(:short => 12345).as(:short)
-    assert_raise(RangeError) { HBase::ByteArray( :short => 1 << 16 ) }
+    assert_raises(RangeError) { HBase::ByteArray( :short => 1 << 16 ) }
 
     assert_equal 4,     HBase::ByteArray(:int => 12345).length
     assert_equal 12345, HBase::ByteArray(:int => 12345).decode(:int)
-    assert_raise(RangeError) { HBase::ByteArray.new( :int => 1 << 32 ) }
+    assert_raises(RangeError) { HBase::ByteArray.new( :int => 1 << 32 ) }
 
     ba = HBase::ByteArray( {:int => 10000}, 20000, {:short => 30000}, "Hello" )
     assert_equal 10000, ba[0, 4].as(:int)

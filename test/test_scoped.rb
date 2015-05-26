@@ -5,51 +5,51 @@ require 'helper'
 
 class TestScoped < TestHBaseJRubyBase
   def test_invalid_limit
-    assert_raise(ArgumentError) { @table.limit }
-    assert_raise(ArgumentError) { @table.limit(-1) }
-    assert_raise(ArgumentError) { @table.limit("hello") }
+    assert_raises(ArgumentError) { @table.limit }
+    assert_raises(ArgumentError) { @table.limit(-1) }
+    assert_raises(ArgumentError) { @table.limit("hello") }
   end
 
   def test_invalid_versions
-    assert_raise(ArgumentError) { @table.versions }
-    assert_raise(ArgumentError) { @table.versions(0) }
-    assert_raise(ArgumentError) { @table.versions("hello") }
+    assert_raises(ArgumentError) { @table.versions }
+    assert_raises(ArgumentError) { @table.versions(0) }
+    assert_raises(ArgumentError) { @table.versions("hello") }
   end
 
   def test_invalid_batch
-    assert_raise(ArgumentError) { @table.batch }
-    assert_raise(ArgumentError) { @table.batch(0) }
-    assert_raise(ArgumentError) { @table.batch("hello") }
+    assert_raises(ArgumentError) { @table.batch }
+    assert_raises(ArgumentError) { @table.batch(0) }
+    assert_raises(ArgumentError) { @table.batch("hello") }
   end
 
   def test_invalid_range
-    assert_raise(ArgumentError) { @table.range }
-    assert_raise(ArgumentError) { @table.range(:xxx => 'row1') }
-    assert_raise(ArgumentError) { @table.range({}) }
-    assert_raise(ArgumentError) { @table.range(1, 2, 3) }
-    assert_raise(ArgumentError) { @table.range(nil, nil) }
-    assert_raise(ArgumentError) { @table.range(1..3, 4..5) }
+    assert_raises(ArgumentError) { @table.range }
+    assert_raises(ArgumentError) { @table.range(:xxx => 'row1') }
+    assert_raises(ArgumentError) { @table.range({}) }
+    assert_raises(ArgumentError) { @table.range(1, 2, 3) }
+    assert_raises(ArgumentError) { @table.range(nil, nil) }
+    assert_raises(ArgumentError) { @table.range(1..3, 4..5) }
   end
 
   def test_invalid_project
-    assert_raise(ArgumentError) { @table.project(:offset => 'a', :limit => 10).to_a }
-    assert_raise(ArgumentError) { @table.project(:offset => 10, :limit => 'a').to_a }
+    assert_raises(ArgumentError) { @table.project(:offset => 'a', :limit => 10).to_a }
+    assert_raises(ArgumentError) { @table.project(:offset => 10, :limit => 'a').to_a }
 
     @table.project(:offset => 100) # Fine yet
     @table.project(:limit => 10)
-    assert_raise(ArgumentError) { @table.project(:offset => 100).to_a }
-    assert_raise(ArgumentError) { @table.project(:limit  => 10).to_a }
-    assert_raise(ArgumentError) { @table.project(:offset => -1) }
-    assert_raise(ArgumentError) { @table.project(:limit  => -1) }
-    assert_raise(ArgumentError) { @table.project(:offset => :a) }
-    assert_raise(ArgumentError) { @table.project(:limit  => :a) }
-    assert_raise(ArgumentError) { @table.project(:xxx    => 1) }
+    assert_raises(ArgumentError) { @table.project(:offset => 100).to_a }
+    assert_raises(ArgumentError) { @table.project(:limit  => 10).to_a }
+    assert_raises(ArgumentError) { @table.project(:offset => -1) }
+    assert_raises(ArgumentError) { @table.project(:limit  => -1) }
+    assert_raises(ArgumentError) { @table.project(:offset => :a) }
+    assert_raises(ArgumentError) { @table.project(:limit  => :a) }
+    assert_raises(ArgumentError) { @table.project(:xxx    => 1) }
   end
 
   def test_invalid_filter
-    assert_raise(ArgumentError) { @table.filter(3.14) }
-    assert_raise(ArgumentError) { @table.filter('cf1:a' => { :xxx => 50 }) }
-    assert_raise(ArgumentError) { @table.filter('cf1:a' => { :eq => { 1 => 2 } }) }
+    assert_raises(ArgumentError) { @table.filter(3.14) }
+    assert_raises(ArgumentError) { @table.filter('cf1:a' => { :xxx => 50 }) }
+    assert_raises(ArgumentError) { @table.filter('cf1:a' => { :eq => { 1 => 2 } }) }
   end
 
   def test_each_and_count
@@ -154,7 +154,7 @@ class TestScoped < TestHBaseJRubyBase
   end
 
   def test_filter_operator_and_short_int
-    assert_raise(ArgumentError) {
+    assert_raises(ArgumentError) {
       @table.filter('cf1:a' => { :long  => 100, :gt => 10 })
     }
   end
@@ -293,7 +293,7 @@ class TestScoped < TestHBaseJRubyBase
     assert_instance_of org.apache.hadoop.hbase.client.UnmodifyableHTableDescriptor, @table.descriptor
 
     # Should be read-only
-    assert_raise {
+    assert_raises(java.lang.UnsupportedOperationException) {
       @table.descriptor.setMaxFileSize 100 * 1024 ** 2
     }
   end

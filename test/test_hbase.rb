@@ -34,19 +34,19 @@ class TestHBase < TestHBaseJRubyBase
     assert @hbase.closed?
     assert table.closed?
 
-    assert_raise(RuntimeError) { @hbase.list }
-    assert_raise(RuntimeError) { table.exists? }
-    assert_raise(RuntimeError) { table.drop! }
+    assert_raises(RuntimeError) { @hbase.list }
+    assert_raises(RuntimeError) { table.exists? }
+    assert_raises(RuntimeError) { table.drop! }
     # ...
 
     # get, delete, put, delete_row, increment, each
-    assert_raise(RuntimeError) { table.first }
-    assert_raise(RuntimeError) { table.get :key }
-    assert_raise(RuntimeError) { table.put :key => {'cf1:a' => 100} }
-    assert_raise(RuntimeError) { table.delete :key }
-    assert_raise(RuntimeError) { table.delete_row :key }
-    assert_raise(RuntimeError) { table.increment :key, 'cf1:a' => 1 }
-    assert_raise(RuntimeError) { table.project('cf1:a').aggregate(:row_count) }
+    assert_raises(RuntimeError) { table.first }
+    assert_raises(RuntimeError) { table.get :key }
+    assert_raises(RuntimeError) { table.put :key => {'cf1:a' => 100} }
+    assert_raises(RuntimeError) { table.delete :key }
+    assert_raises(RuntimeError) { table.delete_row :key }
+    assert_raises(RuntimeError) { table.increment :key, 'cf1:a' => 1 }
+    assert_raises(RuntimeError) { table.project('cf1:a').aggregate(:row_count) }
 
     # Reconnect and check
     @hbase = connect
@@ -109,13 +109,13 @@ class TestHBase < TestHBaseJRubyBase
     hbase2.close
 
     # Connection is already closed
-    assert_raise(RuntimeError) { hbase2[TABLE] }
-    assert_raise(RuntimeError) { table.htable  }
+    assert_raises(RuntimeError) { hbase2[TABLE] }
+    assert_raises(RuntimeError) { table.htable  }
   end
 
   def test_reset_pool
     hbase2 = HBase.new @hbase.config
-    omit_unless(hbase2.use_table_pool?) do
+    if hbase2.use_table_pool?
       table  = hbase2[TABLE]
 
       htable = table.htable

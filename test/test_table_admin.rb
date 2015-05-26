@@ -12,20 +12,20 @@ class TestTableAdmin < TestHBaseJRubyBase
     t = @hbase.table(:test_hbase_jruby_create_table)
     t.drop! if t.exists?
 
-    assert_raise(ArgumentError) do
+    assert_raises(ArgumentError) do
       t.create! :cf, :splits => :xxx
     end
 
-    assert_raise(ArgumentError) do
+    assert_raises(ArgumentError) do
       t.create! :cf => { 1 => 2 }
     end
 
-    assert_raise(ArgumentError) do
+    assert_raises(ArgumentError) do
       t.create! :cf, { 1 => 2 }
     end
 
     [ :cf, 'cf', {:cf => {}} ].each do |cf|
-      assert_false t.exists?
+      assert_equal false, t.exists?
       t.create! cf
       assert t.exists?
       t.drop!
@@ -37,7 +37,7 @@ class TestTableAdmin < TestHBaseJRubyBase
     @table.disable!
     @table.disable!
     @table.drop!
-    assert_false @table.exists?
+    assert_equal false, @table.exists?
   end
 
   def test_create_table_props
@@ -56,15 +56,15 @@ class TestTableAdmin < TestHBaseJRubyBase
 
   def test_create_table_invalid_input
     @table.drop!
-    assert_raise(ArgumentError) do
+    assert_raises(ArgumentError) do
       @table.create! 3.14
     end
 
-    assert_raise(ArgumentError) do
+    assert_raises(ArgumentError) do
       @table.create! :cf1 => { :bloom => 'by beach house' }
     end
 
-    assert_raise(ArgumentError) do
+    assert_raises(ArgumentError) do
       @table.create! :cf1 => { :bloomfilter => :xxx }
     end
   end
@@ -89,10 +89,10 @@ class TestTableAdmin < TestHBaseJRubyBase
 # end
 
   def test_table_properties
-    assert_raise(ArgumentError) do
+    assert_raises(ArgumentError) do
       @table.alter! :hello => :world
     end
-    assert_raise(ArgumentError) do
+    assert_raises(ArgumentError) do
       # Splits not allowed
       @table.alter! :readonly => :true, :splits => [1, 2, 3]
     end
@@ -132,10 +132,10 @@ class TestTableAdmin < TestHBaseJRubyBase
     @table.alter_family! :cf4, :versions => 10
     assert_equal 10, @table.descriptor.getFamilies.select { |cf| cf.getNameAsString == 'cf4' }.first.getMaxVersions
 
-    assert_raise(ArgumentError) {
+    assert_raises(ArgumentError) {
       @table.alter_family! :cf4, :hello => 'world'
     }
-    assert_raise(ArgumentError) {
+    assert_raises(ArgumentError) {
       @table.alter_family! :cf4, :bloomfilter => :xxx
     }
 
@@ -146,8 +146,8 @@ class TestTableAdmin < TestHBaseJRubyBase
     omit "AggregationClient not found" unless @aggregation
 
     coproc = 'org.apache.hadoop.hbase.coprocessor.AggregateImplementation'
-    assert_false @table.has_coprocessor? coproc
-    assert_raise(ArgumentError) {
+    assert_equal false, @table.has_coprocessor?(coproc)
+    assert_raises(ArgumentError) {
       # :path is missing
       @table.add_coprocessor! coproc, :priority => 100
     }

@@ -31,11 +31,11 @@ class TestAggregation < TestHBaseJRubyBase
     end
 
     # No projection
-    assert_raise(ArgumentError) { @table.aggregate(:sum) }
-    assert_raise(ArgumentError) { @table.scoped.aggregate(:sum) }
+    assert_raises(ArgumentError) { @table.aggregate(:sum) }
+    assert_raises(ArgumentError) { @table.scoped.aggregate(:sum) }
 
     # Invalid type
-    assert_raise(ArgumentError) { @table.project('cf1:a').aggregate(:sum, :double) }
+    assert_raises(ArgumentError) { @table.project('cf1:a').aggregate(:sum, :double) }
 
     @table.drop!
   end
