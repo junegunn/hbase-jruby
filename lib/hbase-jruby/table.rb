@@ -308,6 +308,7 @@ class Table
     @hbase.schema.lookup @name_sym, col
   end
 
+  # Schema lookup without column-key caching
   # @private
   def lookup_and_parse col, expect_cq
     @hbase.schema.lookup_and_parse @name_sym, col, expect_cq
@@ -315,21 +316,36 @@ class Table
 
   # @private
   module ThreadLocalCache
+    # Schema lookup with column-key caching
     def lookup_and_parse col, expect_cq
-      thread_local(@hbase, @name_sym, :columns)[col] ||=
-          @hbase.schema.lookup_and_parse(@name_sym, col, expect_cq)
+      cache = thread_local(@hbase, @name_sym, :columns)
+
+      # Column-key cache invalidation
+      schema = @hbase.schema
+      if schema.to_h.object_id != @schema_h.object_id
+        @schema_h = schema.to_h
+        cache.clear
+      end
+
+      unless parsed = cache[col]
+        parsed = schema.lookup_and_parse(@name_sym, col, expect_cq)
+        cache[col] = parsed if cache.length < @cache_size
+      end
+      parsed
     end
   end
 
 private
-  def initialize hbase, config, name, cache
+  def initialize hbase, config, name, cache_size
     @hbase    = hbase
+    @schema_h = hbase.schema.to_h
     @config   = config
     @name     = name.to_s
     @name_sym = name.to_sym
     @mutation = Mutation.new(self)
+    @cache_size = cache_size
 
-    extend ThreadLocalCache if cache
+    extend ThreadLocalCache if cache_size > 0
   end
 
   def check_closed

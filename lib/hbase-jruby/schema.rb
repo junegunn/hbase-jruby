@@ -67,8 +67,10 @@ class Schema
     end
 
     table = table.to_sym
-    @lookup[table] = lookup
-    @schema[table] = definition
+    @lookup = @lookup.dup.tap { |h| h[table] = lookup }
+    @schema = @schema.dup.tap { |h| h[table] = definition }
+
+    definition
   end
 
   # @private
@@ -103,8 +105,8 @@ class Schema
   # @param [Symbol] table
   def delete table
     table = table.to_sym
-    @lookup.delete table
-    @schema.delete table
+    @lookup = @lookup.reject { |k, v| k == table }
+    @schema = @schema.reject { |k, v| k == table }
     nil
   end
 

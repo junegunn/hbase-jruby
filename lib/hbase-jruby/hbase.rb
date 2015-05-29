@@ -5,11 +5,15 @@ require 'thread'
 # @author Junegunn Choi <junegunn.c@gmail.com>
 # @!attribute [r] config
 #   @return [org.apache.hadoop.conf.Configuration]
+# @!attribute [r] schema
+#   @return [HBase::Schema]
 class HBase
   attr_reader :config, :schema
 
   include Admin
   include HBase::Util
+
+  DEFAULT_COLUMN_CACHE_SIZE = 200
 
   # @overload HBase.log4j=(filename)
   #   Configure Log4j logging with the given file
@@ -148,12 +152,19 @@ class HBase
   # Creates an HBase::Table instance for the specified name
   # @param [#to_s] table_name The name of the table
   # @param [Hash] opts Options
-  #   @option opts [Boolean] :cache Use thread-local cache (default: false)
+  #   @option opts [Fixnum] :column_cache The size of thread-local column-key
+  #   interpretation cache (default: 100)
   # @return [HBase::Table]
   def table table_name, opts = {}
     check_closed
 
-    ht = HBase::Table.send :new, self, @config, table_name, opts[:cache]
+    # Backward-compatibility (to be removed)
+    if opts.has_key?(:cache)
+      opts = { :column_cache => opts[:cache] ? DEFAULT_COLUMN_CACHE_SIZE : 0 }
+    end
+
+    ht = HBase::Table.send :new, self, @config,
+        table_name, opts.fetch(:column_cache, DEFAULT_COLUMN_CACHE_SIZE)
 
     if block_given?
       yield ht

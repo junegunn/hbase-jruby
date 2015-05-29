@@ -543,8 +543,8 @@ class TestTable < TestHBaseJRubyBase
   end
 
   def test_thread_local_cache
-    cached = @hbase[TABLE, :cache => true]
-    not_cached = @hbase[TABLE]
+    cached = @hbase[TABLE]
+    not_cached = @hbase[TABLE, :column_cache => 0]
 
     cached.put     next_rowkey, 'cf1:abc' => 100
     not_cached.put next_rowkey, 'cf1:def' => 100
@@ -554,6 +554,19 @@ class TestTable < TestHBaseJRubyBase
 
     # FIXME closing not_cached will also remove the cache
     assert_nil Thread.current[:hbase_jruby][@hbase][TABLE.to_sym]
+  end
+
+  def test_thread_local_cache_limit
+    times = 20
+    cached = @hbase[TABLE, :column_cache => times]
+    times.times do |i|
+      cached.put next_rowkey, [:cf1, i] => 100
+    end
+    assert_equal times, Thread.current[:hbase_jruby][@hbase][TABLE.to_sym][:columns].length
+    assert_equal [:cf1, 0],
+      Thread.current[:hbase_jruby][@hbase][TABLE.to_sym][:columns].values.map { |triple|
+        triple[0, 2].zip([:symbol, :fixnum]).map { |(val, type)| HBase::Util.from_bytes type, val }
+      }. sort.first
   end
 end
 
