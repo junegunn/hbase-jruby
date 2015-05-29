@@ -130,7 +130,7 @@ class Row
   alias str string
 
   # Returns all versions of column values as Strings in a Hash indexed by their timestamps
-  # @param [String, Array] column Column name as String or 2-element Array of family and qualifier
+  # @param [String, Array] col Column name as String or 2-element Array of family and qualifier
   # @return [Hash<Fixnum, String>]
   def strings col
     decode_value :string, col, true
@@ -138,7 +138,7 @@ class Row
   alias strs strings
 
   # Returns the latest column value as a Symbol
-  # @param [String, Array] column Column name as String or 2-element Array of family and qualifier
+  # @param [String, Array] col Column name as String or 2-element Array of family and qualifier
   # @return [Symbol]
   def symbol col
     decode_value :symbol, col
@@ -146,7 +146,7 @@ class Row
   alias sym symbol
 
   # Returns all versions of column values as Symbols in a Hash indexed by their timestamps
-  # @param [String, Array] column Column name as String or 2-element Array of family and qualifier
+  # @param [String, Array] col Column name as String or 2-element Array of family and qualifier
   # @return [Hash<Fixnum, Symbol>]
   def symbols col
     decode_value :symbol, col, true
@@ -154,49 +154,49 @@ class Row
   alias syms symbols
 
   # Returns the latest 1-byte column value as a Fixnum
-  # @param [String, Array] column Column name as String or 2-element Array of family and qualifier
+  # @param [String, Array] col Column name as String or 2-element Array of family and qualifier
   # @return [Fixnum]
   def byte col
     decode_value :byte, col
   end
 
   # Returns all versions of 1-byte column values as Fixnums in a Hash indexed by their timestamps
-  # @param [String, Array] column Column name as String or 2-element Array of family and qualifier
+  # @param [String, Array] col Column name as String or 2-element Array of family and qualifier
   # @return [Hash<Fixnum, Fixnum>]
   def bytes col
     decode_value :byte, col, true
   end
 
   # Returns the latest 2-byte column value as a Fixnum
-  # @param [String, Array] column Column name as String or 2-element Array of family and qualifier
+  # @param [String, Array] col Column name as String or 2-element Array of family and qualifier
   # @return [Fixnum]
   def short col
     decode_value :short, col
   end
 
   # Returns all versions of 2-byte column values as Fixnums in a Hash indexed by their timestamps
-  # @param [String, Array] column Column name as String or 2-element Array of family and qualifier
+  # @param [String, Array] col Column name as String or 2-element Array of family and qualifier
   # @return [Hash<Fixnum, Fixnum>]
   def shorts col
     decode_value :short, col, true
   end
 
   # Returns the latest 4-byte column value as a Fixnum
-  # @param [String, Array] column Column name as String or 2-element Array of family and qualifier
+  # @param [String, Array] col Column name as String or 2-element Array of family and qualifier
   # @return [Fixnum]
   def int col
     decode_value :int, col
   end
 
   # Returns all versions of 4-byte column values as Fixnums in a Hash indexed by their timestamps
-  # @param [String, Array] column Column name as String or 2-element Array of family and qualifier
+  # @param [String, Array] col Column name as String or 2-element Array of family and qualifier
   # @return [Hash<Fixnum, Fixnum>]
   def ints col
     decode_value :int, col, true
   end
 
   # Returns the latest 8-byte column value as a Fixnum
-  # @param [String, Array] column Column name as String or 2-element Array of family and qualifier
+  # @param [String, Array] col Column name as String or 2-element Array of family and qualifier
   # @return [Fixnum]
   def fixnum col
     decode_value :fixnum, col
@@ -204,7 +204,7 @@ class Row
   alias long fixnum
 
   # Returns all versions of 8-byte column values as Fixnums in a Hash indexed by their timestamps
-  # @param [String, Array] column Column name as String or 2-element Array of family and qualifier
+  # @param [String, Array] col Column name as String or 2-element Array of family and qualifier
   # @return [Hash<Fixnum, Fixnum>]
   def fixnums col
     decode_value :fixnum, col, true
@@ -212,49 +212,49 @@ class Row
   alias longs fixnums
 
   # Returns the latest column value as a BigDecimal
-  # @param [String, Array] column Column name as String or 2-element Array of family and qualifier
+  # @param [String, Array] col Column name as String or 2-element Array of family and qualifier
   # @return [BigDecimal]
   def bigdecimal col
     decode_value :bigdecimal, col
   end
 
   # Returns all versions of column values as BigDecimals in a Hash indexed by their timestamps
-  # @param [String, Array] column Column name as String or 2-element Array of family and qualifier
+  # @param [String, Array] col Column name as String or 2-element Array of family and qualifier
   # @return [Hash<Fixnum, BigDecimal>]
   def bigdecimals col
     decode_value :bigdecimal, col, true
   end
 
   # Returns the latest 4-byte column value as a Float
-  # @param [String, Array] column Column name as String or 2-element Array of family and qualifier
+  # @param [String, Array] col Column name as String or 2-element Array of family and qualifier
   # @return [Float]
   def float col
     decode_value :float, col
   end
 
   # Returns all versions of 4-byte column values as Floats in a Hash indexed by their timestamps
-  # @param [String, Array] column Column name as String or 2-element Array of family and qualifier
+  # @param [String, Array] col Column name as String or 2-element Array of family and qualifier
   # @return [Hash<Fixnum, Float>]
   def floats col
     decode_value :float, col, true
   end
 
   # Returns the latest 8-byte column value as a Float
-  # @param [String, Array] column Column name as String or 2-element Array of family and qualifier
+  # @param [String, Array] col Column name as String or 2-element Array of family and qualifier
   # @return [Float]
   def double col
     decode_value :double, col
   end
 
   # Returns all versions of 8-byte column values as Floats in a Hash indexed by their timestamps
-  # @param [String, Array] column Column name as String or 2-element Array of family and qualifier
+  # @param [String, Array] col Column name as String or 2-element Array of family and qualifier
   # @return [Hash<Fixnum, Float>]
   def doubles col
     decode_value :double, col, true
   end
 
   # Returns the latest column value as a boolean value
-  # @param [String, Array] column Column name as String or 2-element Array of family and qualifier
+  # @param [String, Array] col Column name as String or 2-element Array of family and qualifier
   # @return [true, false]
   def boolean col
     decode_value :boolean, col
@@ -262,7 +262,7 @@ class Row
   alias bool boolean
 
   # Returns all versions of column values as boolean values in a Hash indexed by their timestamps
-  # @param [String, Array] column Column name as String or 2-element Array of family and qualifier
+  # @param [String, Array] col Column name as String or 2-element Array of family and qualifier
   # @return [Hash<Fixnum, true|false>]
   def booleans col
     decode_value :boolean, col, true

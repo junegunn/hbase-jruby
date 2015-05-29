@@ -16,7 +16,7 @@ class Table
         @rowkey, @cf, @cq, @val, @mutation.put(@rowkey, props))
     end
 
-    # @param [Object] *extra Optional delete specification. Column family, qualifier, and timestamps
+    # @param [Object*] extra Optional delete specification. Column family, qualifier, and timestamps
     def delete *extra
       @table.htable.checkAndDelete(
         @rowkey, @cf, @cq, @val, @mutation.delete(@rowkey, *extra))

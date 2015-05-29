@@ -49,6 +49,45 @@ require 'hbase-jruby'
 # HBase client dependencies
 require 'hbase-client-dep-cdh5.3.jar'
 
+# Connect to HBase
+hbase = HBase.new 'hbase.zookeeper.quorum' => 'localhost'
+
+# Table object
+table = hbase[:test_table]
+table.drop! if table.exists?
+table.create! :cf1, :cf2
+
+# PUT
+table.put 'rowkey1' => { 'cf1:a' => 100, 'cf2:b' => "Hello" }
+
+# GET
+row = table.get('rowkey1')
+number = row.fixnum('cf1:a')
+string = row.string('cf1:b')
+
+# SCAN
+table.range('rowkey1'..'rowkey9')
+     .filter('cf1:a' => 100..200,         # cf1:a between 100 and 200
+             'cf1:b' => 'Hello',          # cf1:b = 'Hello'
+             'cf2:c' => /world/i,         # cf2:c matches /world/i
+             'cf2:d' => ['foo', /^BAR/i]) # cf2:d = 'foo' OR matches /^BAR/i
+     .project('cf1:a', 'cf2').
+     .each do |row|
+  puts row.fixnum('cf1:a')
+end
+
+# DELETE
+table.delete('rowkey9')
+```
+
+## A quick example using schema definition
+
+```ruby
+require 'hbase-jruby'
+
+# HBase client dependencies
+require 'hbase-client-dep-cdh5.3.jar'
+
 # Connect to HBase on localhost
 hbase = HBase.new
 
@@ -64,7 +103,8 @@ hbase.schema = {
       year:      :short,      # Short integer (2-byte)
       pages:     :int,        # Integer (4-byte)
       price:     :bigdecimal, # BigDecimal
-      weight:    :float,      # Double-precision floating-point number
+      height:    :float,      # Single-precision floating-point number (4-byte)
+      weight:    :double,     # Double-precision floating-point number (8-byte)
       in_print:  :boolean,    # Boolean (true | false)
       image:     :raw         # Java byte array; no automatic type conversion
       thumbnail: :byte_array  # HBase::ByteArray
@@ -72,7 +112,7 @@ hbase.schema = {
     # Columns in cf2 family
     cf2: {
       summary:  :string,
-      reviews:  :fixnum,     # Long integer (8-byte)
+      reviews:  :fixnum,      # Long integer (8-byte)
       stars:    :fixnum,
       /^comment\d+/ => :string
     }
@@ -258,7 +298,7 @@ hbase.schema = {
       year:     :short,      # Short integer (2-byte)
       pages:    :int,        # Integer (4-byte)
       price:    :bigdecimal, # BigDecimal
-      weight:   :float,      # Double-precision floating-point number
+      weight:   :double,     # Double-precision floating-point number
       in_print: :boolean,    # Boolean (true | false)
       image:    :raw         # Java byte array; no automatic type conversion
     },
@@ -1173,7 +1213,7 @@ first  = ba[0, 8]
 second = ba[8...16]
 
 first.decode(:fixnum)  # 100
-second.decode(:float)  # 3.14
+second.decode(:double)  # 3.14
 ```
 
 append, prepend more elements to it,
@@ -1195,7 +1235,7 @@ or shift decoded objects from it.
 ba.shift(:fixnum)
 ba.shift(:boolean)
 ba.shift(:fixnum)
-ba.shift(:float)
+ba.shift(:double)
 ba.shift(:int)
 ba.shift(:string, 11)  # Byte length must be given as Strings are not fixed in size
 ```

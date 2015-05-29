@@ -99,7 +99,7 @@ class Table
   #     :max_filesize       => 512 * 1024 ** 2,
   #     :memstore_flushsize =>  64 * 1024 ** 2,
   #     :readonly           => false,
-  #     :deferred_log_flush => true
+  #     :durability         => :async_wal
   #   )
   def alter! props, &block
     _alter props, true, &block
