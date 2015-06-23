@@ -313,15 +313,6 @@ private
 
   MAX_SPLIT_WAIT = 30
 
-  def while_disabled admin
-    begin
-      admin.disableTable @name if admin.isTableEnabled(@name)
-      yield
-    ensure
-      admin.enableTable @name
-    end
-  end
-
   def hcd name, opts
     HColumnDescriptor.new(name.to_s).tap do |hcd|
       opts.each do |key, val|
@@ -406,69 +397,56 @@ private
     with_admin do |admin|
       htd = admin.get_table_descriptor(@name.to_java_bytes)
       patch_table_descriptor! htd, props
-      while_disabled(admin) do
-        admin.modifyTable @name.to_java_bytes, htd
-        wait_async_admin(admin, &block) if bang
-      end
+      admin.modifyTable @name.to_java_bytes, htd
+      wait_async_admin(admin, &block) if bang
     end
   end
 
   def _add_family name, opts, bang, &block
     with_admin do |admin|
-      while_disabled(admin) do
-        admin.addColumn @name, hcd(name.to_s, opts)
-        wait_async_admin(admin, &block) if bang
-      end
+      admin.addColumn @name, hcd(name.to_s, opts)
+      wait_async_admin(admin, &block) if bang
     end
   end
 
   def _alter_family name, opts, bang, &block
     with_admin do |admin|
-      while_disabled(admin) do
-        admin.modifyColumn @name, hcd(name.to_s, opts)
-        wait_async_admin(admin, &block) if bang
-      end
+      admin.modifyColumn @name, hcd(name.to_s, opts)
+      wait_async_admin(admin, &block) if bang
     end
   end
 
   def _delete_family name, bang, &block
     with_admin do |admin|
-      while_disabled(admin) do
-        admin.deleteColumn @name, name.to_s
-        wait_async_admin(admin, &block) if bang
-      end
+      admin.deleteColumn @name, name.to_s
+      wait_async_admin(admin, &block) if bang
     end
   end
 
   def _add_coprocessor class_name, props, bang, &block
     with_admin do |admin|
-      while_disabled(admin) do
-
-        htd = admin.get_table_descriptor(@name.to_java_bytes)
-        if props.empty?
-          htd.addCoprocessor class_name
-        else
-          path, priority, params = props.values_at :path, :priority, :params
-          raise ArgumentError, ":path required" unless path
-          params = params ? Hash[ params.map { |k, v| [k.to_s, v.to_s] } ] : {}
-          htd.addCoprocessor class_name,
-            org.apache.hadoop.fs.Path.new(path),
-            priority || org.apache.hadoop.hbase.Coprocessor::PRIORITY_USER, params
-        end
-        admin.modifyTable @name.to_java_bytes, htd
-        wait_async_admin(admin, &block) if bang
+      htd = admin.get_table_descriptor(@name.to_java_bytes)
+      if props.empty?
+        htd.addCoprocessor class_name
+      else
+        path, priority, params = props.values_at :path, :priority, :params
+        raise ArgumentError, ":path required" unless path
+        params = params ? Hash[ params.map { |k, v| [k.to_s, v.to_s] } ] : {}
+        htd.addCoprocessor class_name,
+          org.apache.hadoop.fs.Path.new(path),
+          priority || org.apache.hadoop.hbase.Coprocessor::PRIORITY_USER, params
       end
+      admin.modifyTable @name.to_java_bytes, htd
+      wait_async_admin(admin, &block) if bang
     end
   end
 
   def _remove_coprocessor name, bang, &block
     with_admin do |admin|
-      while_disabled(admin) do
-        htd = admin.get_table_descriptor(@name.to_java_bytes)
-        htd.removeCoprocessor name
-        admin.modifyTable @name.to_java_bytes, htd
-        wait_async_admin(admin, &block) if bang
-      end
+      htd = admin.get_table_descriptor(@name.to_java_bytes)
+      htd.removeCoprocessor name
+      admin.modifyTable @name.to_java_bytes, htd
+      wait_async_admin(admin, &block) if bang
     end
   end
 

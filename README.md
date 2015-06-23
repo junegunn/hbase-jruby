@@ -953,10 +953,12 @@ hbase[:dupe_table].create!(
 
 ## Table administration
 
-`HBase#Table` provides a number of *bang_methods!* for table administration tasks.
-They run synchronously, except when mentioned otherwise (e.g. `HTable#split!`).
-Some of them take an optional block to allow progress monitoring
-and come with non-bang, asynchronous counterparts.
+`HBase#Table` provides a number of *bang_methods!* for table administration
+tasks. They run synchronously, except when mentioned otherwise (e.g.
+`HTable#split!`). Some of them take an optional block to allow progress
+monitoring and come with non-bang, asynchronous counterparts. If you're
+running an old version of HBase cluster, you'll have to `disable!` the table
+before altering it.
 
 ### Creation and alteration
 
