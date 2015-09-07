@@ -274,6 +274,10 @@ class Row
     Bytes.compareTo(rowkey(:raw), other.rowkey(:raw))
   end
 
+  def inspect
+    "#<HBase::Row:#{object_id} table=#{@table.name} rowkey=#{Bytes.toStringBinary @result.getRow}>"
+  end
+
 private
   def get_value col, with_versions = false
     cf, cq, _ = @table.lookup_and_parse col, true
