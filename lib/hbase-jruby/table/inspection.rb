@@ -95,6 +95,7 @@ private
         end
         r[:meta]      = ri.is_meta_region
         r[:online]    = !ri.is_offline
+        r[:encoded_name] = ri.encoded_name
       }
     }
   end
