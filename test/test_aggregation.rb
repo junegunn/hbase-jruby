@@ -7,9 +7,9 @@ class TestAggregation < TestHBaseJRubyBase
   def test_aggregation
     omit 'AggregationClient is not found' unless @aggregation
 
-    (1..100).each do |idx|
-      @table.put idx, 'cf1:a' => idx, 'cf1:b' => idx * 2
-    end
+    @table.put (1..100).map { |idx|
+      { idx => { 'cf1:a' => idx, 'cf1:b' => idx * 2 } }
+    }.reduce(&:merge)
 
     assert_nil @table.enable_aggregation!
     assert_nil @table.enable_aggregation! # no prob!
@@ -36,8 +36,6 @@ class TestAggregation < TestHBaseJRubyBase
 
     # Invalid type
     assert_raises(ArgumentError) { @table.project('cf1:a').aggregate(:sum, :double) }
-
-    @table.drop!
   end
 end
 

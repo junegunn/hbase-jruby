@@ -53,9 +53,9 @@ class TestScoped < TestHBaseJRubyBase
   end
 
   def test_each_and_count
-    (101..150).each do |i|
-      @table.put(i, 'cf1:a' => i, 'cf2:b' => i, 'cf3:c' => i * 3)
-    end
+    @table.put (101..150).map { |i|
+      { i => { 'cf1:a' => i, 'cf2:b' => i, 'cf3:c' => i * 3 } }
+    }.reduce(&:merge)
 
     assert_instance_of HBase::Scoped, @table.scoped
     assert_instance_of Enumerator, @table.each
@@ -161,9 +161,17 @@ class TestScoped < TestHBaseJRubyBase
 
   def test_scan
     insert = lambda do
-      (40..70).each do |i|
-        @table.put(i, 'cf1:a' => i, 'cf2:b' => i * 2, 'cf3:c' => i * 3, 'cf3:d' => 'dummy', 'cf3:e' => 3.14)
-      end
+      @table.put (40..70).map { |i|
+        {
+          i => {
+            'cf1:a' => i,
+            'cf2:b' => i * 2,
+            'cf3:c' => i * 3,
+            'cf3:d' => 'dummy',
+            'cf3:e' => 3.14
+          }
+        }
+      }.reduce(&:merge)
     end
     insert.call
 
@@ -246,29 +254,20 @@ class TestScoped < TestHBaseJRubyBase
   end
 
   def test_scan_on_non_string_rowkey
-    (1..20).each do |rk|
-      @table.put rk, 'cf1:a' => rk
-    end
+    @table.put (1..20).map { |rk| { rk => { 'cf1:a' => rk } } }.reduce(:merge)
     assert_equal 9, @table.range(1..9).count
     assert_equal [1, 2, 3, 4, 5, 6, 7, 8, 9], @table.range(1..9).map { |row| row.rowkey :fixnum }
     assert_equal 8, @table.range(1...9).count
 
-    @table.truncate!
-
-    (1..20).each do |rk|
-      @table.put rk.to_s, 'cf1:a' => rk
-    end
+    @table.put (1..20).map { |rk| { rk.to_s => { 'cf1:a' => rk } } }.reduce(:merge)
     assert_equal 20, @table.range('1'..'9').count
     assert_equal %w[1 10 11 12 13 14 15 16 17 18 19 2 20 3 4 5 6 7 8 9], @table.range('1'..'9').map { |e| e.rowkey :string }
-
     assert_equal 19, @table.range('1'...'9').count
 
-    @table.truncate!
+    @table.delete_row *(1..20).map { |i| [i, i.to_s] }.flatten
+
     data = { 'cf1:1' => 1 } # doesn't matter
-    (1..15).each do |i|
-      @table.put i, data
-      @table.put i.to_s, data
-    end
+    @table.put (1..15).map { |i| { i => data, i.to_s => data } }.reduce(:merge)
 
     assert_equal [1, 2, 3], @table.range(1..3).map { |r| r.rowkey :fixnum }
     assert_equal %w[1 10 11 12 13 14 15 2 3], @table.range('1'..'3').map { |r| r.rowkey :string }
@@ -307,16 +306,17 @@ class TestScoped < TestHBaseJRubyBase
   end
 
   def test_null_filter
-    10.times do |i|
+    @table.put 10.times.map { |i|
       if i % 2 == 0
-        @table.put i, 'cf1:col1' => true
+        { i => { 'cf1:col1' => true } }
       else
-        @table.put i, 'cf1:col2' => true
+        { i => { 'cf1:col2' => true } }
       end
-    end
-    20.times do |i|
-      @table.put i + 10, 'cf1:col1' => 100, 'cf1:col2' => 100
-    end
+    }.reduce(&:merge)
+
+    @table.put 20.times.map { |i|
+      { i + 10 => { 'cf1:col1' => 100, 'cf1:col2' => 100 } }
+    }.reduce(&:merge)
 
     assert_equal 30, @table.count
     assert_equal 30, @table.filter('cf1:what' => nil).count
@@ -365,9 +365,9 @@ class TestScoped < TestHBaseJRubyBase
   end
 
   def test_prefix_filter
-    ('aa'..'zz').each do |rk|
-      @table.put rk, 'cf1:a' => 1
-    end
+    @table.put ('aa'..'zz').map { |rk|
+      { rk => { 'cf1:a' => 1 } }
+    }.reduce(&:merge)
 
     assert_equal 26, @table.range(:prefix => 'c').count
     assert_equal  1, @table.range(:prefix => 'cc').count
@@ -412,9 +412,9 @@ class TestScoped < TestHBaseJRubyBase
   end
 
   def test_while
-    (0...100).each do |idx|
-      @table.put idx, 'cf1:a' => idx % 10, 'cf2:b' => 'Hello'
-    end
+    @table.put (0...100).map { |idx|
+      { idx => { 'cf1:a' => idx % 10, 'cf2:b' => 'Hello' } }
+    }.reduce(&:merge)
 
     assert_equal 20, @table.filter('cf1:a' => { :lte => 1 }, 'cf2:b' => 'Hello').count
     assert_equal 2,  @table.while( 'cf1:a' => { :lte => 1 }, 'cf2:b' => 'Hello').count
@@ -425,17 +425,18 @@ class TestScoped < TestHBaseJRubyBase
   end
 
   def test_min_max
-    (0...100).each do |idx|
+    (0...20).each do |idx|
       @table.put idx, 'cf1:a' => 1
-      assert_equal 0,   @table.to_a.reverse.min.rowkey(:fixnum)
-      assert_equal idx, @table.to_a.reverse.max.rowkey(:fixnum)
+      rows = @table.to_a
+      assert_equal 0,   rows.reverse.min.rowkey(:fixnum)
+      assert_equal idx, rows.reverse.max.rowkey(:fixnum)
     end
   end
 
   def test_regex
-    ('aa'..'zz').each do |rowkey|
-      @table.put rowkey, 'cf1:a' => rowkey
-    end
+    @table.put ('aa'..'zz').map { |rowkey|
+      { rowkey => { 'cf1:a' => rowkey } }
+    }.reduce(&:merge)
 
     assert_equal  1, @table.filter('cf1:a' => /gg/).count
     assert_equal  1, @table.filter('cf1:a' => /GG/i).count
@@ -451,11 +452,13 @@ class TestScoped < TestHBaseJRubyBase
   end
 
   def test_java_bytes_prefix
-    (1..100).each do |i|
-      (1..100).each do |j|
-        @table.put((HBase::ByteArray(i) + HBase::ByteArray(j)).to_java_bytes, 'cf1:a' => i * j)
-      end
-    end
+    @table.put(
+      (1..100).map { |i|
+        (1..100).map { |j|
+          { (HBase::ByteArray(i) + HBase::ByteArray(j)).to_java_bytes => { 'cf1:a' => i * j } }
+        }
+      }.flatten.reduce(&:merge)
+    )
 
     assert_equal 100, @table.range(:prefix => HBase::ByteArray(50)).count
     assert_equal 100, @table.range(:prefix => HBase::ByteArray(50).to_java_bytes).count
@@ -508,9 +511,9 @@ class TestScoped < TestHBaseJRubyBase
   end
 
   def test_with_java_scan
-    ('a'..'z').each do |rk|
-      @table.put rk, 'cf1:a' => 1
-    end
+    @table.put ('a'..'z').map { |rk|
+      { rk => { 'cf1:a' => 1 } }
+    }.reduce(&:merge)
 
     assert_equal 2, @table.with_java_scan { |scan|
       scan.setStartRow HBase::Util.to_bytes 'a'
@@ -548,9 +551,9 @@ class TestScoped < TestHBaseJRubyBase
   def test_count_options
     # TODO how to confirm?
 
-    (101..150).each do |i|
-      @table.put(i, 'cf1:a' => i, 'cf2:b' => i, 'cf3:c' => i * 3)
-    end
+    @table.put (101..150).map { |i|
+      { i => { 'cf1:a' => i, 'cf2:b' => i, 'cf3:c' => i * 3 } }
+    }.reduce(&:merge)
 
     assert_equal 50, @table.count(:cache_blocks => false)
     assert_equal 50, @table.count(:cache_blocks => true)

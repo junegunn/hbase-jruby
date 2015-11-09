@@ -4,7 +4,7 @@ $LOAD_PATH.unshift File.expand_path('..', __FILE__)
 require 'helper'
 require 'bigdecimal'
 
-class TestUtil < MiniTest::Unit::TestCase
+class TestUtil < Minitest::Test
   Util = HBase::Util
 
   def test_bytea_conversion

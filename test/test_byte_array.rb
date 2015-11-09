@@ -3,7 +3,7 @@
 $LOAD_PATH.unshift File.expand_path('..', __FILE__)
 require 'helper'
 
-class TestByteArray < MiniTest::Unit::TestCase
+class TestByteArray < Minitest::Test
   def test_order
     [
       [(1..100).to_a, :fixnum],

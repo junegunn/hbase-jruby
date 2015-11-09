@@ -19,7 +19,7 @@ if jar = ENV['HBASE_JRUBY_TEST_JAR']
 end
 HBase.log4j = { 'log4j.threshold' => 'ERROR' }
 
-class TestHBaseJRubyBase < MiniTest::Unit::TestCase
+class TestHBaseJRubyBase < Minitest::Test
   TABLE = 'test_hbase_jruby'
   ZK    = ENV.fetch 'HBASE_JRUBY_TEST_ZK'
 

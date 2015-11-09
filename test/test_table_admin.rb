@@ -4,12 +4,8 @@ $LOAD_PATH.unshift File.expand_path('..', __FILE__)
 require 'helper'
 
 class TestTableAdmin < TestHBaseJRubyBase
-  def teardown
-    @table.drop! if @table.exists?
-  end
-
   def test_create_table_symbol_string
-    t = @hbase.table(:test_hbase_jruby_create_table)
+    t = @hbase.table("hbase_jruby_#{__method__}")
     t.drop! if t.exists?
 
     assert_raises(ArgumentError) do
@@ -24,13 +20,16 @@ class TestTableAdmin < TestHBaseJRubyBase
       t.create! :cf, { 1 => 2 }
     end
 
-    [ :cf, 'cf', {:cf => {}} ].each do |cf|
-      assert_equal false, t.exists?
-      t.create! cf
-      assert t.exists?
-      t.drop!
-
-    end
+    [ :cf, 'cf', {:cf => {}} ].map.with_index { |cf, idx|
+      Thread.new do
+        name = "hbase_jruby_#{__method__}_#{idx}"
+        table = @hbase[name]
+        assert_equal false, table.exists?
+        table.create! cf
+        assert table.exists?
+        table.drop!
+      end
+    }.each(&:join)
   end
 
   def test_disable_and_drop
@@ -55,17 +54,17 @@ class TestTableAdmin < TestHBaseJRubyBase
   end
 
   def test_create_table_invalid_input
-    @table.drop!
+    table = @hbase[:hbase_jruby_xxx]
     assert_raises(ArgumentError) do
-      @table.create! 3.14
+      table.create! 3.14
     end
 
     assert_raises(ArgumentError) do
-      @table.create! :cf1 => { :bloom => 'by beach house' }
+      table.create! :cf1 => { :bloom => 'by beach house' }
     end
 
     assert_raises(ArgumentError) do
-      @table.create! :cf1 => { :bloomfilter => :xxx }
+      table.create! :cf1 => { :bloomfilter => :xxx }
     end
   end
 
@@ -143,9 +142,14 @@ class TestTableAdmin < TestHBaseJRubyBase
   end
 
   def test_add_coprocessor!
+    coproc = 'org.apache.hadoop.hbase.coprocessor.AggregateImplementation'
+
+    if @table.has_coprocessor? coproc
+      @table.remove_coprocessor! coproc
+    end
+
     omit "AggregationClient not found" unless @aggregation
 
-    coproc = 'org.apache.hadoop.hbase.coprocessor.AggregateImplementation'
     assert_equal false, @table.has_coprocessor?(coproc)
     assert_raises(ArgumentError) {
       # :path is missing
@@ -154,7 +158,7 @@ class TestTableAdmin < TestHBaseJRubyBase
     @table.add_coprocessor! coproc
     assert @table.has_coprocessor? coproc
 
-    @table.remove_coprocessor! 'org.apache.hadoop.hbase.coprocessor.AggregateImplementation'
+    @table.remove_coprocessor! coproc
     assert !@table.has_coprocessor?(coproc)
 
     @table.drop!
@@ -164,12 +168,6 @@ class TestTableAdmin < TestHBaseJRubyBase
     assert @table.inspect.is_a?(String)
     @table.drop!
     assert @table.inspect.is_a?(String)
-
-    gz = begin
-           org.apache.hadoop.hbase.io.hfile.Compression::Algorithm::GZ
-         rescue Exception
-           org.apache.hadoop.hbase.io.compress.Compression::Algorithm::GZ
-         end
 
     table_props = {
       :max_filesize       => 512 * 1024 ** 2,
@@ -189,92 +187,99 @@ class TestTableAdmin < TestHBaseJRubyBase
     [
       'GZ',
       :gz,
-      gz
-    ].each do |cmp|
-      @table.create!({
-          :cf => {
-            :blockcache          => true,
-            :blocksize           => 128 * 1024,
-            :bloomfilter         => :row, # as Symbol
-            :compression         => cmp,  # as String, Symbol, java.lang.Enum
-            :compression_compact => cmp,  # as String, Symbol, java.lang.Enum
-          # TODO
-          # :data_block_encoding => :diff,
-          # :encode_on_disk      => true,
-          # :keep_deleted_cells  => true,
-            :in_memory           => true,
-            :min_versions        => 5,
-            :replication_scope   => 0,
-            :ttl                 => 100,
-            :versions            => 10,
-            'whatever'           => 'works',
-          }
-        }, table_props)
+      begin
+        org.apache.hadoop.hbase.io.hfile.Compression::Algorithm::GZ
+      rescue Exception
+        org.apache.hadoop.hbase.io.compress.Compression::Algorithm::GZ
+      end
+    ].map.with_index { |cmp, idx|
+      Thread.new do
+        table = @hbase["hbase_jruby_#{__method__}_#{idx}"]
+        table.create!({
+            :cf => {
+              :blockcache          => true,
+              :blocksize           => 128 * 1024,
+              :bloomfilter         => :row, # as Symbol
+              :compression         => cmp,  # as String, Symbol, java.lang.Enum
+              :compression_compact => cmp,  # as String, Symbol, java.lang.Enum
+            # TODO
+            # :data_block_encoding => :diff,
+            # :encode_on_disk      => true,
+            # :keep_deleted_cells  => true,
+              :in_memory           => true,
+              :min_versions        => 5,
+              :replication_scope   => 0,
+              :ttl                 => 100,
+              :versions            => 10,
+              'whatever'           => 'works',
+            }
+          }, table_props)
 
-      # Initial region count
-      regions = @table.regions
-      assert_equal 5, regions.count
+        # Initial region count
+        regions = table.regions
+        assert_equal 5, regions.count
 
-      # Table properties
-      props = @table.properties
-      assert props[:deferred_log_flush] || props[:durability] == 'ASYNC_WAL'
-      assert_equal false,           props[:readonly]
-      assert_equal 64 * 1024 ** 2,  props[:memstore_flushsize]
-      assert_equal 512 * 1024 ** 2, props[:max_filesize]
-      assert_equal 'world',         props['hello']
-      assert_equal 'org.apache.hadoop.hbase.regionserver.IncreasingToUpperBoundRegionSplitPolicy',
-                                    props[:split_policy]
+        # Table properties
+        props = table.properties
+        assert props[:deferred_log_flush] || props[:durability] == 'ASYNC_WAL'
+        assert_equal false,           props[:readonly]
+        assert_equal 64 * 1024 ** 2,  props[:memstore_flushsize]
+        assert_equal 512 * 1024 ** 2, props[:max_filesize]
+        assert_equal 'world',         props['hello']
+        assert_equal 'org.apache.hadoop.hbase.regionserver.IncreasingToUpperBoundRegionSplitPolicy',
+                                      props[:split_policy]
 
-      rprops = @table.raw_properties
-      assert rprops['DEFERRED_LOG_FLUSH'] == 'true' || rprops['DURABILITY'] == 'ASYNC_WAL'
+        rprops = table.raw_properties
+        assert rprops['DEFERRED_LOG_FLUSH'] == 'true' || rprops['DURABILITY'] == 'ASYNC_WAL'
 
-      assert_equal false.to_s,             rprops['READONLY']
-      assert_equal((64 * 1024 ** 2).to_s,  rprops['MEMSTORE_FLUSHSIZE'])
-      assert_equal((512 * 1024 ** 2).to_s, rprops['MAX_FILESIZE'])
-      assert_equal 'world',                rprops['hello']
-      assert_equal 'org.apache.hadoop.hbase.regionserver.IncreasingToUpperBoundRegionSplitPolicy',
-                                           rprops['SPLIT_POLICY']
+        assert_equal false.to_s,             rprops['READONLY']
+        assert_equal((64 * 1024 ** 2).to_s,  rprops['MEMSTORE_FLUSHSIZE'])
+        assert_equal((512 * 1024 ** 2).to_s, rprops['MAX_FILESIZE'])
+        assert_equal 'world',                rprops['hello']
+        assert_equal 'org.apache.hadoop.hbase.regionserver.IncreasingToUpperBoundRegionSplitPolicy',
+                                             rprops['SPLIT_POLICY']
 
-      # Column family properties
-      cf = @table.families['cf']
-      assert_equal 'ROW',  cf[:bloomfilter]
-      assert_equal 0,      cf[:replication_scope]
-      assert_equal 10,     cf[:versions]
-      assert_equal 'GZ',   cf[:compression]
-      assert_equal 5,      cf[:min_versions]
-      assert_equal 100,    cf[:ttl]
-      assert_equal 131072, cf[:blocksize]
-      assert_equal true,   cf[:in_memory]
-      assert_equal true,   cf[:blockcache]
-      assert_equal 'works', cf['whatever']
+        # Column family properties
+        cf = table.families['cf']
+        assert_equal 'ROW',  cf[:bloomfilter]
+        assert_equal 0,      cf[:replication_scope]
+        assert_equal 10,     cf[:versions]
+        assert_equal 'GZ',   cf[:compression]
+        assert_equal 5,      cf[:min_versions]
+        assert_equal 100,    cf[:ttl]
+        assert_equal 131072, cf[:blocksize]
+        assert_equal true,   cf[:in_memory]
+        assert_equal true,   cf[:blockcache]
+        assert_equal 'works', cf['whatever']
 
-      rcf = @table.raw_families['cf']
-      assert_equal 'ROW',       rcf['BLOOMFILTER']
-      assert_equal 0.to_s,      rcf['REPLICATION_SCOPE']
-      assert_equal 10.to_s,     rcf['VERSIONS']
-      assert_equal 'GZ',        rcf['COMPRESSION']
-      assert_equal 5.to_s,      rcf['MIN_VERSIONS']
-      assert_equal 100.to_s,    rcf['TTL']
-      assert_equal 131072.to_s, rcf['BLOCKSIZE']
-      assert_equal true.to_s,   rcf['IN_MEMORY']
-      assert_equal true.to_s,   rcf['BLOCKCACHE']
-      assert_equal 'works',     rcf['whatever']
+        rcf = table.raw_families['cf']
+        assert_equal 'ROW',       rcf['BLOOMFILTER']
+        assert_equal 0.to_s,      rcf['REPLICATION_SCOPE']
+        assert_equal 10.to_s,     rcf['VERSIONS']
+        assert_equal 'GZ',        rcf['COMPRESSION']
+        assert_equal 5.to_s,      rcf['MIN_VERSIONS']
+        assert_equal 100.to_s,    rcf['TTL']
+        assert_equal 131072.to_s, rcf['BLOCKSIZE']
+        assert_equal true.to_s,   rcf['IN_MEMORY']
+        assert_equal true.to_s,   rcf['BLOCKCACHE']
+        assert_equal 'works',     rcf['whatever']
 
-      @table.put 31, 'cf:a' => 100
-      @table.put 37, 'cf:a' => 100
-      @table.split!(35)
-      wait_for_regions 6
+        table.put 31, 'cf:a' => 100
+        table.put 37, 'cf:a' => 100
+        table.split!(35)
+        wait_for_regions table, 6
 
-      @table.put 39, 'cf:a' => 100
-      @table.split!(38)
-      wait_for_regions 7
+        table.put 39, 'cf:a' => 100
+        table.split!(38)
+        wait_for_regions table, 7
 
-      regions = @table.regions
-      assert_equal [10, 20, 30, 35, 38, 40], regions.map { |r| HBase::Util.from_bytes :fixnum, r[:start_key] }.compact.sort
-      assert_equal [10, 20, 30, 35, 38, 40], regions.map { |r| HBase::Util.from_bytes :fixnum, r[:end_key] }.compact.sort
+        regions = table.regions
+        assert_equal [10, 20, 30, 35, 38, 40], regions.map { |r| HBase::Util.from_bytes :fixnum, r[:start_key] }.compact.sort
+        assert_equal [10, 20, 30, 35, 38, 40], regions.map { |r| HBase::Util.from_bytes :fixnum, r[:end_key] }.compact.sort
 
-      @table.drop!
-    end
+        table.drop!
+      end
+    }.each(&:join)
   end
 
   def test_snapshots
@@ -310,10 +315,10 @@ class TestTableAdmin < TestHBaseJRubyBase
   end
 
 private
-  def wait_for_regions rnum, max_tries = 30
+  def wait_for_regions table, rnum, max_tries = 30
     sleep 5
     max_tries.times do |i|
-      if @table.regions.count == rnum && @table.regions.all? { |r| r[:online] }
+      if table.regions.count == rnum && table.regions.all? { |r| r[:online] }
         return
       end
       sleep 1
