@@ -15,9 +15,7 @@ $rowkey = Time.now.to_i
 
 require "hbase-jruby"
 if jar = ENV['HBASE_JRUBY_TEST_JAR']
-  require jar
-elsif dist = ENV['HBASE_JRUBY_TEST_DIST']
-  HBase.resolve_dependency!(dist, :verbose => true)
+  $CLASSPATH << jar
 end
 HBase.log4j = { 'log4j.threshold' => 'ERROR' }
 

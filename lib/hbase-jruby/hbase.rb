@@ -54,7 +54,7 @@ class HBase
       org.apache.hadoop.conf.Configuration
     rescue NameError
       raise NameError.new(
-        "Required Java classes not loaded. Set up CLASSPATH or try `HBase.resolve_dependency!`")
+        "Required Java classes not loaded. Set up CLASSPATH.`")
     end
 
     HBase.import_java_classes!

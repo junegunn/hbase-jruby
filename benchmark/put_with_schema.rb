@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 
 if ARGV.length != 3
-  puts "usage: #{$0} <version> <dist> <hbase.zookeeper.quorum>"
+  puts "usage: #{$0} <version> <client-jar> <hbase.zookeeper.quorum>"
   exit 1
 end
 
@@ -11,7 +11,7 @@ require 'hbase-jruby'
 require 'parallelize'
 
 HBase.log4j = { 'log4j.threshold' => 'ERROR' }
-HBase.resolve_dependency! ARGV[1]
+$CLASSPATH << ARGV[1]
 hbase = HBase.new 'hbase.zookeeper.quorum' => ARGV[2],
                   'hbase.hconnection.threads.core' => 256
 puts "- HTablePool (deprecated): #{hbase.use_table_pool? rescue true}"
