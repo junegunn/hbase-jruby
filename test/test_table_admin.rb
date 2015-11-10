@@ -127,9 +127,16 @@ class TestTableAdmin < TestHBaseJRubyBase
     @table.add_family! :cf4, {}
     assert @table.descriptor.getFamilies.map(&:getNameAsString).include?('cf4')
 
-    # TODO: test more props
     @table.alter_family! :cf4, :versions => 10
-    assert_equal 10, @table.descriptor.getFamilies.select { |cf| cf.getNameAsString == 'cf4' }.first.getMaxVersions
+    assert_equal 10, @table.descriptor.getFamily('cf4'.to_java_bytes).getMaxVersions
+
+    @table.alter_family! :cf4, :bloomfilter => :rowcol,
+                               :config => { 'foo' => 'bar' }
+    assert_equal 'ROWCOL', @table.descriptor.getFamily('cf4'.to_java_bytes).getBloomFilterType.to_s
+    assert_equal 10, @table.descriptor.getFamily('cf4'.to_java_bytes).getMaxVersions
+
+    # Method not available on 0.94
+    assert_equal 'bar', @table.descriptor.getFamily('cf4'.to_java_bytes).getConfigurationValue('foo')
 
     assert_raises(ArgumentError) {
       @table.alter_family! :cf4, :hello => 'world'

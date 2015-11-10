@@ -313,43 +313,53 @@ private
 
   MAX_SPLIT_WAIT = 30
 
-  def hcd name, opts
-    HColumnDescriptor.new(name.to_s).tap do |hcd|
-      opts.each do |key, val|
-        if key == :config
-          val.each do |k, v|
-            hcd.setConfiguration k, v.to_s
-          end
-        elsif method = COLUMN_PROPERTIES[key] && COLUMN_PROPERTIES[key][:set]
-          hcd.send method,
-            ({
-              :bloomfilter => proc { |v|
-                enum =
-                  if defined?(org.apache.hadoop.hbase.regionserver.StoreFile::BloomType)
-                    org.apache.hadoop.hbase.regionserver.StoreFile::BloomType
-                  else
-                    # 0.95 or later
-                    org.apache.hadoop.hbase.regionserver.BloomType
-                  end
-                const_shortcut enum, v, "Invalid bloom filter type"
-              },
-              :compression => proc { |v|
-                const_shortcut Compression::Algorithm, v, "Invalid compression algorithm"
-              },
-              :compression_compact => proc { |v|
-                const_shortcut Compression::Algorithm, v, "Invalid compression algorithm"
-              },
-              :data_block_encoding => proc { |v|
-                const_shortcut org.apache.hadoop.hbase.io.encoding.DataBlockEncoding, v, "Invalid data block encoding algorithm"
-              }
-            }[key] || proc { |a| a }).call(val)
-        elsif key.is_a?(String)
-          hcd.setValue key, val.to_s
-        else
-          raise ArgumentError, "Invalid property: #{key}"
+  def hcd obj, opts
+    hcd =
+      case obj
+      when HColumnDescriptor
+        obj
+      else
+        HColumnDescriptor.new(obj.to_s)
+      end
+    patch_column_descriptor!(hcd, opts)
+  end
+
+  def patch_column_descriptor! hcd, opts
+    opts.each do |key, val|
+      if key == :config
+        val.each do |k, v|
+          hcd.setConfiguration k, v.to_s
         end
-      end#opts
-    end
+      elsif method = COLUMN_PROPERTIES[key] && COLUMN_PROPERTIES[key][:set]
+        hcd.send method,
+          ({
+            :bloomfilter => proc { |v|
+              enum =
+                if defined?(org.apache.hadoop.hbase.regionserver.StoreFile::BloomType)
+                  org.apache.hadoop.hbase.regionserver.StoreFile::BloomType
+                else
+                  # 0.95 or later
+                  org.apache.hadoop.hbase.regionserver.BloomType
+                end
+              const_shortcut enum, v, "Invalid bloom filter type"
+            },
+            :compression => proc { |v|
+              const_shortcut Compression::Algorithm, v, "Invalid compression algorithm"
+            },
+            :compression_compact => proc { |v|
+              const_shortcut Compression::Algorithm, v, "Invalid compression algorithm"
+            },
+            :data_block_encoding => proc { |v|
+              const_shortcut org.apache.hadoop.hbase.io.encoding.DataBlockEncoding, v, "Invalid data block encoding algorithm"
+            }
+          }[key] || proc { |a| a }).call(val)
+      elsif key.is_a?(String)
+        hcd.setValue key, val.to_s
+      else
+        raise ArgumentError, "Invalid property: #{key}"
+      end
+    end#opts
+    hcd
   end
 
   def self.const_shortcut base, v, message
@@ -411,7 +421,9 @@ private
 
   def _alter_family name, opts, bang, &block
     with_admin do |admin|
-      admin.modifyColumn @name, hcd(name.to_s, opts)
+      htd = admin.get_table_descriptor(@name.to_java_bytes)
+      hcd = htd.getFamily(name.to_s.to_java_bytes)
+      admin.modifyColumn @name, hcd(hcd, opts)
       wait_async_admin(admin, &block) if bang
     end
   end
