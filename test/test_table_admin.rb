@@ -103,8 +103,7 @@ class TestTableAdmin < TestHBaseJRubyBase
     @table.alter!(
       :max_filesize       => max_fs,
       :memstore_flushsize => mem_fs,
-      :readonly           => false,
-      :deferred_log_flush => true
+      :readonly           => false
     ) do |p, t|
       progress = p
       total = t
@@ -115,7 +114,6 @@ class TestTableAdmin < TestHBaseJRubyBase
     assert_equal max_fs, @table.descriptor.get_max_file_size
     assert_equal mem_fs, @table.descriptor.get_mem_store_flush_size
     assert_equal false,  @table.descriptor.is_read_only
-    assert_equal true,   @table.descriptor.is_deferred_log_flush
 
     @table.drop!
   end

@@ -13,8 +13,7 @@ Changelog
     - `Util.to_bytes :double => 3.14`
     - `Util.from_bytes :float, bytes'`
 - Removed automatic disable/enable to support online alter
-- HBase 1.0 (TODO)
-    - https://hbase.apache.org/apidocs/deprecated-list.html
+- HBase 1.0 client compatibility
 
 0.6.4
 -----

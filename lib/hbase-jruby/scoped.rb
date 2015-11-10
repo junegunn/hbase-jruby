@@ -27,9 +27,9 @@ class Scoped
                 :cache_blocks => true }.merge(options)
 
     scan = block_given? ? filtered_scan : filtered_scan_minimum
-    scan.cache_blocks = options[:cache_blocks]
+    scan.setCacheBlocks options[:cache_blocks]
     if options[:caching] && (@limit.nil? || options[:caching] < @limit)
-      scan.caching = options[:caching]
+      scan.setCaching options[:caching]
     end
 
     cnt = 0
@@ -524,7 +524,7 @@ private
       end if range
 
       # Caching
-      scan.caching = @caching if @caching
+      scan.setCaching @caching if @caching
 
       # Filters (with projection)
       prefix_filter = [*build_prefix_filter].compact
@@ -536,7 +536,7 @@ private
       # Limit
       if @limit
         if [@caching, @dcaching].compact.all? { |c| @limit < c }
-          scan.caching = @limit
+          scan.setCaching @limit
         end
       end
 

@@ -47,7 +47,7 @@ hbase[:my_table].get(100).double('f:c') # Returns 3.14
 require 'hbase-jruby'
 
 # HBase client dependencies
-$CLASSPATH << 'hbase-client-dep-cdh5.3.jar'
+$CLASSPATH << 'hbase-client-dep-1.0.jar'
 
 # Connect to HBase
 hbase = HBase.new 'localhost'
@@ -87,7 +87,7 @@ table.delete('rowkey9')
 require 'hbase-jruby'
 
 # HBase client dependencies
-$CLASSPATH << 'hbase-client-dep-cdh5.3.jar'
+$CLASSPATH << 'hbase-client-dep-1.0.jar'
 
 # Connect to HBase on localhost
 hbase = HBase.new
@@ -194,7 +194,7 @@ API from [hbase-client-dep releases page][client].
 
 ```ruby
 require 'hbase-jruby'
-$CLASSPATH << 'hbase-client-dep-cdh5.3.jar'
+$CLASSPATH << 'hbase-client-dep-1.0.jar'
 
 hbase = HBase.new
 ```
