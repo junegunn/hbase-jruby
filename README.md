@@ -5,7 +5,6 @@
 *hbase-jruby* provides the followings:
 - Easy, Ruby-esque interface for the fundamental HBase operations
 - ActiveRecord-like method chaining for data retrieval
-- Automatic Hadoop/HBase dependency resolution
 
 ## Installation
 
@@ -18,14 +17,13 @@ You can use this gem in HBase shell without external JRuby installation.
 First, clone this repository,
 
 ```sh
-git clone https://github.com/junegunn/hbase-jruby.git
+git clone --depth 1 https://github.com/junegunn/hbase-jruby.git
 ```
 
-then start up the shell (`hbase shell`) and type in the following lines:
+then start up the shell (`hbase shell`) and type in the following line:
 
 ```ruby
-$LOAD_PATH << 'hbase-jruby/lib'
-require 'hbase-jruby'
+$LOAD_PATH << 'hbase-jruby/lib'; require 'hbase-jruby'
 ```
 
 Now, you're all set.
@@ -185,12 +183,12 @@ table.delete 1
 ### Resolving Hadoop/HBase dependency
 
 To be able to access HBase from JRuby, Hadoop/HBase dependency must be
-satisfied. This can be done by either setting up CLASSPATH variable beforehand
-or by `require`ing relevant JAR files after launching JRuby.
+satisfied. This can be done either by setting up CLASSPATH beforehand (e.g.
+`CLASSPATH=$(hbase classpath) jruby ...`) or by `require`ing relevant JAR
+files after launching JRuby.
 
-You might be able to find the right uberjar required for using HBase client
-API from [hbase-client-dep releases page][client].
-(If you don't find one, send me a pull request.)
+You might want to check out pre-built uberjars for various versions of HBase
+client in [hbase-client-dep releases page][client].
 
 ```ruby
 require 'hbase-jruby'
@@ -203,7 +201,7 @@ hbase = HBase.new
 
 ### Log4j logs from HBase
 
-You may want to suppress (or customize) log messages from HBase.
+You can suppress (or customize) log messages from HBase.
 
 ```ruby
 # With an external log4j.properties or log4j.xml file
