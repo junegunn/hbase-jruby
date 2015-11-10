@@ -50,7 +50,7 @@ require 'hbase-jruby'
 $CLASSPATH << 'hbase-client-dep-cdh5.3.jar'
 
 # Connect to HBase
-hbase = HBase.new 'hbase.zookeeper.quorum' => 'localhost'
+hbase = HBase.new 'localhost'
 
 # Table object
 table = hbase[:test_table]
@@ -58,7 +58,8 @@ table.drop! if table.exists?
 table.create! :cf1, :cf2
 
 # PUT
-table.put 'rowkey1' => { 'cf1:a' => 100, 'cf2:b' => "Hello" }
+table.put 'rowkey1' => { 'cf1:a' => 100, 'cf2:b' => 'Hello' },
+          'rowkey2' => { 'cf1:a' => 200, 'cf2:b' => 'world' }
 
 # GET
 row = table.get('rowkey1')
