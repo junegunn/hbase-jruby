@@ -153,7 +153,7 @@ class HBase
   # @param [#to_s] table_name The name of the table
   # @param [Hash] opts Options
   #   @option opts [Fixnum] :column_cache The size of thread-local column-key
-  #   interpretation cache (default: 100)
+  #   interpretation cache (default: 200)
   # @return [HBase::Table]
   def table table_name, opts = {}
     check_closed
