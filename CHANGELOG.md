@@ -1,8 +1,8 @@
 Changelog
 =========
 
-0.7.0 (TBD)
------------
+0.7.0
+-----
 
 - Distinguish float and double
     - `Cell#float` / `Cell#double`
@@ -13,6 +13,10 @@ Changelog
     - `Util.to_bytes :double => 3.14`
     - `Util.from_bytes :float, bytes'`
 - Removed automatic disable/enable to support online alter
+- Fixed `HBase::Table#alter_family[!]` not to drop previous non-default
+  settings
+- Performance improvement with column key interpretation cache
+- Dependency resolution is now deprecated
 - HBase 1.0 client compatibility
 
 0.6.4
