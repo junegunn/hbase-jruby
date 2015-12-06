@@ -53,7 +53,7 @@ hbase = HBase.new 'localhost'
 # Table object
 table = hbase[:test_table]
 table.drop! if table.exists?
-table.create! :cf1, :cf2
+table.create! :cf1 => {}, :cf2 => {}
 
 # PUT
 table.put 'rowkey1' => { 'cf1:a' => 100, 'cf2:b' => 'Hello' },
