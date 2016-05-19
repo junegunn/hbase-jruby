@@ -326,16 +326,25 @@ table.put 'rowkey1', title: "Hello World", year: 2013
 
 # Putting multiple rows
 table.put 'rowkey1' => { title: 'foo',    year: 2013 },
-          'rowkey2' => { title: "bar",    year: 2014 },
+          'rowkey2' => { title: 'bar',    year: 2014 },
           'rowkey3' => { title: 'foobar', year: 2015 }
 
 # Putting values with timestamps
 table.put 'rowkey1',
   title: {
-    1353143856665 => "Hello world",
-    1352978648642 => "Goodbye world"
+    1353143856665 => 'Hello world',
+    1352978648642 => 'Goodbye world'
   },
   year: 2013
+
+# Putting values with the same timestamp
+table.put('rowkey1',
+  {
+    title: 'foo',
+    year: 2016
+  },
+  1463678960135
+)
 ```
 
 ### GET

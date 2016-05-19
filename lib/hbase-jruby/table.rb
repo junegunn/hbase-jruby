@@ -73,7 +73,7 @@ class Table
       puts = args.first.map { |rowkey, props| @mutation.put rowkey, props }
       htable.put puts
       puts.length
-    when 2
+    when 2, 3
       htable.put @mutation.put(*args)
       1
     else

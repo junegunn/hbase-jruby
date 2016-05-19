@@ -147,8 +147,9 @@ class TestTable < TestHBaseJRubyBase
     assert_equal 'A1', @table.get(rowkey).string('cf1:pdp')
   end
 
-  def test_put_timestamp
+  def test_put_timestamp_per_column
     rowkey = next_rowkey
+
     @table.put rowkey => {
       'cf1:b' => 'B1',
       'cf1:a' => {
@@ -162,6 +163,21 @@ class TestTable < TestHBaseJRubyBase
     assert_equal 'A2',                  @table.versions(:all).get(rowkey).strings('cf1:a')[1260000000000]
     assert_equal [1250000000000, 'A1'], @table.versions(:all).get(rowkey).strings('cf1:a').to_a.last
     assert_equal ['B1'],                @table.versions(:all).get(rowkey).strings('cf1:b').values
+  end
+
+  def test_put_timestamp_for_all_columns
+    rowkey = next_rowkey
+
+    # Fixnum timestamp support.
+    @table.put(rowkey, { 'cf1:a' => 'A4' }, 1280000000000)
+
+    assert_equal 'A4', @table.versions(:all).get(rowkey).strings('cf1:a')[1280000000000]
+
+    # Ruby Time timestamp support.
+    @table.put(rowkey, { 'cf1:a' => 'A5', 'cf1:b' => 777 }, Time.at(1290000000))
+
+    assert_equal 'A5', @table.versions(:all).get(rowkey).strings('cf1:a')[1290000000000]
+    assert_equal 777, @table.versions(:all).get(rowkey).fixnums('cf1:b')[1290000000000]
   end
 
   def test_increment
