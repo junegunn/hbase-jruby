@@ -8,7 +8,7 @@ class Mutation
     @table = table
   end
 
-  def put rowkey, props
+  def put rowkey, props, timestamp = nil
     Put.new(Util.to_bytes rowkey).tap { |put|
       props.each do |col, val|
         next if val.nil?
@@ -28,9 +28,17 @@ class Mutation
             end unless v.nil?
           end
         when String
-          put.add cf, cq, val.to_java_bytes
+          if timestamp
+            put.add cf, cq, time_to_long(timestamp), val.to_java_bytes
+          else
+            put.add cf, cq, val.to_java_bytes
+          end
         else
-          put.add cf, cq, Util.to_typed_bytes(type, val)
+          if timestamp
+            put.add cf, cq, time_to_long(timestamp), Util.to_typed_bytes(type, val)
+          else
+            put.add cf, cq, Util.to_typed_bytes(type, val)
+          end
         end
       end
       raise ArgumentError, "no column to put" if put.empty?
