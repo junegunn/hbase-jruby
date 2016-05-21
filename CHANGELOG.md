@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.7.1
+-----
+
+- Support setting one timestamp for all columns (#41)
+
 0.7.0
 -----
 
