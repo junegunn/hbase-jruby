@@ -1254,17 +1254,10 @@ ba.java  # Returns the native Java byte array (byte[])
 ## Test
 
 ```bash
-#!/bin/bash
-
-# Test HBase 0.94 on localhost
-export HBASE_JRUBY_TEST_ZK='127.0.0.1'
-export HBASE_JRUBY_TEST_DIST='0.94'
-
-# Test both for 1.8 and 1.9
-for v in --1.8 --1.9; do
-  export JRUBY_OPTS=$v
-  rake test
-done
+export CLASSPATH=hbase-client-dep-1.2.jar
+export HBASE_JRUBY_TEST_ZK=localhost
+export JRUBY_OPTS=--debug
+jrake test TESTOPTS=-v
 ```
 
 ## Contributing

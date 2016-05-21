@@ -4,17 +4,6 @@ $LOAD_PATH.unshift File.expand_path('..', __FILE__)
 require 'helper'
 
 class TestHBase < TestHBaseJRubyBase
-  def test_log4j
-    HBase.log4j = File.expand_path('../log4j/log4j.properties', __FILE__)
-    HBase.log4j = File.expand_path('../log4j/log4j.xml', __FILE__)
-
-    begin
-      HBase.log4j = File.expand_path('../log4j/log4j_invalid.xml', __FILE__)
-      assert false, "Exception must be thrown when invalid XML is given"
-    rescue Exception
-    end
-  end
-
   def test_tables
     assert @hbase.table_names.include?(TABLE)
     assert @hbase.list.include?(TABLE)

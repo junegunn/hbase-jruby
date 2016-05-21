@@ -1,9 +1,8 @@
 $VERBOSE = true
 
-require 'minitest/autorun'
 require 'simplecov'
 SimpleCov.start
-
+require 'minitest/autorun'
 RECREATE = false
 
 unless defined? Enumerator
@@ -21,7 +20,7 @@ HBase.log4j = { 'log4j.threshold' => 'ERROR' }
 
 class TestHBaseJRubyBase < Minitest::Test
   TABLE = 'test_hbase_jruby'
-  ZK    = ENV.fetch 'HBASE_JRUBY_TEST_ZK'
+  ZK    = ENV.fetch('HBASE_JRUBY_TEST_ZK', 'localhost')
 
   # Initialize
   hbase = HBase.new 'hbase.zookeeper.quorum' => ZK
