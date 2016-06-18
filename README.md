@@ -547,7 +547,7 @@ end
 ### Batch execution
 
 *Disclaimer*: The ordering of execution of the actions is not defined.
-Refer to the documentation of batch method of [HTable class](http://hbase.apache.org/apidocs/org/apache/hadoop/hbase/client/HTable.html).
+Refer to the documentation of [batch method of HTable class](https://hbase.apache.org/0.94/apidocs/org/apache/hadoop/hbase/client/HTable.html#batch%28java.util.List,%20java.lang.Object[]%29).
 
 ```ruby
 ret = table.batch do |b|
