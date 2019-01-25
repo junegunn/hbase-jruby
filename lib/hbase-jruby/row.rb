@@ -23,7 +23,7 @@ class Row
   # Enumerates through cells
   def each
     return enum_for(:each) unless block_given?
-    @result.raw.each do |kv|
+    @result.rawCells.each do |kv|
       yield Cell.new(@table, kv)
     end
   end
@@ -317,5 +317,5 @@ end#Row
 end#HBase
 
 # For backward compatibility
-HBase::Result = HBase::Row
+HBase::Result ||= HBase::Row
 

@@ -123,7 +123,7 @@ private
     }
   end
 
-  KNOWN_TYPES = Set[
+  KNOWN_TYPES ||= Set[
     :string, :str, :symbol, :sym,
     :byte,
     :boolean, :bool,
