@@ -21,7 +21,7 @@ module Util
         v.to_java(Java::byte)
       when String, ByteArray
         v.to_java_bytes
-      when Fixnum
+      when Integer
         Bytes.java_send :toBytes, [Java::long], v
       when Symbol
         v.to_s.to_java_bytes
@@ -174,7 +174,7 @@ module Util
              elsif col[-1, 1] == ':'
                JAVA_BYTE_ARRAY_EMPTY
              end
-        return cf, cq
+        return to_bytes(cf), to_bytes(cq)
       end
     end
   end
