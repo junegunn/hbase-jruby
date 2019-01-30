@@ -167,14 +167,14 @@ module Util
         raise ArgumentError, "Column family not specified"
       else
         col = col.to_s
-        cfcq = col.split(':') #KeyValue.parseColumn(col.to_java_bytes)
-        cf = cfcq[0]
+        cfcq = col.split(':')
+        cf = cfcq[0].to_java_bytes
         cq = if cfcq.length == 2
-               cfcq[1]
+               cfcq[1].to_java_bytes
              elsif col[-1, 1] == ':'
                JAVA_BYTE_ARRAY_EMPTY
              end
-        return to_bytes(cf), to_bytes(cq)
+        return cf, cq
       end
     end
   end

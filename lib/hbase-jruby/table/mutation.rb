@@ -21,23 +21,23 @@ class Mutation
             case t
             # Timestamp / Ruby Time
             when Time, Integer
-              put.addColumn cf.to_java_bytes, cq.to_java_bytes, time_to_long(t), Util.to_typed_bytes(type, v)
+              put.addColumn cf, cq, time_to_long(t), Util.to_typed_bytes(type, v)
             # Types: :byte, :short, :int, ...
             else
-              put.addColumn cf.to_java_bytes, cq.to_java_bytes, Util.to_typed_bytes(t, v)
+              put.addColumn cf, cq, Util.to_typed_bytes(t, v)
             end unless v.nil?
           end
         when String
           if timestamp
-            put.addColumn cf.to_java_bytes, cq.to_java_bytes, time_to_long(timestamp), val.to_java_bytes
+            put.addColumn cf, cq, time_to_long(timestamp), val.to_java_bytes
           else
-            put.addColumn cf.to_java_bytes, cq.to_java_bytes, val.to_java_bytes
+            put.addColumn cf, cq, val.to_java_bytes
           end
         else
           if timestamp
-            put.addColumn cf.to_java_bytes, cq.to_java_bytes, time_to_long(timestamp), Util.to_typed_bytes(type, val)
+            put.addColumn cf, cq, time_to_long(timestamp), Util.to_typed_bytes(type, val)
           else
-            put.addColumn cf.to_java_bytes, cq.to_java_bytes, Util.to_typed_bytes(type, val)
+            put.addColumn cf, cq, Util.to_typed_bytes(type, val)
           end
         end
       end
