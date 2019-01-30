@@ -33,7 +33,7 @@ class Cell
   #   Can be one of :string, :symbol, :fixnum, :float, :short, :int, :bigdecimal, :boolean and :raw.
   # @return [Object]
   def qualifier type = :string
-    Util.from_bytes type, @java.getQualifier
+    Util.from_bytes type, @java.getQualifierArray
   end
   alias cq qualifier
 
@@ -53,7 +53,7 @@ class Cell
   # Returns the value of the cell as a Java byte array
   # @return [byte[]]
   def raw
-    @java.getValue
+    @java.getValueArray
   end
 
   # Returns the column value as a String

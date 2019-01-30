@@ -352,7 +352,7 @@ private
     raise RuntimeError, "HBase connection is already closed" if @hbase.closed?
   end
 
-  INSENSITIVE_ROW_HASH = {}.tap { |h|
+  INSENSITIVE_ROW_HASH ||= {}.tap { |h|
     h.instance_eval do
       def [] key
         if Util.java_bytes?(key)

@@ -13,7 +13,7 @@ class HBase
   include Admin
   include HBase::Util
 
-  DEFAULT_COLUMN_CACHE_SIZE = 200
+  DEFAULT_COLUMN_CACHE_SIZE ||= 200
 
   # @overload HBase.log4j=(filename)
   #   Configure Log4j logging with the given file
@@ -33,13 +33,13 @@ class HBase
       arg.each do |k, v|
         props.setProperty k.to_s, v.to_s
       end
-      org.apache.log4j.PropertyConfigurator.configure props
+      # org.apache.log4j.PropertyConfigurator.configure props
     else
       case File.extname(arg).downcase
       when '.xml'
         org.apache.log4j.xml.DOMConfigurator.configure arg
       else
-        org.apache.log4j.PropertyConfigurator.configure arg
+        # org.apache.log4j.PropertyConfigurator.configure arg
       end
     end
   end
@@ -74,7 +74,7 @@ class HBase
           end
         end
       end
-    @connection = HConnectionManager.createConnection @config
+    @connection = ConnectionFactory.createConnection @config
     @htable_pool =
       if @connection.respond_to?(:getTable)
         nil
@@ -112,16 +112,7 @@ class HBase
     @mutex.synchronize do
       unless @closed
         @closed = true
-        @htable_pool.close if use_table_pool?
         @connection.close
-
-        # To be deprecated
-        begin
-          HConnectionManager.deleteConnection(@config)
-        rescue ArgumentError
-          # HBase 0.92 or below
-          HConnectionManager.deleteConnection(@config, true)
-        end if use_table_pool?
       end
     end
 
@@ -214,7 +205,7 @@ class HBase
 
 private
   def get_htable name
-    (@htable_pool || @connection).get_table name
+    (@htable_pool || @connection).get_table TableName.valueOf name
   end
 
   def check_closed

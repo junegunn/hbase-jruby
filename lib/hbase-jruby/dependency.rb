@@ -11,10 +11,11 @@ class HBase
   # @private
   @deps = {
     self => %w[
+      org.apache.hadoop.hbase.client.ConnectionFactory
       org.apache.hadoop.hbase.HBaseConfiguration
       org.apache.hadoop.hbase.client.HBaseAdmin
-      org.apache.hadoop.hbase.client.HConnectionManager
       org.apache.hadoop.hbase.client.HTablePool
+      org.apache.hadoop.hbase.TableName
     ],
     Util => %w[
       java.nio.ByteBuffer
@@ -27,6 +28,7 @@ class HBase
     ],
     Cell => %w[
       org.apache.hadoop.hbase.KeyValue
+      org.apache.hadoop.hbase.CellUtil
     ],
     Result => %w[
       org.apache.hadoop.hbase.util.Bytes

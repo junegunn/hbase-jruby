@@ -397,7 +397,7 @@ private
       case @trange
       when Array
         get.setTimeRange(*@trange)
-      when Time, Fixnum
+      when Time, Integer
         get.setTimeStamp @trange
       end
 
@@ -495,7 +495,7 @@ private
 
   def set_max_versions obj
     case @versions
-    when Fixnum
+    when Integer
       obj.setMaxVersions @versions
     when :all
       obj.setMaxVersions
@@ -547,7 +547,7 @@ private
       case @trange
       when Array
         scan.setTimeRange(*@trange)
-      when Time, Fixnum
+      when Time, Integer
         scan.setTimeStamp @trange
       end
 

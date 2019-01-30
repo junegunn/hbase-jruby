@@ -261,7 +261,7 @@ class Table
   end
 
 private
-  COLUMN_PROPERTIES = {
+  COLUMN_PROPERTIES ||= {
     :blockcache            => { :set => :setBlockCacheEnabled,         :get => :isBlockCacheEnabled },
     :blocksize             => { :set => :setBlocksize,                 :get => :getBlocksize },
     :bloomfilter           => { :set => :setBloomFilterType,           :get => :getBloomFilterType },
@@ -281,7 +281,7 @@ private
     :versions              => { :set => :setMaxVersions,               :get => :getMaxVersions },
   }
 
-  TABLE_PROPERTIES = {
+  TABLE_PROPERTIES ||= {
     :max_filesize       => { :get => :getMaxFileSize,       :set => :setMaxFileSize },
     :readonly           => { :get => :isReadOnly,           :set => :setReadOnly },
     :memstore_flushsize => { :get => :getMemStoreFlushSize, :set => :setMemStoreFlushSize },
@@ -311,7 +311,7 @@ private
                            }
   }
 
-  MAX_SPLIT_WAIT = 30
+  MAX_SPLIT_WAIT ||= 30
 
   def hcd obj, opts
     hcd =

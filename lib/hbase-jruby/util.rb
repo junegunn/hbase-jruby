@@ -2,8 +2,8 @@ require 'bigdecimal'
 
 class HBase
 module Util
-  JAVA_BYTE_ARRAY_EMPTY = [].to_java(Java::byte)
-  JAVA_BYTE_ARRAY_CLASS = JAVA_BYTE_ARRAY_EMPTY.java_class
+  JAVA_BYTE_ARRAY_EMPTY ||= [].to_java(Java::byte)
+  JAVA_BYTE_ARRAY_CLASS ||= JAVA_BYTE_ARRAY_EMPTY.java_class
 
   class << self
     def java_bytes? v
@@ -21,7 +21,7 @@ module Util
         v.to_java(Java::byte)
       when String, ByteArray
         v.to_java_bytes
-      when Fixnum
+      when Integer
         Bytes.java_send :toBytes, [Java::long], v
       when Symbol
         v.to_s.to_java_bytes
@@ -167,10 +167,10 @@ module Util
         raise ArgumentError, "Column family not specified"
       else
         col = col.to_s
-        cfcq = KeyValue.parseColumn(col.to_java_bytes)
-        cf = cfcq[0]
+        cfcq = col.split(':')
+        cf = cfcq[0].to_java_bytes
         cq = if cfcq.length == 2
-               cfcq[1]
+               cfcq[1].to_java_bytes
              elsif col[-1, 1] == ':'
                JAVA_BYTE_ARRAY_EMPTY
              end
